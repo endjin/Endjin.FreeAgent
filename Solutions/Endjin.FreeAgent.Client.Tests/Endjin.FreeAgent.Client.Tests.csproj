@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+    <EnableMSTestRunner>true</EnableMSTestRunner>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <NoWarn>1701;1702;NETSDK1057;</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <NoWarn>1701;1702;NETSDK1057;</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Testing Platform -->
+    <PackageReference Include="MSTest" Version="3.10.4" />
+    <PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="1.8.4" />
+
+    <!-- Assertion Framework -->
+    <PackageReference Include="Shouldly" Version="4.3.0" />
+
+    <!-- Mocking Framework -->
+    <PackageReference Include="NSubstitute" Version="5.3.0" />
+
+    <!-- Dependencies -->
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0-rc.1.*" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0-rc.1.*" />
+
+    <!-- Additional Tools -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Endjin.FreeAgent.Client\Endjin.FreeAgent.Client.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+</Project>

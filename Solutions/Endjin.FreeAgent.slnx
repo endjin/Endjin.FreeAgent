@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="DemoApp/DemoApp.csproj" Id="0bb9bd73-9f0e-4f28-90c8-57e40ca7a4ce" />
+  <Project Path="Endjin.FreeAgent.Client.Tests/Endjin.FreeAgent.Client.Tests.csproj" />
+  <Project Path="Endjin.FreeAgent.Client/Endjin.FreeAgent.Client.csproj" />
+  <Project Path="Endjin.FreeAgent.Domain.Tests/Endjin.FreeAgent.Domain.Tests.csproj" />
+  <Project Path="Endjin.FreeAgent.Domain/Endjin.FreeAgent.Domain.csproj" />
+</Solution>

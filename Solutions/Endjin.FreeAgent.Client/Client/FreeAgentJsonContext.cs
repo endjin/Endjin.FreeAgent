@@ -1,0 +1,123 @@
+// <copyright file="FreeAgentJsonContext.cs" company="Endjin Limited">
+// Copyright (c) Endjin Limited. All rights reserved.
+// </copyright>
+
+using System.Text.Json.Serialization;
+using Endjin.FreeAgent.Domain;
+
+namespace Endjin.FreeAgent.Client;
+
+/// <summary>
+/// JSON source generation context for FreeAgent API types.
+/// This improves serialization performance and enables AOT compilation.
+/// </summary>
+[JsonSourceGenerationOptions(
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    PropertyNameCaseInsensitive = true,
+    WriteIndented = false,
+    AllowTrailingCommas = true,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+// Root types for API responses
+[JsonSerializable(typeof(AttachmentRoot))]
+[JsonSerializable(typeof(BalanceSheetRoot))]
+[JsonSerializable(typeof(BankAccountRoot))]
+[JsonSerializable(typeof(BankAccountsRoot))]
+[JsonSerializable(typeof(BankStatementUploadRoot))]
+[JsonSerializable(typeof(BankStatementUploadResponseRoot))]
+[JsonSerializable(typeof(BankTransactionExplanationRoot))]
+[JsonSerializable(typeof(BankTransactionExplanationsRoot))]
+[JsonSerializable(typeof(BankTransactionRoot))]
+[JsonSerializable(typeof(BankTransactionsRoot))]
+[JsonSerializable(typeof(BillRoot))]
+[JsonSerializable(typeof(BillsRoot))]
+[JsonSerializable(typeof(BillPaymentRoot))]
+[JsonSerializable(typeof(CapitalAssetRoot))]
+[JsonSerializable(typeof(CapitalAssetsRoot))]
+[JsonSerializable(typeof(CapitalAssetTypeRoot))]
+[JsonSerializable(typeof(CapitalAssetTypesRoot))]
+[JsonSerializable(typeof(CashFlowRoot))]
+[JsonSerializable(typeof(CategoriesRoot))]
+[JsonSerializable(typeof(CompanyRoot))]
+[JsonSerializable(typeof(ContactRoot))]
+[JsonSerializable(typeof(ContactsRoot))]
+[JsonSerializable(typeof(CorporationTaxReturnRoot))]
+[JsonSerializable(typeof(CorporationTaxReturnsRoot))]
+[JsonSerializable(typeof(CorporationTaxReturnFilingRoot))]
+[JsonSerializable(typeof(CreditNoteRoot))]
+[JsonSerializable(typeof(CreditNotesRoot))]
+[JsonSerializable(typeof(CreditNoteRefundRoot))]
+[JsonSerializable(typeof(CreditNoteEmailRoot))]
+[JsonSerializable(typeof(CurrenciesRoot))]
+[JsonSerializable(typeof(DepreciationProfilesRoot))]
+[JsonSerializable(typeof(EstimateRoot))]
+[JsonSerializable(typeof(EstimatesRoot))]
+[JsonSerializable(typeof(ExpenseRoot))]
+[JsonSerializable(typeof(InvoiceRoot))]
+[JsonSerializable(typeof(InvoicesRoot))]
+[JsonSerializable(typeof(InvoicePaymentRoot))]
+[JsonSerializable(typeof(InvoiceEmailRoot))]
+[JsonSerializable(typeof(JournalSetRoot))]
+[JsonSerializable(typeof(MileageRoot))]
+[JsonSerializable(typeof(MileagesRoot))]
+[JsonSerializable(typeof(NotesRoot))]
+[JsonSerializable(typeof(OpeningBalanceRoot))]
+[JsonSerializable(typeof(PayrollPaymentRoot))]
+[JsonSerializable(typeof(PayrollPaymentsRoot))]
+[JsonSerializable(typeof(PayrollProfileRoot))]
+[JsonSerializable(typeof(PayrollProfilesRoot))]
+[JsonSerializable(typeof(PayslipRoot))]
+[JsonSerializable(typeof(PayslipsRoot))]
+[JsonSerializable(typeof(ProfitAndLossRoot))]
+[JsonSerializable(typeof(ProjectRoot))]
+[JsonSerializable(typeof(ProjectsRoot))]
+[JsonSerializable(typeof(PurchaseAgedCreditorsRoot))]
+[JsonSerializable(typeof(RecurringInvoiceRoot))]
+[JsonSerializable(typeof(RecurringInvoicesRoot))]
+[JsonSerializable(typeof(SalesAgedDebtorsRoot))]
+[JsonSerializable(typeof(SalesTaxRatesRoot))]
+[JsonSerializable(typeof(SelfAssessmentReturnRoot))]
+[JsonSerializable(typeof(SelfAssessmentReturnsRoot))]
+[JsonSerializable(typeof(SelfAssessmentReturnFilingRoot))]
+[JsonSerializable(typeof(StatementUploadRoot))]
+[JsonSerializable(typeof(StockItemRoot))]
+[JsonSerializable(typeof(StockItemsRoot))]
+[JsonSerializable(typeof(TaskRoot))]
+[JsonSerializable(typeof(TasksRoot))]
+[JsonSerializable(typeof(TimeslipsRoot))]
+[JsonSerializable(typeof(TrialBalanceRoot))]
+[JsonSerializable(typeof(UserRoot))]
+[JsonSerializable(typeof(UsersRoot))]
+[JsonSerializable(typeof(VatReturnRoot))]
+[JsonSerializable(typeof(VatReturnsRoot))]
+[JsonSerializable(typeof(VatReturnFilingRoot))]
+[JsonSerializable(typeof(WebhookRoot))]
+[JsonSerializable(typeof(WebhooksRoot))]
+// Domain models (needed for serialization of request bodies)
+[JsonSerializable(typeof(Attachment))]
+[JsonSerializable(typeof(BankAccount))]
+[JsonSerializable(typeof(BankTransaction))]
+[JsonSerializable(typeof(BankTransactionExplanation))]
+[JsonSerializable(typeof(Bill))]
+[JsonSerializable(typeof(CapitalAsset))]
+[JsonSerializable(typeof(Company))]
+[JsonSerializable(typeof(Contact))]
+[JsonSerializable(typeof(CreditNote))]
+[JsonSerializable(typeof(Estimate))]
+[JsonSerializable(typeof(Expense))]
+[JsonSerializable(typeof(Invoice))]
+[JsonSerializable(typeof(InvoiceEmail))]
+[JsonSerializable(typeof(JournalSet))]
+[JsonSerializable(typeof(Mileage))]
+[JsonSerializable(typeof(OpeningBalance))]
+[JsonSerializable(typeof(PayrollPayment))]
+[JsonSerializable(typeof(PayrollProfile))]
+[JsonSerializable(typeof(Payslip))]
+[JsonSerializable(typeof(Project))]
+[JsonSerializable(typeof(RecurringInvoice))]
+[JsonSerializable(typeof(StockItem))]
+[JsonSerializable(typeof(Task))]
+[JsonSerializable(typeof(User))]
+[JsonSerializable(typeof(Webhook))]
+public partial class FreeAgentJsonContext : JsonSerializerContext
+{
+}
