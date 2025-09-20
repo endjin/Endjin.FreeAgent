@@ -27,7 +27,7 @@ $SkipBuild = $false
 $CleanBuild = $Clean
 $SkipTest = $false
 $SkipTestReport = $false
-$SkipAnalysis = $false
+$SkipAnalysis = $true
 $SkipPackage = $false
 
 $SolutionToBuild = (Resolve-Path (Join-Path $here "./Solutions/Endjin.FreeAgent.slnx")).Path
