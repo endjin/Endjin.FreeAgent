@@ -6,8 +6,8 @@ namespace Endjin.FreeAgent.Domain;
 
 using System.Text.Json.Serialization;
 
-public class JournalSetRoot
+public record JournalSetRoot
 {
     [JsonPropertyName("journal_set")]
-    public JournalSet? JournalSet { get; set; }
+    public JournalSet? JournalSet { get; init; }
 }

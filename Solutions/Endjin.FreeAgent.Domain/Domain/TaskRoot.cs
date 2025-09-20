@@ -4,8 +4,8 @@
 
 namespace Endjin.FreeAgent.Domain;
 
-public class TaskRoot
+public record TaskRoot
 {
     [JsonPropertyName("task")]
-    public TaskItem? TaskItem { get; set; }
+    public TaskItem? TaskItem { get; init; }
 }

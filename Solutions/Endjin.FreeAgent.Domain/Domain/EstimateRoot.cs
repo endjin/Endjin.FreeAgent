@@ -4,8 +4,8 @@
 
 namespace Endjin.FreeAgent.Domain;
 
-public class EstimateRoot
+public record EstimateRoot
 {
     [JsonPropertyName("estimate")]
-    public Estimate? Estimate { get; set; }
+    public Estimate? Estimate { get; init; }
 }

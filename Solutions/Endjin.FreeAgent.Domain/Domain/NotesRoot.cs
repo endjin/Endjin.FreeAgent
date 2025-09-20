@@ -4,8 +4,8 @@
 
 namespace Endjin.FreeAgent.Domain;
 
-public class NotesRoot
+public record NotesRoot
 {
     [JsonPropertyName("notes")]
-    public List<NoteItem>? Notes { get; set; }
+    public List<NoteItem>? Notes { get; init; }
 }
