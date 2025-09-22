@@ -37,7 +37,7 @@ $ProjectsToPublish = @(
 )
 $NugetPublishSource = property ZF_NUGET_PUBLISH_SOURCE "$here/_local-nuget-feed"
 $IncludeAssembliesInCodeCoverage = "Endjin.FreeAgent*"
-$ExcludeAssembliesInCodeCoverage = ""
+$ExcludeAssembliesInCodeCoverage = "Endjin.FreeAgent*.Tests*"
 
 task . FullBuild
 
