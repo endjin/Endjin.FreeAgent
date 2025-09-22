@@ -4,7 +4,7 @@
 
 namespace Endjin.FreeAgent.Domain;
 
-[DebuggerDisplay("{Category} {Description} - {DebitValue}")]
+[DebuggerDisplay("{Category} {DisplayText} - {DebitValue}")]
 public record JournalEntry
 {
     [JsonPropertyName("category")]
