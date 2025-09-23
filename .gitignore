@@ -420,3 +420,6 @@ FodyWeavers.xsd
 /_packages/
 /_codeCoverage/
 /.zf/extensions/
+Endjin.FreeAgent.sbom.spdx.json
+Endjin.FreeAgent.sbom.html
+Endjin.FreeAgent.sbom.json
