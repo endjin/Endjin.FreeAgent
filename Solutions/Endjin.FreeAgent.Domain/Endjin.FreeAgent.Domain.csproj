@@ -4,8 +4,6 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Endjin.FreeAgent</RootNamespace>
     <Nullable>enable</Nullable>
-    <LangVersion>preview</LangVersion>
-    <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
     <!-- Enable source generator support -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
