@@ -54,7 +54,7 @@ FreeAgentOptions options = new()
 {
     ClientId = "your-client-id",
     ClientSecret = "your-client-secret",
-    RedirectUri = "your-redirect-uri"
+    RefreshToken = "your-refresh-token"
 };
 
 // Create client
@@ -133,7 +133,7 @@ catch (HttpRequestException ex)
 ## Requirements
 
 - .NET 10.0 or later
-- FreeAgent API credentials (Client ID, Client Secret)
+- FreeAgent API credentials (Client Id, Client Secret, Refresh Token)
 - Active FreeAgent account
 
 ## Documentation
