@@ -104,6 +104,42 @@ IEnumerable<Timeslip> timeslips = await client.Timeslips.GetByProjectUrlAsync("h
 
 ## Advanced Features
 
+### Interactive OAuth2 Login
+
+The easiest way to get your initial access and refresh tokens is to use the interactive login helper:
+
+```csharp
+using Endjin.FreeAgent.Client.OAuth2;
+using Microsoft.Extensions.Logging;
+
+// Configure OAuth2 options (only need ClientId and ClientSecret)
+OAuth2Options options = new()
+{
+    ClientId = "your-client-id",
+    ClientSecret = "your-client-secret",
+    UsePkce = true
+};
+
+// Create HTTP client and logger
+using var httpClient = new HttpClient();
+using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+var logger = loggerFactory.CreateLogger<InteractiveLoginHelper>();
+
+// Create and use the interactive login helper
+var loginHelper = new InteractiveLoginHelper(options, httpClient, logger);
+InteractiveLoginResult result = await loginHelper.LoginAsync(redirectPort: 5000);
+
+// Save the refresh token for future use
+Console.WriteLine($"Refresh Token: {result.RefreshToken}");
+```
+
+The `LoginAsync` method will:
+1. Start a local HTTP listener
+2. Open your browser to the FreeAgent authorization page
+3. Wait for the OAuth callback
+4. Exchange the authorization code for tokens
+5. Return both access and refresh tokens
+
 ### Caching
 
 The client includes built-in memory caching with configurable expiration:
@@ -133,8 +169,9 @@ catch (HttpRequestException ex)
 ## Requirements
 
 - .NET 10.0 or later
-- FreeAgent API credentials (Client Id, Client Secret, Refresh Token)
+- FreeAgent API credentials (Client Id and Client Secret)
 - Active FreeAgent account
+- For first-time setup, you can use interactive login to obtain a refresh token
 
 ## Documentation
 
