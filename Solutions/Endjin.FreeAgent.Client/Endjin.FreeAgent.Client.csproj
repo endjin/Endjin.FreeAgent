@@ -1,0 +1,60 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Endjin.FreeAgent</RootNamespace>
+    <Nullable>enable</Nullable>
+    <!-- Enable source generator support -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
+    <!-- NuGet Package Metadata -->
+    <PackageId>Endjin.FreeAgent.Client</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Endjin Limited</Authors>
+    <Company>Endjin Limited</Company>
+    <Product>Endjin FreeAgent Client</Product>
+    <Description>.NET client library for the FreeAgent accounting API, providing strongly-typed access to all FreeAgent resources including invoices, contacts, projects, expenses, and more.</Description>
+    <Copyright>Copyright (c) Endjin Limited. All rights reserved.</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageTags>freeagent;api;client;accounting;finance;invoicing;</PackageTags>
+    <PackageIcon>freeagent-logo.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <NoWarn>1701;1702;SYSLIB1031;NETSDK1057;</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <NoWarn>1701;1702;SYSLIB1031;NETSDK1057;</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Endjin.FreeAgent.Client.Tests" />
+    <InternalsVisibleTo Include="Endjin.FreeAgent.Client.Extensions.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Corvus.Retry" Version="1.0.7" />
+    <PackageReference Include="Duende.IdentityModel" Version="7.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Endjin.FreeAgent.Domain\Endjin.FreeAgent.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="freeagent-logo.png" Pack="true" PackagePath="" />
+    <None Include="README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+</Project>
