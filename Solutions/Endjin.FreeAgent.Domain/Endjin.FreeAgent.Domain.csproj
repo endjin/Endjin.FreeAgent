@@ -37,9 +37,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Package Icon -->
     <None Include="freeagent-logo.png" Pack="true" PackagePath="" />
-    <!-- Package README -->
     <None Include="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 </Project>
