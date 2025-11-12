@@ -9,14 +9,14 @@
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
     <!-- NuGet Package Metadata -->
     <PackageId>Endjin.FreeAgent.Domain</PackageId>
-    <Version>1.0.0-preview.1</Version>
+    <Version>1.0.0</Version>
     <Authors>Endjin Limited</Authors>
     <Company>Endjin Limited</Company>
     <Product>Endjin FreeAgent Domain</Product>
     <Description>Domain models and types for the FreeAgent accounting API, providing strongly-typed representations of all FreeAgent resources including invoices, contacts, projects, expenses, and more.</Description>
     <Copyright>Copyright (c) Endjin Limited. All rights reserved.</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageTags>freeagent;api;domain;models;accounting;finance;invoicing;dotnet;csharp;records;immutable;preview</PackageTags>
+    <PackageTags>freeagent;api;domain;models;accounting;finance;invoicing;</PackageTags>
     <PackageIcon>freeagent-logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>

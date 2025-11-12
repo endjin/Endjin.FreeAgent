@@ -16,7 +16,7 @@
     <Description>.NET client library for the FreeAgent accounting API, providing strongly-typed access to all FreeAgent resources including invoices, contacts, projects, expenses, and more.</Description>
     <Copyright>Copyright (c) Endjin Limited. All rights reserved.</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageTags>freeagent;api;client;accounting;finance;invoicing;dotnet;csharp;preview</PackageTags>
+    <PackageTags>freeagent;api;client;accounting;finance;invoicing;</PackageTags>
     <PackageIcon>freeagent-logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
