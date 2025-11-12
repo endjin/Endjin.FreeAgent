@@ -13,7 +13,7 @@
     <Authors>Endjin Limited</Authors>
     <Company>Endjin Limited</Company>
     <Product>Endjin FreeAgent Client</Product>
-    <Description>.NET client library for the FreeAgent accounting API, providing strongly-typed access to all FreeAgent resources including invoices, contacts, projects, expenses, and more. This is a preview release targeting .NET 10.</Description>
+    <Description>.NET client library for the FreeAgent accounting API, providing strongly-typed access to all FreeAgent resources including invoices, contacts, projects, expenses, and more.</Description>
     <Copyright>Copyright (c) Endjin Limited. All rights reserved.</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageTags>freeagent;api;client;accounting;finance;invoicing;dotnet;csharp;preview</PackageTags>
@@ -22,7 +22,6 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <RepositoryType>git</RepositoryType>
-    <PackageReleaseNotes>Preview release of the Endjin FreeAgent Client library targeting .NET 10 RC. This package will be updated to stable once .NET 10 is officially released.</PackageReleaseNotes>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
