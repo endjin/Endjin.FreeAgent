@@ -8,6 +8,23 @@ using Endjin.FreeAgent.Domain;
 
 namespace Endjin.FreeAgent.Client;
 
+/// <summary>
+/// Provides methods for managing bills via the FreeAgent API.
+/// </summary>
+/// <remarks>
+/// <para>
+/// This service class provides access to FreeAgent bills, which represent purchase documents and expenses
+/// payable to suppliers. Bills track money owed by the business and can be associated with contacts and
+/// projects.
+/// </para>
+/// <para>
+/// Results are cached for 5 minutes to improve performance. Cache entries are invalidated automatically
+/// when bills are updated, deleted, or marked as paid.
+/// </para>
+/// </remarks>
+/// <seealso cref="Bill"/>
+/// <seealso cref="Contact"/>
+/// <seealso cref="Project"/>
 public class Bills
 {
     private const string BillsEndPoint = "v2/bills";
@@ -15,6 +32,11 @@ public class Bills
     private readonly IMemoryCache cache;
     private readonly MemoryCacheEntryOptions cacheEntryOptions = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Bills"/> class.
+    /// </summary>
+    /// <param name="freeAgentClient">The FreeAgent HTTP client for making API requests.</param>
+    /// <param name="cache">The memory cache for storing bill data.</param>
     public Bills(FreeAgentClient freeAgentClient, IMemoryCache cache)
     {
         this.freeAgentClient = freeAgentClient;
@@ -22,6 +44,20 @@ public class Bills
         this.cacheEntryOptions.SetSlidingExpiration(TimeSpan.FromMinutes(5));
     }
 
+    /// <summary>
+    /// Creates a new bill in FreeAgent.
+    /// </summary>
+    /// <param name="bill">The <see cref="Bill"/> object containing the bill details to create.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// created <see cref="Bill"/> object with server-assigned values (e.g., ID, URL, reference).
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls POST /v2/bills to create a new bill. The cache is not updated as
+    /// only aggregate queries are cached.
+    /// </remarks>
     public async Task<Bill> CreateAsync(Bill bill)
     {
         BillRoot root = new() { Bill = bill };
@@ -38,6 +74,19 @@ public class Bills
         return result?.Bill ?? throw new InvalidOperationException("Failed to deserialize bill response.");
     }
 
+    /// <summary>
+    /// Retrieves bills from FreeAgent filtered by view.
+    /// </summary>
+    /// <param name="view">The view filter to apply (e.g., "all", "open", "overdue"). Defaults to "all".</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// <see cref="Bill"/> objects matching the specified view.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/bills?view={view}, handles pagination automatically, and caches the
+    /// result for 5 minutes.
+    /// </remarks>
     public async Task<IEnumerable<Bill>> GetAllAsync(string view = "all")
     {
         string cacheKey = $"{BillsEndPoint}/{view}";
@@ -55,6 +104,19 @@ public class Bills
         return results ?? [];
     }
 
+    /// <summary>
+    /// Retrieves a specific bill by its ID from FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the bill to retrieve.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// <see cref="Bill"/> object with the specified ID.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when no bill with the specified ID is found.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/bills/{id} and caches the result for 5 minutes.
+    /// </remarks>
     public async Task<Bill> GetByIdAsync(string id)
     {
         string cacheKey = $"{BillsEndPoint}/{id}";
@@ -75,6 +137,21 @@ public class Bills
         return results ?? throw new InvalidOperationException($"Bill with ID {id} not found.");
     }
 
+    /// <summary>
+    /// Updates an existing bill in FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the bill to update.</param>
+    /// <param name="bill">The <see cref="Bill"/> object containing the updated bill details.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="Bill"/> object as returned by the API.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls PUT /v2/bills/{id} to update the bill. The cache entry for this bill
+    /// is invalidated after a successful update.
+    /// </remarks>
     public async Task<Bill> UpdateAsync(string id, Bill bill)
     {
         BillRoot root = new() { Bill = bill };
@@ -95,6 +172,16 @@ public class Bills
         return result?.Bill ?? throw new InvalidOperationException("Failed to deserialize bill response.");
     }
 
+    /// <summary>
+    /// Deletes a bill from FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the bill to delete.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls DELETE /v2/bills/{id} to delete the bill. The cache entry for this bill
+    /// is invalidated after successful deletion.
+    /// </remarks>
     public async Task DeleteAsync(string id)
     {
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.DeleteAsync(
@@ -107,6 +194,22 @@ public class Bills
         this.cache.Remove(cacheKey);
     }
 
+    /// <summary>
+    /// Marks a bill as paid in FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the bill to mark as paid.</param>
+    /// <param name="paidOn">The date the bill was paid.</param>
+    /// <param name="bankAccountUri">The URI of the bank account the payment was made from.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="Bill"/> object with its status changed to paid.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls PUT /v2/bills/{id}/mark_as_paid to record payment of the bill. This creates
+    /// a corresponding bank transaction. The cache entry for this bill is invalidated.
+    /// </remarks>
     public async Task<Bill> MarkAsPaidAsync(string id, DateOnly paidOn, Uri bankAccountUri)
     {
         BillPaymentRoot paymentRoot = new()

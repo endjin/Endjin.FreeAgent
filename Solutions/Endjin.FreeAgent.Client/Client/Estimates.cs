@@ -8,6 +8,24 @@ using Endjin.FreeAgent.Domain;
 
 namespace Endjin.FreeAgent.Client;
 
+/// <summary>
+/// Provides methods for managing estimates (quotes) via the FreeAgent API.
+/// </summary>
+/// <remarks>
+/// <para>
+/// This service class provides access to FreeAgent estimates, which are quotes sent to potential customers
+/// before work begins. Estimates can be in various statuses (draft, sent, approved, rejected, invoiced) and
+/// can later be converted into invoices once accepted.
+/// </para>
+/// <para>
+/// Results are cached for 5 minutes to improve performance. The class also provides specialized methods for
+/// calculating projected monthly revenue based on estimate data.
+/// </para>
+/// </remarks>
+/// <seealso cref="Estimate"/>
+/// <seealso cref="EstimateItem"/>
+/// <seealso cref="Contact"/>
+/// <seealso cref="Project"/>
 public partial class Estimates
 {
     private const string EstimatesEndPoint = "v2/estimates";
@@ -15,6 +33,11 @@ public partial class Estimates
     private readonly IMemoryCache cache;
     private readonly MemoryCacheEntryOptions cacheEntryOptions = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Estimates"/> class.
+    /// </summary>
+    /// <param name="freeAgentClient">The FreeAgent HTTP client for making API requests.</param>
+    /// <param name="cache">The memory cache for storing estimate data.</param>
     public Estimates(FreeAgentClient freeAgentClient, IMemoryCache cache)
     {
         this.freeAgentClient = freeAgentClient;
@@ -22,6 +45,18 @@ public partial class Estimates
         this.cacheEntryOptions.SetSlidingExpiration(TimeSpan.FromMinutes(5));
     }
 
+    /// <summary>
+    /// Retrieves all estimates from FreeAgent.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// all <see cref="Estimate"/> objects.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/estimates and handles pagination automatically. Results are not cached
+    /// as this retrieves all estimates without filtering.
+    /// </remarks>
     public async Task<IEnumerable<Estimate>> GetAllAsync()
     {
         List<EstimatesRoot> results = await this.freeAgentClient.ExecuteRequestAndFollowLinksAsync<EstimatesRoot>(new Uri(freeAgentClient.ApiBaseUrl, EstimatesEndPoint)).ConfigureAwait(false);
@@ -30,10 +65,18 @@ public partial class Estimates
     }
 
     /// <summary>
-    /// Gets all estimates by the supplied status
+    /// Retrieves estimates from FreeAgent filtered by status.
     /// </summary>
-    /// <param name="status">any of: all, recent, draft, non_draft, sent, approved, rejected, invoiced</param>
-    /// <returns></returns>
+    /// <param name="status">The status filter to apply. Valid values: "all", "recent", "draft", "non_draft", "sent", "approved", "rejected", "invoiced".</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// <see cref="Estimate"/> objects matching the specified status.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/estimates?view={status}, handles pagination automatically, and caches the
+    /// result for 5 minutes.
+    /// </remarks>
     public async Task<IEnumerable<Estimate>> GetAllByStatusAsync(string status)
     {
         string urlSegment = $"{EstimatesEndPoint}?view={status}";
@@ -50,6 +93,19 @@ public partial class Estimates
         return results ?? [];
     }
 
+    /// <summary>
+    /// Retrieves a specific estimate by its ID from FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the estimate to retrieve.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// <see cref="Estimate"/> object with the specified ID.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when no estimate with the specified ID is found.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/estimates/{id} and caches the result for 5 minutes.
+    /// </remarks>
     public async Task<Estimate> GetByIdAsync(string id)
     {
         string urlSegment = $"{EstimatesEndPoint}/{id}";
@@ -70,6 +126,25 @@ public partial class Estimates
         return results ?? throw new InvalidOperationException($"Estimate with ID {id} not found.");
     }
 
+    /// <summary>
+    /// Calculates projected monthly revenue based on approved and draft estimates.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a dictionary
+    /// mapping months to lists of revenue items (contact, project, and price) expected in that month.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// <para>
+    /// This method analyzes estimate line items to project revenue by month. It extracts dates from
+    /// estimate item descriptions using a regex pattern that matches month and year (e.g., "January 2024").
+    /// The method aggregates data from approved and draft estimates, active projects, and contacts.
+    /// </para>
+    /// <para>
+    /// Results are cached for 5 minutes. The calculation involves multiple API calls to retrieve
+    /// contacts, projects, and estimates, which are executed in parallel for performance.
+    /// </para>
+    /// </remarks>
     public async Task<Dictionary<DateTime, List<(Contact contact, Project project, decimal price)>>> GetProjectedMonthlyRevenue()
     {
         // Local function to extract date from description string

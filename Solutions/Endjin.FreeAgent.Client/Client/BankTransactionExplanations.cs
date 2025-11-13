@@ -8,6 +8,22 @@ using Endjin.FreeAgent.Domain;
 
 namespace Endjin.FreeAgent.Client;
 
+/// <summary>
+/// Provides methods for managing bank transaction explanations via the FreeAgent API.
+/// </summary>
+/// <remarks>
+/// <para>
+/// This service class provides access to FreeAgent bank transaction explanations, which link bank transactions
+/// to their accounting entries (invoices, bills, expenses, transfers, etc.). Explanations are essential for
+/// bank reconciliation and maintaining accurate financial records.
+/// </para>
+/// <para>
+/// Results are cached for 5 minutes to improve performance. Cache entries are invalidated automatically
+/// when explanations are updated or deleted.
+/// </para>
+/// </remarks>
+/// <seealso cref="BankTransactionExplanation"/>
+/// <seealso cref="BankTransaction"/>
 public class BankTransactionExplanations
 {
     private const string BankTransactionExplanationsEndPoint = "v2/bank_transaction_explanations";
@@ -15,6 +31,11 @@ public class BankTransactionExplanations
     private readonly IMemoryCache cache;
     private readonly MemoryCacheEntryOptions cacheEntryOptions = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BankTransactionExplanations"/> class.
+    /// </summary>
+    /// <param name="freeAgentClient">The FreeAgent HTTP client for making API requests.</param>
+    /// <param name="cache">The memory cache for storing bank transaction explanation data.</param>
     public BankTransactionExplanations(FreeAgentClient freeAgentClient, IMemoryCache cache)
     {
         this.freeAgentClient = freeAgentClient;
@@ -22,6 +43,21 @@ public class BankTransactionExplanations
         this.cacheEntryOptions.SetSlidingExpiration(TimeSpan.FromMinutes(5));
     }
 
+    /// <summary>
+    /// Creates a new bank transaction explanation in FreeAgent.
+    /// </summary>
+    /// <param name="explanation">The <see cref="BankTransactionExplanation"/> object containing the explanation details to create.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// created <see cref="BankTransactionExplanation"/> object with server-assigned values (e.g., ID, URL).
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls POST /v2/bank_transaction_explanations to create a new explanation, effectively
+    /// reconciling a bank transaction with its accounting entry. The cache is not updated as only aggregate
+    /// queries are cached.
+    /// </remarks>
     public async Task<BankTransactionExplanation> CreateAsync(BankTransactionExplanation explanation)
     {
         BankTransactionExplanationRoot root = new() { BankTransactionExplanation = explanation };
@@ -38,6 +74,19 @@ public class BankTransactionExplanations
         return result?.BankTransactionExplanation ?? throw new InvalidOperationException("Failed to deserialize bank transaction explanation response.");
     }
 
+    /// <summary>
+    /// Retrieves bank transaction explanations from FreeAgent, optionally filtered by bank transaction.
+    /// </summary>
+    /// <param name="bankTransactionUri">Optional URI of the bank transaction to filter explanations by. If null, all explanations are returned.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// <see cref="BankTransactionExplanation"/> objects matching the specified criteria.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/bank_transaction_explanations?bank_transaction={bankTransactionUri},
+    /// handles pagination automatically, and caches the result for 5 minutes.
+    /// </remarks>
     public async Task<IEnumerable<BankTransactionExplanation>> GetAllAsync(Uri? bankTransactionUri = null)
     {
         string queryString = "";
@@ -61,6 +110,19 @@ public class BankTransactionExplanations
         return results ?? [];
     }
 
+    /// <summary>
+    /// Retrieves a specific bank transaction explanation by its ID from FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the bank transaction explanation to retrieve.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// <see cref="BankTransactionExplanation"/> object with the specified ID.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when no explanation with the specified ID is found.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/bank_transaction_explanations/{id} and caches the result for 5 minutes.
+    /// </remarks>
     public async Task<BankTransactionExplanation> GetByIdAsync(string id)
     {
         string cacheKey = $"{BankTransactionExplanationsEndPoint}/{id}";
@@ -81,6 +143,21 @@ public class BankTransactionExplanations
         return results ?? throw new InvalidOperationException($"Bank transaction explanation with ID {id} not found.");
     }
 
+    /// <summary>
+    /// Updates an existing bank transaction explanation in FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the explanation to update.</param>
+    /// <param name="explanation">The <see cref="BankTransactionExplanation"/> object containing the updated explanation details.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="BankTransactionExplanation"/> object as returned by the API.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls PUT /v2/bank_transaction_explanations/{id} to update the explanation. The cache entry
+    /// for this explanation is invalidated after a successful update.
+    /// </remarks>
     public async Task<BankTransactionExplanation> UpdateAsync(string id, BankTransactionExplanation explanation)
     {
         BankTransactionExplanationRoot root = new() { BankTransactionExplanation = explanation };
@@ -101,6 +178,16 @@ public class BankTransactionExplanations
         return result?.BankTransactionExplanation ?? throw new InvalidOperationException("Failed to deserialize bank transaction explanation response.");
     }
 
+    /// <summary>
+    /// Deletes a bank transaction explanation from FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the explanation to delete.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls DELETE /v2/bank_transaction_explanations/{id} to delete the explanation, effectively
+    /// un-reconciling the bank transaction. The cache entry for this explanation is invalidated after successful deletion.
+    /// </remarks>
     public async Task DeleteAsync(string id)
     {
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.DeleteAsync(

@@ -9,11 +9,37 @@ using System.Text.Json;
 namespace Endjin.FreeAgent.Converters;
 
 /// <summary>
-/// Custom JSON converter for the Role enum that handles various string formats
-/// from the FreeAgent API (snake_case, lowercase, etc.).
+/// Custom JSON converter for the <see cref="Role"/> enum that handles various string formats
+/// from the FreeAgent API (snake_case, lowercase, hyphenated, etc.).
 /// </summary>
+/// <remarks>
+/// <para>
+/// The FreeAgent API represents role values as strings in snake_case format (e.g., "company_secretary").
+/// This converter handles deserialization of various formats including snake_case, hyphenated, and
+/// plain lowercase strings, normalizing them to the appropriate <see cref="Role"/> enum value.
+/// </para>
+/// <para>
+/// During serialization, role values are converted to snake_case format for API compatibility.
+/// For example, <see cref="Role.CompanySecretary"/> is serialized as "company_secretary".
+/// </para>
+/// </remarks>
+/// <seealso cref="Role"/>
+/// <seealso cref="RoleNonNullableJsonConverter"/>
 public class RoleJsonConverter : JsonConverter<Role?>
 {
+    /// <summary>
+    /// Reads a nullable <see cref="Role"/> value from JSON, handling various string formats.
+    /// </summary>
+    /// <param name="reader">The <see cref="Utf8JsonReader"/> to read from.</param>
+    /// <param name="typeToConvert">The type to convert to (Role?).</param>
+    /// <param name="options">The serializer options to use.</param>
+    /// <returns>
+    /// The deserialized <see cref="Role"/> value, or <see langword="null"/> if the JSON value is null or empty.
+    /// </returns>
+    /// <exception cref="JsonException">
+    /// Thrown when the JSON token is not a string or null, or when the string value cannot be
+    /// converted to a valid <see cref="Role"/> enum value.
+    /// </exception>
     public override Role? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType == JsonTokenType.Null)
@@ -48,6 +74,27 @@ public class RoleJsonConverter : JsonConverter<Role?>
         };
     }
 
+    /// <summary>
+    /// Writes a nullable <see cref="Role"/> value to JSON in snake_case format.
+    /// </summary>
+    /// <param name="writer">The <see cref="Utf8JsonWriter"/> to write to.</param>
+    /// <param name="value">The <see cref="Role"/> value to serialize, or <see langword="null"/> to write a JSON null value.</param>
+    /// <param name="options">The serializer options to use.</param>
+    /// <exception cref="JsonException">
+    /// Thrown when the <paramref name="value"/> is not a recognized <see cref="Role"/> enum value.
+    /// </exception>
+    /// <remarks>
+    /// Role values are serialized to snake_case strings for FreeAgent API compatibility:
+    /// <list type="bullet">
+    /// <item><see cref="Role.Owner"/> → "owner"</item>
+    /// <item><see cref="Role.Director"/> → "director"</item>
+    /// <item><see cref="Role.Partner"/> → "partner"</item>
+    /// <item><see cref="Role.CompanySecretary"/> → "company_secretary"</item>
+    /// <item><see cref="Role.Employee"/> → "employee"</item>
+    /// <item><see cref="Role.Shareholder"/> → "shareholder"</item>
+    /// <item><see cref="Role.Accountant"/> → "accountant"</item>
+    /// </list>
+    /// </remarks>
     public override void Write(Utf8JsonWriter writer, Role? value, JsonSerializerOptions options)
     {
         if (value == null)
