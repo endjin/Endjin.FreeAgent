@@ -8,6 +8,24 @@ using Endjin.FreeAgent.Domain;
 
 namespace Endjin.FreeAgent.Client;
 
+/// <summary>
+/// Provides methods for managing invoices via the FreeAgent API.
+/// </summary>
+/// <remarks>
+/// <para>
+/// This service class provides comprehensive access to FreeAgent invoices, which represent sales documents
+/// sent to customers for payment. Invoices can be in various statuses (draft, sent, open, overdue, paid,
+/// scheduled, cancelled) and can be associated with contacts and projects.
+/// </para>
+/// <para>
+/// Results are cached for 5 minutes to improve performance. Cache entries are invalidated automatically
+/// when invoices are updated, deleted, or when status changes occur.
+/// </para>
+/// </remarks>
+/// <seealso cref="Invoice"/>
+/// <seealso cref="InvoiceItem"/>
+/// <seealso cref="Contact"/>
+/// <seealso cref="Project"/>
 public class Invoices
 {
     private const string InvoicesEndPoint = "v2/invoices";
@@ -15,6 +33,11 @@ public class Invoices
     private readonly IMemoryCache cache;
     private readonly MemoryCacheEntryOptions cacheEntryOptions = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Invoices"/> class.
+    /// </summary>
+    /// <param name="freeAgentClient">The FreeAgent HTTP client for making API requests.</param>
+    /// <param name="cache">The memory cache for storing invoice data.</param>
     public Invoices(FreeAgentClient freeAgentClient, IMemoryCache cache)
     {
         this.freeAgentClient = freeAgentClient;
@@ -22,6 +45,20 @@ public class Invoices
         this.cacheEntryOptions.SetSlidingExpiration(TimeSpan.FromMinutes(5));
     }
 
+    /// <summary>
+    /// Creates a new invoice in FreeAgent.
+    /// </summary>
+    /// <param name="invoice">The <see cref="Invoice"/> object containing the invoice details to create.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// created <see cref="Invoice"/> object with server-assigned values (e.g., ID, URL, reference).
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls POST /v2/invoices to create a new invoice. The cache is not updated as
+    /// only aggregate queries are cached.
+    /// </remarks>
     public async Task<Invoice> CreateAsync(Invoice invoice)
     {
         InvoiceRoot root = new() { Invoice = invoice };
@@ -38,6 +75,19 @@ public class Invoices
         return result?.Invoice ?? throw new InvalidOperationException("Failed to deserialize invoice response.");
     }
 
+    /// <summary>
+    /// Retrieves invoices from FreeAgent filtered by view.
+    /// </summary>
+    /// <param name="view">The view filter to apply (e.g., "all", "draft", "sent", "open", "overdue", "paid", "scheduled"). Defaults to "all".</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// <see cref="Invoice"/> objects matching the specified view.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/invoices?view={view}, handles pagination automatically, and caches the
+    /// result for 5 minutes.
+    /// </remarks>
     public async Task<IEnumerable<Invoice>> GetAllAsync(string view = "all")
     {
         string cacheKey = $"{InvoicesEndPoint}/{view}";
@@ -55,6 +105,19 @@ public class Invoices
         return results ?? [];
     }
 
+    /// <summary>
+    /// Retrieves invoices from FreeAgent filtered by status.
+    /// </summary>
+    /// <param name="status">The status to filter by (e.g., "draft", "sent", "open", "overdue", "paid", "scheduled").</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// <see cref="Invoice"/> objects with the specified status.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method maps the status parameter to the corresponding view and calls <see cref="GetAllAsync"/>.
+    /// Status values are case-insensitive. Unrecognized status values default to "all".
+    /// </remarks>
     public async Task<IEnumerable<Invoice>> GetAllByStatusAsync(string status)
     {
         string view = status.ToLowerInvariant() switch
@@ -71,6 +134,19 @@ public class Invoices
         return await this.GetAllAsync(view).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Retrieves all invoices associated with a specific contact from FreeAgent.
+    /// </summary>
+    /// <param name="contactUri">The URI of the contact to filter invoices by.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// <see cref="Invoice"/> objects associated with the specified contact.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/invoices?contact={contactUri}, handles pagination automatically, and caches
+    /// the result for 5 minutes.
+    /// </remarks>
     public async Task<IEnumerable<Invoice>> GetAllByContactAsync(Uri contactUri)
     {
         string cacheKey = $"{InvoicesEndPoint}/contact/{contactUri}";
@@ -88,6 +164,19 @@ public class Invoices
         return results ?? [];
     }
 
+    /// <summary>
+    /// Retrieves all invoices associated with a specific project from FreeAgent.
+    /// </summary>
+    /// <param name="projectUri">The URI of the project to filter invoices by.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// <see cref="Invoice"/> objects associated with the specified project.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/invoices?project={projectUri}, handles pagination automatically, and caches
+    /// the result for 5 minutes.
+    /// </remarks>
     public async Task<IEnumerable<Invoice>> GetAllByProjectAsync(Uri projectUri)
     {
         string cacheKey = $"{InvoicesEndPoint}/project/{projectUri}";
@@ -105,6 +194,19 @@ public class Invoices
         return results ?? [];
     }
 
+    /// <summary>
+    /// Retrieves a specific invoice by its ID from FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the invoice to retrieve.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// <see cref="Invoice"/> object with the specified ID.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when no invoice with the specified ID is found.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/invoices/{id} and caches the result for 5 minutes.
+    /// </remarks>
     public async Task<Invoice> GetByIdAsync(string id)
     {
         string cacheKey = $"{InvoicesEndPoint}/{id}";
@@ -124,6 +226,21 @@ public class Invoices
         return results ?? throw new InvalidOperationException($"Invoice with ID {id} not found.");
     }
 
+    /// <summary>
+    /// Updates an existing invoice in FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the invoice to update.</param>
+    /// <param name="invoice">The <see cref="Invoice"/> object containing the updated invoice details.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="Invoice"/> object as returned by the API.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls PUT /v2/invoices/{id} to update the invoice. The cache entry for this invoice
+    /// is invalidated after a successful update.
+    /// </remarks>
     public async Task<Invoice> UpdateAsync(string id, Invoice invoice)
     {
         InvoiceRoot root = new() { Invoice = invoice };
@@ -144,6 +261,16 @@ public class Invoices
         return result?.Invoice ?? throw new InvalidOperationException("Failed to deserialize invoice response.");
     }
 
+    /// <summary>
+    /// Deletes an invoice from FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the invoice to delete.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls DELETE /v2/invoices/{id} to delete the invoice. The cache entry for this invoice
+    /// is invalidated after successful deletion. Only invoices in draft status can be deleted.
+    /// </remarks>
     public async Task DeleteAsync(string id)
     {
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.DeleteAsync(new Uri(this.freeAgentClient.ApiBaseUrl, $"{InvoicesEndPoint}/{id}")).ConfigureAwait(false);
@@ -155,13 +282,28 @@ public class Invoices
         this.cache.Remove(cacheKey);
     }
 
+    /// <summary>
+    /// Sends an invoice via email through FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the invoice to send.</param>
+    /// <param name="email">The <see cref="InvoiceEmail"/> object containing email details (recipients, subject, body).</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="Invoice"/> object with its status changed to sent.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls PUT /v2/invoices/{id}/send_email to send the invoice. The invoice status is
+    /// automatically changed to "sent". The cache entry for this invoice is invalidated.
+    /// </remarks>
     public async Task<Invoice> SendEmailAsync(string id, InvoiceEmail email)
     {
         InvoiceEmailRoot emailRoot = new()
         {
             Invoice = new InvoiceEmailWrapper { Email = email }
         };
-        
+
         using JsonContent content = JsonContent.Create(emailRoot, options: SharedJsonOptions.SourceGenOptions);
 
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
@@ -179,6 +321,20 @@ public class Invoices
         return root?.Invoice ?? throw new InvalidOperationException("Failed to deserialize invoice response.");
     }
 
+    /// <summary>
+    /// Marks an invoice as sent in FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the invoice to mark as sent.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="Invoice"/> object with its status changed to sent.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls PUT /v2/invoices/{id}/mark_as_sent to manually mark the invoice as sent without
+    /// actually sending it. The cache entry for this invoice is invalidated.
+    /// </remarks>
     public async Task<Invoice> MarkAsSentAsync(string id)
     {
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
@@ -196,6 +352,22 @@ public class Invoices
         return root?.Invoice ?? throw new InvalidOperationException("Failed to deserialize invoice response.");
     }
 
+    /// <summary>
+    /// Marks an invoice as paid in FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the invoice to mark as paid.</param>
+    /// <param name="paidOn">The date the invoice was paid.</param>
+    /// <param name="paidIntoBankAccount">The URI of the bank account the payment was received into.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="Invoice"/> object with its status changed to paid.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls PUT /v2/invoices/{id}/mark_as_paid to record payment of the invoice. This creates
+    /// a corresponding bank transaction. The cache entry for this invoice is invalidated.
+    /// </remarks>
     public async Task<Invoice> MarkAsPaidAsync(string id, DateOnly paidOn, Uri paidIntoBankAccount)
     {
         InvoicePaymentRoot paymentRoot = new()
@@ -224,6 +396,20 @@ public class Invoices
         return root?.Invoice ?? throw new InvalidOperationException("Failed to deserialize invoice response.");
     }
 
+    /// <summary>
+    /// Marks an invoice as cancelled in FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the invoice to mark as cancelled.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="Invoice"/> object with its status changed to cancelled.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls PUT /v2/invoices/{id}/mark_as_cancelled to cancel the invoice. The cache entry
+    /// for this invoice is invalidated.
+    /// </remarks>
     public async Task<Invoice> MarkAsCancelledAsync(string id)
     {
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
@@ -241,6 +427,20 @@ public class Invoices
         return root?.Invoice ?? throw new InvalidOperationException("Failed to deserialize invoice response.");
     }
 
+    /// <summary>
+    /// Marks an invoice as scheduled in FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the invoice to mark as scheduled.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="Invoice"/> object with its status changed to scheduled.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls PUT /v2/invoices/{id}/mark_as_scheduled to schedule the invoice for later sending.
+    /// The cache entry for this invoice is invalidated.
+    /// </remarks>
     public async Task<Invoice> MarkAsScheduledAsync(string id)
     {
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
@@ -258,6 +458,20 @@ public class Invoices
         return root?.Invoice ?? throw new InvalidOperationException("Failed to deserialize invoice response.");
     }
 
+    /// <summary>
+    /// Marks an invoice as draft in FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the invoice to mark as draft.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="Invoice"/> object with its status changed to draft.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls PUT /v2/invoices/{id}/mark_as_draft to return the invoice to draft status, allowing
+    /// further editing. The cache entry for this invoice is invalidated.
+    /// </remarks>
     public async Task<Invoice> MarkAsDraftAsync(string id)
     {
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
@@ -275,6 +489,19 @@ public class Invoices
         return root?.Invoice ?? throw new InvalidOperationException("Failed to deserialize invoice response.");
     }
 
+    /// <summary>
+    /// Retrieves the PDF representation of an invoice from FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the invoice to retrieve as PDF.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a byte array
+    /// with the PDF content of the invoice.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/invoices/{id}/pdf to retrieve the invoice as a PDF document. The result
+    /// is not cached as PDF generation may vary.
+    /// </remarks>
     public async Task<byte[]> GetPdfAsync(string id)
     {
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.GetAsync(new Uri(this.freeAgentClient.ApiBaseUrl, $"{InvoicesEndPoint}/{id}/pdf")).ConfigureAwait(false);

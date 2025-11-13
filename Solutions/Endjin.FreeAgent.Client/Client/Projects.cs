@@ -11,6 +11,24 @@ using System.Net.Http.Json;
 
 namespace Endjin.FreeAgent.Client;
 
+/// <summary>
+/// Provides methods for managing projects via the FreeAgent API.
+/// </summary>
+/// <remarks>
+/// <para>
+/// This service class provides access to FreeAgent projects, which represent client work, internal initiatives,
+/// or other trackable activities. Projects are associated with contacts, can contain tasks and timeslips, and
+/// are used to organize billable and non-billable work.
+/// </para>
+/// <para>
+/// Results are cached for 5 minutes to improve performance while maintaining reasonable data freshness,
+/// as project information may change during active usage.
+/// </para>
+/// </remarks>
+/// <seealso cref="Project"/>
+/// <seealso cref="Contact"/>
+/// <seealso cref="TaskItem"/>
+/// <seealso cref="Timeslip"/>
 public class Projects
 {
     private const string ProjectEndPoint = "v2/projects";
@@ -18,6 +36,11 @@ public class Projects
     private readonly IMemoryCache cache;
     private readonly MemoryCacheEntryOptions cacheEntryOptions = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Projects"/> class.
+    /// </summary>
+    /// <param name="freeAgentClient">The FreeAgent HTTP client for making API requests.</param>
+    /// <param name="cache">The memory cache for storing project data.</param>
     public Projects(FreeAgentClient freeAgentClient, IMemoryCache cache)
     {
         this.freeAgentClient = freeAgentClient;
@@ -25,6 +48,20 @@ public class Projects
         this.cacheEntryOptions.SetSlidingExpiration(TimeSpan.FromMinutes(5));
     }
 
+    /// <summary>
+    /// Creates a new project in FreeAgent.
+    /// </summary>
+    /// <param name="project">The <see cref="Project"/> object containing the project details to create.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// created <see cref="Project"/> object with server-assigned values (e.g., ID, URL).
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls POST /v2/projects to create a new project. The cache is not updated as
+    /// only aggregate queries are cached.
+    /// </remarks>
     public async Task<Project> CreateAsync(Project project)
     {
         ProjectRoot root = new() { Project = project };
@@ -39,6 +76,19 @@ public class Projects
         return result?.Project ?? throw new InvalidOperationException("Failed to deserialize project response.");
     }
 
+    /// <summary>
+    /// Retrieves all active projects from FreeAgent.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// active <see cref="Project"/> objects with their associated <see cref="Contact"/> entries populated.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/projects?view=active, handles pagination automatically, and enriches each
+    /// project with its associated contact information. Both projects and contacts are retrieved concurrently
+    /// for optimal performance. Results are cached for 5 minutes.
+    /// </remarks>
     public async Task<IEnumerable<Project>> GetAllActiveAsync()
     {
         string urlSegment = $"{ProjectEndPoint}?view=active";
@@ -63,6 +113,18 @@ public class Projects
         return results ?? [];
     }
 
+    /// <summary>
+    /// Retrieves all projects from FreeAgent.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// all <see cref="Project"/> objects in the FreeAgent account.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/projects, handles pagination automatically, and caches the result for
+    /// 5 minutes. All projects are included regardless of status.
+    /// </remarks>
     public async Task<IEnumerable<Project>> GetAllAsync()
     {
         string cacheKey = ProjectEndPoint;
@@ -79,6 +141,19 @@ public class Projects
         return results ?? [];
     }
 
+    /// <summary>
+    /// Retrieves a specific project by its ID from FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the project to retrieve.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// <see cref="Project"/> object with the specified ID.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when no project with the specified ID is found.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/projects/{id} and caches the result for 5 minutes.
+    /// </remarks>
     public async Task<Project> GetByIdAsync(string id)
     {
         await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
@@ -100,6 +175,20 @@ public class Projects
         return results ?? throw new InvalidOperationException($"Project with ID {id} not found.");
     }
 
+    /// <summary>
+    /// Retrieves a specific project by its name from FreeAgent.
+    /// </summary>
+    /// <param name="name">The name of the project to retrieve.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// <see cref="Project"/> object with the specified name.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when no project with the specified name is found.</exception>
+    /// <remarks>
+    /// This method retrieves all projects (using <see cref="GetAllAsync"/>) and performs a case-insensitive
+    /// search by project name. Results are cached for 5 minutes once found.
+    /// </remarks>
     public async Task<Project> GetByNameAsync(string name)
     {
         string cacheKey = $"{ProjectEndPoint}/{name}";
@@ -115,6 +204,31 @@ public class Projects
         return results ?? throw new InvalidOperationException($"Project with name '{name}' not found.");
     }
 
+    /// <summary>
+    /// Retrieves detailed timeslip information for all active projects within a specified date range.
+    /// </summary>
+    /// <param name="range">The date range to filter timeslips by.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a dictionary where
+    /// each key is a <see cref="Project"/> and the value is a list of tuples containing detailed timeslip
+    /// information including customer, project, user, date, effort, rates, and costs.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// <para>
+    /// This method retrieves active projects and their associated timeslips within the specified date range.
+    /// For each project, it fetches tasks and timeslips, then calculates detailed metrics including weekly
+    /// effort tracking, billing rates, and costs.
+    /// </para>
+    /// <para>
+    /// The method enriches projects with contact information, tasks with their details, and timeslips with
+    /// user and task information. Week numbers are calculated using ISO week rules. Results are cached for
+    /// 5 minutes with a cache key based on the date range.
+    /// </para>
+    /// <para>
+    /// Only projects with non-zero costs in the date range are included in the result.
+    /// </para>
+    /// </remarks>
     public async Task<Dictionary<Project, List<(string Customer, string Project, string User, DateTimeOffset Date, int Year, int WeekNumber, decimal Effort, decimal? DayRate, decimal? HourlyRate, string Level, decimal? Cost, string Comment)>>> GetActiveProjectsDetailsByDateRangeAsync(DateInterval range)
     {
         string cacheKey = $"{ProjectEndPoint}/active/date/{range.Start.ToFreeAgentDateString()}/{range.End.ToFreeAgentDateString()}";

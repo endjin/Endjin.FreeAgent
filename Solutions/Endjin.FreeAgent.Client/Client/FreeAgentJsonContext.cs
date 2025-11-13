@@ -8,9 +8,36 @@ using Endjin.FreeAgent.Domain;
 namespace Endjin.FreeAgent.Client;
 
 /// <summary>
-/// JSON source generation context for FreeAgent API types.
-/// This improves serialization performance and enables AOT compilation.
+/// JSON source generation context for FreeAgent API types, providing compile-time JSON serialization metadata.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This class uses .NET's source generation feature to generate JSON serialization code at compile time
+/// rather than using reflection at runtime. This provides several benefits:
+/// <list type="bullet">
+/// <item><description>Improved performance - no reflection overhead during serialization/deserialization</description></item>
+/// <item><description>Reduced memory allocation - serialization metadata is generated once at compile time</description></item>
+/// <item><description>AOT (Ahead-of-Time) compilation support - works with Native AOT and trimming</description></item>
+/// <item><description>Better startup time - no runtime code generation needed</description></item>
+/// <item><description>Smaller deployment size - only referenced types are included</description></item>
+/// </list>
+/// </para>
+/// <para>
+/// The context includes all FreeAgent API types used for requests and responses, covering:
+/// <list type="bullet">
+/// <item><description>Root wrapper types (e.g., ContactRoot, InvoiceRoot) for API responses</description></item>
+/// <item><description>Domain model types (e.g., Contact, Invoice) for entities</description></item>
+/// <item><description>Supporting types for bank transactions, reports, tax returns, etc.</description></item>
+/// </list>
+/// </para>
+/// <para>
+/// This context is used by <see cref="SharedJsonOptions.SourceGenOptions"/> to provide
+/// source-generated serialization throughout the library. The serialization options are configured
+/// to match the FreeAgent API requirements (camelCase naming, ignore null values, etc.).
+/// </para>
+/// </remarks>
+/// <seealso cref="SharedJsonOptions"/>
+/// <seealso cref="JsonSerializerContext"/>
 [JsonSourceGenerationOptions(
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     PropertyNameCaseInsensitive = true,
