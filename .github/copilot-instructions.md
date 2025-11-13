@@ -2,13 +2,13 @@
 
 ## Repository Overview
 
-This is a comprehensive .NET client library for the FreeAgent accounting API, providing strongly-typed access to all FreeAgent resources with modern C# features. The library is built with .NET 10 and C# 14 preview features, emphasizing type safety, performance, and developer experience.
+This is a comprehensive .NET client library for the FreeAgent accounting API, providing strongly-typed access to all FreeAgent resources with modern C# features. The library is built with .NET 10 and C# 14, emphasizing type safety, performance, and developer experience.
 
 ## Technology Stack
 
-- **Runtime**: .NET 10.0 (RC)
-- **Language**: C# 14 (with preview features)
-- **Testing Framework**: MSTest with Shouldly assertions and NSubstitute mocking
+- **Runtime**: .NET 10.0
+- **Language**: C# 14
+- **Testing Framework**: Microsoft.Testing.Platform with Shouldly assertions and NSubstitute mocking
 - **JSON Serialization**: System.Text.Json with source generation
 - **HTTP Client**: Microsoft.Extensions.Http with built-in retry logic (Corvus.Retry)
 - **Caching**: Microsoft.Extensions.Caching.Memory
@@ -158,7 +158,7 @@ public async Task<NewModel?> GetAsync(int id)
 
 ## Important Notes
 
-- This project uses .NET 10 RC which may have preview features
+- This project uses .NET 10
 - Some warnings are suppressed: SYSLIB1031, NETSDK1057
 - The solution uses a `.slnx` file format (XML-based solution file)
 - InternalsVisibleTo is configured to allow test assemblies to access internal members
