@@ -68,7 +68,7 @@ jobs:
       testPhaseMatrixJson: |
         {
           "os": ["ubuntu-latest"],
-          "dotnetFramework": ["net8.0"]
+          "dotnetFramework": ["net10.0"]
         }
       # testArtifactName: ''
       # testArtifactPath: ''
