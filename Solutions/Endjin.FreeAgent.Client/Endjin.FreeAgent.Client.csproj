@@ -4,10 +4,13 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Endjin.FreeAgent</RootNamespace>
     <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <!-- Enable source generator support -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
-    <!-- NuGet Package Metadata -->
+  </PropertyGroup>
+
+  <PropertyGroup>
     <PackageId>Endjin.FreeAgent.Client</PackageId>
     <Version>1.0.0</Version>
     <Authors>Endjin Limited</Authors>
