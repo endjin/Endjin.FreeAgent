@@ -4,6 +4,7 @@
 
 using System.Text.Json.Serialization;
 using Endjin.FreeAgent.Domain;
+using Endjin.FreeAgent.Domain.Converters;
 using Endjin.FreeAgent.Domain.Domain;
 
 namespace Endjin.FreeAgent.Client;
@@ -64,6 +65,7 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(BankTransactionUploadRoot))]
 [JsonSerializable(typeof(BillRoot))]
 [JsonSerializable(typeof(BillsRoot))]
+[JsonSerializable(typeof(BusinessCategoriesRoot))]
 [JsonSerializable(typeof(CapitalAssetRoot))]
 [JsonSerializable(typeof(CapitalAssetsRoot))]
 [JsonSerializable(typeof(CapitalAssetTypeRoot))]
@@ -128,6 +130,7 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(StockItemsRoot))]
 [JsonSerializable(typeof(TaskRoot))]
 [JsonSerializable(typeof(TasksRoot))]
+[JsonSerializable(typeof(TaxTimelineRoot))]
 [JsonSerializable(typeof(TimeslipsRoot))]
 [JsonSerializable(typeof(TrialBalanceRoot))]
 [JsonSerializable(typeof(UserRoot))]
@@ -138,6 +141,7 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(WebhookRoot))]
 [JsonSerializable(typeof(WebhooksRoot))]
 // Domain models (needed for serialization of request bodies)
+[JsonSerializable(typeof(AnnualAccountingPeriod))]
 [JsonSerializable(typeof(Attachment))]
 [JsonSerializable(typeof(BankAccount))]
 [JsonSerializable(typeof(BankTransaction))]
@@ -158,6 +162,8 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(SalesTaxRegistrationStatus?))]
 [JsonSerializable(typeof(CisBand))]
 [JsonSerializable(typeof(Domain.Company))]
+[JsonSerializable(typeof(CompanyType))]
+[JsonSerializable(typeof(CompanyType?))]
 [JsonSerializable(typeof(Contact))]
 [JsonSerializable(typeof(CreditNote))]
 [JsonSerializable(typeof(Estimate))]
@@ -181,6 +187,7 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(SalesTaxPeriod))]
 [JsonSerializable(typeof(StockItem))]
 [JsonSerializable(typeof(Task))]
+[JsonSerializable(typeof(TaxTimelineItem))]
 [JsonSerializable(typeof(User))]
 [JsonSerializable(typeof(Webhook))]
 public partial class FreeAgentJsonContext : JsonSerializerContext

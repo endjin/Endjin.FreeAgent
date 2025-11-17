@@ -50,7 +50,7 @@ public class CompanyTests
         {
             Name = "Acme Corporation",
             Subdomain = "acme",
-            Type = "UkLimitedCompany",
+            Type = CompanyType.UkLimitedCompany,
             Currency = "GBP",
             MileageUnits = "miles"
         };
@@ -70,7 +70,7 @@ public class CompanyTests
         result.ShouldNotBeNull();
         result.Name.ShouldBe("Acme Corporation");
         result.Subdomain.ShouldBe("acme");
-        result.Type.ShouldBe("UkLimitedCompany");
+        result.Type.ShouldBe(CompanyType.UkLimitedCompany);
         result.Currency.ShouldBe("GBP");
 
         // Mock Verification
@@ -112,24 +112,66 @@ public class CompanyTests
     }
 
     [TestMethod]
-    public async Task UpdateAsync_UpdatesAndReturnsCompany()
+    public async Task GetAsync_DeserializesComplexProperties()
     {
         // Arrange
-        Domain.Company updatedCompany = new()
+        Domain.Company companyDetails = new()
         {
-            Name = "Updated Company Name",
-            Currency = "USD"
+            Id = 12345,
+            Url = new Uri("https://api.freeagent.com/v2/company"),
+            Name = "Test Company Ltd",
+            Subdomain = "testcompany",
+            Type = CompanyType.UkLimitedCompany,
+            Currency = "GBP",
+            MileageUnits = "miles",
+            CompanyStartDate = new DateOnly(2020, 1, 1),
+            TradingStartDate = new DateOnly(2020, 2, 1),
+            FreeagentStartDate = new DateOnly(2020, 3, 1),
+            FirstAccountingYearEnd = new DateOnly(2020, 12, 31),
+            CompanyRegistrationNumber = "12345678",
+            Address1 = "123 Main Street",
+            Address2 = "Suite 100",
+            Address3 = "Building A",
+            Town = "London",
+            Region = "Greater London",
+            Postcode = "SW1A 1AA",
+            Country = "United Kingdom",
+            ContactEmail = "info@testcompany.com",
+            ContactPhone = "+44 20 7123 4567",
+            Website = "https://www.testcompany.com",
+            BusinessType = "Software Development",
+            BusinessCategory = "Technology",
+            ShortDateFormat = Domain.ShortDateFormat.European,
+            SalesTaxRegistrationNumber = "GB123456789",
+            SalesTaxName = "VAT",
+            SalesTaxEffectiveDate = new DateOnly(2020, 4, 1),
+            SalesTaxIsValueAdded = true,
+            SalesTaxRegistrationStatus = Domain.Domain.SalesTaxRegistrationStatus.Registered,
+            VatFirstReturnPeriodEndsOn = new DateOnly(2020, 6, 30),
+            InitialVatBasis = VatBasis.Invoice,
+            InitiallyOnFrs = false,
+            InitialVatFrsType = null,
+            CisEnabled = false,
+            CisSubcontractor = false,
+            CisContractor = false,
+            CreatedAt = new DateTime(2020, 1, 1, 10, 0, 0, DateTimeKind.Utc),
+            UpdatedAt = new DateTime(2024, 1, 1, 15, 30, 0, DateTimeKind.Utc),
+            SalesTaxRates = new List<SalesTaxRate>
+            {
+                new() { Rate = 20.0m, Description = "Standard Rate", ValidFrom = new DateOnly(2020, 1, 1), ValidTo = null },
+                new() { Rate = 5.0m, Description = "Reduced Rate", ValidFrom = new DateOnly(2020, 1, 1), ValidTo = null },
+                new() { Rate = 0.0m, Description = "Zero Rate", ValidFrom = new DateOnly(2020, 1, 1), ValidTo = null }
+            },
+            AnnualAccountingPeriods = new List<AnnualAccountingPeriod>
+            {
+                new() { StartsOn = new DateOnly(2020, 1, 1), EndsOn = new DateOnly(2020, 12, 31) },
+                new() { StartsOn = new DateOnly(2021, 1, 1), EndsOn = new DateOnly(2021, 12, 31) },
+                new() { StartsOn = new DateOnly(2022, 1, 1), EndsOn = new DateOnly(2022, 12, 31) }
+            },
+            LockedAttributes = new List<string> { "company_start_date", "company_registration_number" }
         };
 
-        Domain.Company responseCompany = new()
-        {
-            Name = "Updated Company Name",
-            Subdomain = "acme",
-            Type = "UkLimitedCompany",
-            Currency = "USD"
-        };
-
-        CompanyRoot responseRoot = new() { Company = responseCompany };
+        CompanyRoot responseRoot = new() { Company = companyDetails };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -138,59 +180,199 @@ public class CompanyTests
         };
 
         // Act
-        Domain.Company result = await this.company.UpdateAsync(updatedCompany);
+        Domain.Company result = await this.company.GetAsync();
 
-        // Assert
+        // Assert - Basic properties
         result.ShouldNotBeNull();
-        result.Name.ShouldBe("Updated Company Name");
-        result.Currency.ShouldBe("USD");
+        result.Id.ShouldBe(12345);
+        result.Url.ShouldNotBeNull();
+        result.Url!.ToString().ShouldBe("https://api.freeagent.com/v2/company");
+        result.Name.ShouldBe("Test Company Ltd");
+        result.Subdomain.ShouldBe("testcompany");
+        result.Type.ShouldBe(CompanyType.UkLimitedCompany);
+        result.Currency.ShouldBe("GBP");
+        result.MileageUnits.ShouldBe("miles");
+
+        // Assert - Date properties
+        result.CompanyStartDate.ShouldBe(new DateOnly(2020, 1, 1));
+        result.TradingStartDate.ShouldBe(new DateOnly(2020, 2, 1));
+        result.FreeagentStartDate.ShouldBe(new DateOnly(2020, 3, 1));
+        result.FirstAccountingYearEnd.ShouldBe(new DateOnly(2020, 12, 31));
+
+        // Assert - Address properties
+        result.Address1.ShouldBe("123 Main Street");
+        result.Address2.ShouldBe("Suite 100");
+        result.Address3.ShouldBe("Building A");
+        result.Town.ShouldBe("London");
+        result.Region.ShouldBe("Greater London");
+        result.Postcode.ShouldBe("SW1A 1AA");
+        result.Country.ShouldBe("United Kingdom");
+
+        // Assert - Contact properties
+        result.CompanyRegistrationNumber.ShouldBe("12345678");
+        result.ContactEmail.ShouldBe("info@testcompany.com");
+        result.ContactPhone.ShouldBe("+44 20 7123 4567");
+        result.Website.ShouldBe("https://www.testcompany.com");
+
+        // Assert - Business classification
+        result.BusinessType.ShouldBe("Software Development");
+        result.BusinessCategory.ShouldBe("Technology");
+        result.ShortDateFormat.ShouldBe(Domain.ShortDateFormat.European);
+
+        // Assert - Sales tax properties
+        result.SalesTaxRegistrationNumber.ShouldBe("GB123456789");
+        result.SalesTaxName.ShouldBe("VAT");
+        result.SalesTaxEffectiveDate.ShouldBe(new DateOnly(2020, 4, 1));
+        result.SalesTaxIsValueAdded.ShouldBe(true);
+        result.SalesTaxRegistrationStatus.ShouldBe(Domain.Domain.SalesTaxRegistrationStatus.Registered);
+
+        // Assert - VAT properties
+        result.VatFirstReturnPeriodEndsOn.ShouldBe(new DateOnly(2020, 6, 30));
+        result.InitialVatBasis.ShouldBe(VatBasis.Invoice);
+        result.InitiallyOnFrs.ShouldBe(false);
+        result.InitialVatFrsType.ShouldBeNull();
+
+        // Assert - CIS properties
+        result.CisEnabled.ShouldBe(false);
+        result.CisSubcontractor.ShouldBe(false);
+        result.CisContractor.ShouldBe(false);
+
+        // Assert - Timestamps
+        result.CreatedAt.ShouldBe(new DateTime(2020, 1, 1, 10, 0, 0, DateTimeKind.Utc));
+        result.UpdatedAt.ShouldBe(new DateTime(2024, 1, 1, 15, 30, 0, DateTimeKind.Utc));
+
+        // Assert - Complex collections
+        result.SalesTaxRates.ShouldNotBeNull();
+        result.SalesTaxRates!.Count.ShouldBe(3);
+        result.SalesTaxRates[0].Rate.ShouldBe(20.0m);
+        result.SalesTaxRates[0].Description.ShouldBe("Standard Rate");
+        result.SalesTaxRates[1].Rate.ShouldBe(5.0m);
+        result.SalesTaxRates[2].Rate.ShouldBe(0.0m);
+
+        result.AnnualAccountingPeriods.ShouldNotBeNull();
+        result.AnnualAccountingPeriods!.Count.ShouldBe(3);
+        result.AnnualAccountingPeriods[0].StartsOn.ShouldBe(new DateOnly(2020, 1, 1));
+        result.AnnualAccountingPeriods[0].EndsOn.ShouldBe(new DateOnly(2020, 12, 31));
+        result.AnnualAccountingPeriods[1].StartsOn.ShouldBe(new DateOnly(2021, 1, 1));
+        result.AnnualAccountingPeriods[2].StartsOn.ShouldBe(new DateOnly(2022, 1, 1));
+
+        result.LockedAttributes.ShouldNotBeNull();
+        result.LockedAttributes!.Count.ShouldBe(2);
+        result.LockedAttributes.ShouldContain("company_start_date");
+        result.LockedAttributes.ShouldContain("company_registration_number");
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenGetRequest();
         this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/company");
     }
 
     [TestMethod]
-    public async Task UpdateAsync_InvalidatesCache()
+    public async Task GetBusinessCategoriesAsync_ReturnsListOfCategories()
     {
-        // Arrange - First get to populate cache
-        Domain.Company originalCompany = new() { Name = "Original Name", Currency = "GBP" };
-        CompanyRoot originalRoot = new() { Company = originalCompany };
-        string originalJson = JsonSerializer.Serialize(originalRoot, SharedJsonOptions.Instance);
-
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        // Arrange
+        BusinessCategoriesRoot responseRoot = new()
         {
-            Content = new StringContent(originalJson, Encoding.UTF8, "application/json")
+            BusinessCategories = ["Accounting & Bookkeeping", "Administration", "Agriculture"]
         };
-
-        await this.company.GetAsync();
-
-        // Update
-        Domain.Company updatedCompany = new() { Name = "Updated Name", Currency = "USD" };
-        CompanyRoot updatedRoot = new() { Company = updatedCompany };
-        string updatedJson = JsonSerializer.Serialize(updatedRoot, SharedJsonOptions.Instance);
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(updatedJson, Encoding.UTF8, "application/json")
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
         };
 
         // Act
-        await this.company.UpdateAsync(updatedCompany);
-
-        // Get again to verify cache was invalidated
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(updatedJson, Encoding.UTF8, "application/json")
-        };
-
-        Domain.Company result = await this.company.GetAsync();
+        List<string> result = await this.company.GetBusinessCategoriesAsync();
 
         // Assert
-        result.Name.ShouldBe("Updated Name");
+        result.ShouldNotBeNull();
+        result.Count.ShouldBe(3);
+        result[0].ShouldBe("Accounting & Bookkeeping");
+        result[1].ShouldBe("Administration");
+        result[2].ShouldBe("Agriculture");
 
-        // Mock Verification - Should have made 3 calls (initial get, update, second get)
-        this.messageHandler.CallCount.ShouldBe(3);
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/company/business_categories");
+    }
+
+    [TestMethod]
+    public async Task GetBusinessCategoriesAsync_CachesResult()
+    {
+        // Arrange
+        BusinessCategoriesRoot responseRoot = new()
+        {
+            BusinessCategories = ["Category 1", "Category 2"]
+        };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act - Call twice
+        List<string> result1 = await this.company.GetBusinessCategoriesAsync();
+        List<string> result2 = await this.company.GetBusinessCategoriesAsync();
+
+        // Assert
+        result1.ShouldNotBeNull();
+        result2.ShouldNotBeNull();
+        result1.Count.ShouldBe(2);
+
+        // Mock Verification - Should only call API once due to caching
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+    }
+
+    [TestMethod]
+    public async Task GetTaxTimelineAsync_ReturnsTaxEvents()
+    {
+        // Arrange
+        TaxTimelineRoot responseRoot = new()
+        {
+            TimelineItems =
+            [
+                new TaxTimelineItem
+                {
+                    Description = "VAT Return 09 11",
+                    Nature = "Electronic Submission and Payment Due",
+                    DatedOn = new DateOnly(2024, 12, 7),
+                    AmountDue = 1234.56m,
+                    IsPersonal = false
+                },
+                new TaxTimelineItem
+                {
+                    Description = "Corporation Tax Return Due",
+                    Nature = "Filing Due",
+                    DatedOn = new DateOnly(2025, 1, 31),
+                    AmountDue = null,
+                    IsPersonal = false
+                }
+            ]
+        };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        List<TaxTimelineItem> result = await this.company.GetTaxTimelineAsync();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Count.ShouldBe(2);
+        result[0].Description.ShouldBe("VAT Return 09 11");
+        result[0].Nature.ShouldBe("Electronic Submission and Payment Due");
+        result[0].AmountDue.ShouldBe(1234.56m);
+        result[1].Description.ShouldBe("Corporation Tax Return Due");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/company/tax_timeline");
     }
 }

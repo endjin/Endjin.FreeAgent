@@ -145,6 +145,7 @@ public class WebhooksTests
 
         // Assert
         result.ShouldNotBeNull();
+        result.Events.ShouldNotBeNull();
         result.Events.ShouldContain("estimate.sent");
 
         // Mock Verification
