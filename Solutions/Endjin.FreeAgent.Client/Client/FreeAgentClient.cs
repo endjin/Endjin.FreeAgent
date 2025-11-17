@@ -187,6 +187,7 @@ public class FreeAgentClient : ClientBase
         this.Projects = new Projects(this, cache);
         this.RecurringInvoices = new RecurringInvoices(this, cache);
         this.SalesTaxRates = new SalesTaxRates(this, cache);
+        this.SalesTaxPeriods = new SalesTaxPeriods(this);
         this.SelfAssessmentReturns = new SelfAssessmentReturns(this, cache);
         this.StockItems = new StockItems(this, cache);
         this.Tasks = new Tasks(this, cache);
@@ -390,6 +391,12 @@ public class FreeAgentClient : ClientBase
     /// </summary>
     /// <value>The <see cref="SalesTaxRates"/> service instance.</value>
     public SalesTaxRates SalesTaxRates { get; private set; }
+
+    /// <summary>
+    /// Gets the service for managing sales tax periods.
+    /// </summary>
+    /// <value>The <see cref="SalesTaxPeriods"/> service instance.</value>
+    public SalesTaxPeriods SalesTaxPeriods { get; private set; }
 
     /// <summary>
     /// Gets the service for managing self assessment tax returns.

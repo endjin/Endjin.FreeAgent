@@ -4,6 +4,7 @@
 
 using System.Text.Json.Serialization;
 using Endjin.FreeAgent.Domain;
+using Endjin.FreeAgent.Domain.Domain;
 
 namespace Endjin.FreeAgent.Client;
 
@@ -116,6 +117,8 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(RecurringInvoicesRoot))]
 [JsonSerializable(typeof(SalesAgedDebtorsRoot))]
 [JsonSerializable(typeof(SalesTaxRatesRoot))]
+[JsonSerializable(typeof(SalesTaxPeriodRoot))]
+[JsonSerializable(typeof(SalesTaxPeriodsRoot))]
 [JsonSerializable(typeof(SelfAssessmentReturnRoot))]
 [JsonSerializable(typeof(SelfAssessmentReturnsRoot))]
 [JsonSerializable(typeof(SelfAssessmentReturnFilingRoot))]
@@ -150,6 +153,8 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(CategoryGroupType?))]
 [JsonSerializable(typeof(AutoSalesTaxRateType))]
 [JsonSerializable(typeof(AutoSalesTaxRateType?))]
+[JsonSerializable(typeof(SalesTaxRegistrationStatus))]
+[JsonSerializable(typeof(SalesTaxRegistrationStatus?))]
 [JsonSerializable(typeof(Domain.Company))]
 [JsonSerializable(typeof(Contact))]
 [JsonSerializable(typeof(CreditNote))]
@@ -171,6 +176,7 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(Project))]
 [JsonSerializable(typeof(RecurringInvoice))]
 [JsonSerializable(typeof(SalesTaxRate))]
+[JsonSerializable(typeof(SalesTaxPeriod))]
 [JsonSerializable(typeof(StockItem))]
 [JsonSerializable(typeof(Task))]
 [JsonSerializable(typeof(User))]
