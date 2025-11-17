@@ -2,6 +2,8 @@
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
+using System.Text.Json.Serialization;
+
 namespace Endjin.FreeAgent.Domain;
 
 /// <summary>

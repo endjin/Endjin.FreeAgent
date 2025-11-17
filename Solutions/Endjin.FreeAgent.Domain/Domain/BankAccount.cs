@@ -131,6 +131,16 @@ public record BankAccount
     public string? Bic { get; init; }
 
     /// <summary>
+    /// Gets the email address for PayPal accounts.
+    /// </summary>
+    /// <value>
+    /// The PayPal login email address. This field is required when creating or updating a PaypalAccount type.
+    /// </value>
+    [JsonPropertyName("email")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Email { get; init; }
+
+    /// <summary>
     /// Gets the opening balance when the account was added to FreeAgent.
     /// </summary>
     /// <value>
@@ -151,6 +161,16 @@ public record BankAccount
     public decimal? CurrentBalance { get; init; }
 
     /// <summary>
+    /// Gets the date of the latest transaction activity.
+    /// </summary>
+    /// <value>
+    /// The date of the most recent transaction activity in YYYY-MM-DD format, or <see langword="null"/> if no activity exists.
+    /// </value>
+    [JsonPropertyName("latest_activity_date")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? LatestActivityDate { get; init; }
+
+    /// <summary>
     /// Gets the name of the financial institution.
     /// </summary>
     /// <value>
@@ -159,6 +179,16 @@ public record BankAccount
     [JsonPropertyName("bank_name")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? BankName { get; init; }
+
+    /// <summary>
+    /// Gets the bank code identifier.
+    /// </summary>
+    /// <value>
+    /// A code identifying the specific bank or financial institution (e.g., "generic", "barclays", "natwest", "hsbc").
+    /// </value>
+    [JsonPropertyName("bank_code")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? BankCode { get; init; }
 
     /// <summary>
     /// Gets the currency for this bank account.
@@ -220,6 +250,16 @@ public record BankAccount
     [JsonPropertyName("bank_feed_status")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? BankFeedStatus { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the bank guess feature is enabled.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> if automatic transaction categorization based on bank descriptions is enabled; otherwise, <see langword="false"/>.
+    /// </value>
+    [JsonPropertyName("bank_guess_enabled")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? BankGuessEnabled { get; init; }
 
     /// <summary>
     /// Gets the date and time when this bank account was created.

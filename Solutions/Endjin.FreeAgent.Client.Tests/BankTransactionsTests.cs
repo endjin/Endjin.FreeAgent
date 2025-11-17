@@ -43,54 +43,10 @@ public class BankTransactionsTests
     }
 
     [TestMethod]
-    public async Task CreateAsync_WithValidBankTransaction_ReturnsCreatedBankTransaction()
+    public async Task GetAllAsync_WithBankAccount_ReturnsAllBankTransactions()
     {
         // Arrange
-        BankTransaction inputTransaction = new()
-        {
-            BankAccount = new Uri("https://api.freeagent.com/v2/bank_accounts/123"),
-            DatedOn = new DateOnly(2024, 3, 15),
-            Amount = 500.00m,
-            Description = "Client payment"
-        };
-
-        BankTransaction responseTransaction = new()
-        {
-            Url = new Uri("https://api.freeagent.com/v2/bank_transactions/456"),
-            BankAccount = new Uri("https://api.freeagent.com/v2/bank_accounts/123"),
-            DatedOn = new DateOnly(2024, 3, 15),
-            Amount = 500.00m,
-            Description = "Client payment",
-            IsManual = true
-        };
-
-        BankTransactionRoot responseRoot = new() { BankTransaction = responseTransaction };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
-
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
-        {
-            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
-        };
-
-        // Act
-        BankTransaction result = await this.bankTransactions.CreateAsync(inputTransaction);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Url.ShouldNotBeNull();
-        result.Amount.ShouldBe(500.00m);
-        result.Description.ShouldBe("Client payment");
-
-        // Mock Verification
-        this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPostRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/bank_transactions");
-    }
-
-    [TestMethod]
-    public async Task GetAllAsync_WithoutFilters_ReturnsAllBankTransactions()
-    {
-        // Arrange
+        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/123");
         List<BankTransaction> transactionsList =
         [
             new() { Description = "Payment received", Amount = 1000.00m },
@@ -106,7 +62,7 @@ public class BankTransactionsTests
         };
 
         // Act
-        IEnumerable<BankTransaction> result = await this.bankTransactions.GetAllAsync();
+        IEnumerable<BankTransaction> result = await this.bankTransactions.GetAllAsync(bankAccountUri);
 
         // Assert
         result.Count().ShouldBe(2);
@@ -116,7 +72,7 @@ public class BankTransactionsTests
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenGetRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/bank_transactions?view=all");
+        this.messageHandler.ShouldHaveQueryParameter("bank_account", bankAccountUri.ToString());
     }
 
     [TestMethod]
@@ -153,6 +109,7 @@ public class BankTransactionsTests
     public async Task GetAllAsync_CachesResults()
     {
         // Arrange
+        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/456");
         List<BankTransaction> transactionsList = [new() { Description = "Test", Amount = 100.00m }];
         BankTransactionsRoot responseRoot = new() { BankTransactions = transactionsList };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
@@ -163,8 +120,8 @@ public class BankTransactionsTests
         };
 
         // Act - Call twice
-        IEnumerable<BankTransaction> result1 = await this.bankTransactions.GetAllAsync();
-        IEnumerable<BankTransaction> result2 = await this.bankTransactions.GetAllAsync();
+        IEnumerable<BankTransaction> result1 = await this.bankTransactions.GetAllAsync(bankAccountUri);
+        IEnumerable<BankTransaction> result2 = await this.bankTransactions.GetAllAsync(bankAccountUri);
 
         // Assert
         result1.Count().ShouldBe(1);
@@ -178,6 +135,7 @@ public class BankTransactionsTests
     public async Task GetUnexplainedAsync_ReturnsUnexplainedTransactions()
     {
         // Arrange
+        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/123");
         List<BankTransaction> transactionsList =
         [
             new() { Description = "Unexplained transaction", Amount = 250.00m }
@@ -192,7 +150,7 @@ public class BankTransactionsTests
         };
 
         // Act
-        IEnumerable<BankTransaction> result = await this.bankTransactions.GetUnexplainedAsync();
+        IEnumerable<BankTransaction> result = await this.bankTransactions.GetUnexplainedAsync(bankAccountUri);
 
         // Assert
         result.Count().ShouldBe(1);
@@ -201,7 +159,7 @@ public class BankTransactionsTests
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenGetRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/bank_transactions?view=unexplained");
+        this.messageHandler.ShouldHaveQueryParameter("view", "unexplained");
     }
 
     [TestMethod]
@@ -238,6 +196,7 @@ public class BankTransactionsTests
     public async Task GetExplainedAsync_ReturnsExplainedTransactions()
     {
         // Arrange
+        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/123");
         List<BankTransaction> transactionsList =
         [
             new() { Description = "Explained transaction", Amount = 750.00m },
@@ -253,7 +212,7 @@ public class BankTransactionsTests
         };
 
         // Act
-        IEnumerable<BankTransaction> result = await this.bankTransactions.GetExplainedAsync();
+        IEnumerable<BankTransaction> result = await this.bankTransactions.GetExplainedAsync(bankAccountUri);
 
         // Assert
         result.Count().ShouldBe(2);
@@ -261,7 +220,7 @@ public class BankTransactionsTests
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenGetRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/bank_transactions?view=explained");
+        this.messageHandler.ShouldHaveQueryParameter("view", "explained");
     }
 
     [TestMethod]
@@ -292,6 +251,197 @@ public class BankTransactionsTests
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenGetRequest();
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithDateRangeFilter_ReturnsFilteredTransactions()
+    {
+        // Arrange
+        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/123");
+        DateOnly fromDate = new(2024, 1, 1);
+        DateOnly toDate = new(2024, 3, 31);
+        List<BankTransaction> transactionsList =
+        [
+            new() { Description = "Q1 transaction", Amount = 200.00m, DatedOn = new DateOnly(2024, 2, 15) }
+        ];
+
+        BankTransactionsRoot responseRoot = new() { BankTransactions = transactionsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<BankTransaction> result = await this.bankTransactions.GetAllAsync(bankAccountUri, fromDate: fromDate, toDate: toDate);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().Description.ShouldBe("Q1 transaction");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveQueryParameter("from_date", "2024-01-01");
+        this.messageHandler.ShouldHaveQueryParameter("to_date", "2024-03-31");
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithUpdatedSinceFilter_ReturnsRecentlyUpdatedTransactions()
+    {
+        // Arrange
+        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/123");
+        DateTime updatedSince = new(2024, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+        List<BankTransaction> transactionsList =
+        [
+            new() { Description = "Recently updated", Amount = 150.00m }
+        ];
+
+        BankTransactionsRoot responseRoot = new() { BankTransactions = transactionsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<BankTransaction> result = await this.bankTransactions.GetAllAsync(bankAccountUri, updatedSince: updatedSince);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().Description.ShouldBe("Recently updated");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.LastRequest?.RequestUri?.Query.ShouldContain("updated_since=");
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithLastUploadedOnly_ReturnsLatestStatementTransactions()
+    {
+        // Arrange
+        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/123");
+        List<BankTransaction> transactionsList =
+        [
+            new() { Description = "Latest upload", Amount = 300.00m }
+        ];
+
+        BankTransactionsRoot responseRoot = new() { BankTransactions = transactionsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<BankTransaction> result = await this.bankTransactions.GetAllAsync(bankAccountUri, lastUploadedOnly: true);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().Description.ShouldBe("Latest upload");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveQueryParameter("last_uploaded", "true");
+    }
+
+    [TestMethod]
+    public async Task GetManualTransactionsAsync_ReturnsManuallyEnteredTransactions()
+    {
+        // Arrange
+        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/123");
+        List<BankTransaction> transactionsList =
+        [
+            new() { Description = "Manual entry", Amount = 500.00m, IsManual = true }
+        ];
+
+        BankTransactionsRoot responseRoot = new() { BankTransactions = transactionsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<BankTransaction> result = await this.bankTransactions.GetManualTransactionsAsync(bankAccountUri);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().Description.ShouldBe("Manual entry");
+        result.First().IsManual.ShouldBe(true);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveQueryParameter("view", "manual");
+    }
+
+    [TestMethod]
+    public async Task GetImportedTransactionsAsync_ReturnsImportedTransactions()
+    {
+        // Arrange
+        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/123");
+        List<BankTransaction> transactionsList =
+        [
+            new() { Description = "Imported from bank", Amount = 750.00m, IsManual = false }
+        ];
+
+        BankTransactionsRoot responseRoot = new() { BankTransactions = transactionsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<BankTransaction> result = await this.bankTransactions.GetImportedTransactionsAsync(bankAccountUri);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().Description.ShouldBe("Imported from bank");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveQueryParameter("view", "imported");
+    }
+
+    [TestMethod]
+    public async Task GetMarkedForReviewAsync_ReturnsTransactionsNeedingReview()
+    {
+        // Arrange
+        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/456");
+        List<BankTransaction> transactionsList =
+        [
+            new() { BankAccount = bankAccountUri, Description = "Needs review", Amount = 1000.00m }
+        ];
+
+        BankTransactionsRoot responseRoot = new() { BankTransactions = transactionsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<BankTransaction> result = await this.bankTransactions.GetMarkedForReviewAsync(bankAccountUri);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().Description.ShouldBe("Needs review");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveQueryParameter("view", "marked_for_review");
     }
 
     [TestMethod]
@@ -362,98 +512,6 @@ public class BankTransactionsTests
     }
 
     [TestMethod]
-    public async Task UpdateAsync_WithValidTransaction_ReturnsUpdatedBankTransaction()
-    {
-        // Arrange
-        BankTransaction updatedTransaction = new()
-        {
-            Description = "Updated description",
-            Amount = 600.00m
-        };
-
-        BankTransaction responseTransaction = new()
-        {
-            Url = new Uri("https://api.freeagent.com/v2/bank_transactions/777"),
-            Description = "Updated description",
-            Amount = 600.00m,
-            DatedOn = new DateOnly(2024, 3, 20)
-        };
-
-        BankTransactionRoot responseRoot = new() { BankTransaction = responseTransaction };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
-
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
-        };
-
-        // Act
-        BankTransaction result = await this.bankTransactions.UpdateAsync("777", updatedTransaction);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Description.ShouldBe("Updated description");
-        result.Amount.ShouldBe(600.00m);
-
-        // Mock Verification
-        this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/bank_transactions/777");
-    }
-
-    [TestMethod]
-    public async Task UpdateAsync_InvalidatesCacheEntry()
-    {
-        // Arrange
-        string transactionId = "999";
-        BankTransaction originalTransaction = new()
-        {
-            Url = new Uri($"https://api.freeagent.com/v2/bank_transactions/{transactionId}"),
-            Description = "Original",
-            Amount = 100.00m
-        };
-
-        BankTransaction updatedTransaction = new()
-        {
-            Url = new Uri($"https://api.freeagent.com/v2/bank_transactions/{transactionId}"),
-            Description = "Updated",
-            Amount = 200.00m
-        };
-
-        BankTransactionRoot originalRoot = new() { BankTransaction = originalTransaction };
-        BankTransactionRoot updatedRoot = new() { BankTransaction = updatedTransaction };
-
-        // First call to GetByIdAsync
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(JsonSerializer.Serialize(originalRoot, SharedJsonOptions.Instance), Encoding.UTF8, "application/json")
-        };
-        await this.bankTransactions.GetByIdAsync(transactionId);
-
-        // Update call
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(JsonSerializer.Serialize(updatedRoot, SharedJsonOptions.Instance), Encoding.UTF8, "application/json")
-        };
-
-        // Act
-        await this.bankTransactions.UpdateAsync(transactionId, updatedTransaction);
-
-        // Setup response for second GetByIdAsync (after cache invalidation)
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(JsonSerializer.Serialize(updatedRoot, SharedJsonOptions.Instance), Encoding.UTF8, "application/json")
-        };
-        BankTransaction result = await this.bankTransactions.GetByIdAsync(transactionId);
-
-        // Assert
-        result.Description.ShouldBe("Updated");
-
-        // Mock Verification - Should have made 3 calls (initial get, update, second get after cache invalidation)
-        this.messageHandler.CallCount.ShouldBe(3);
-    }
-
-    [TestMethod]
     public async Task DeleteAsync_WithValidId_DeletesBankTransaction()
     {
         // Arrange
@@ -511,8 +569,8 @@ public class BankTransactionsTests
     {
         // Arrange
         Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/123");
-        string statementData = "OFX DATA HERE";
-        string fileType = "ofx";
+        byte[] statementData = Encoding.UTF8.GetBytes("OFX DATA HERE");
+        string fileName = "statement.ofx";
 
         List<BankTransaction> parsedTransactions =
         [
@@ -523,7 +581,7 @@ public class BankTransactionsTests
         BankTransactionsRoot responseRoot = new() { BankTransactions = parsedTransactions };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
         };
@@ -532,7 +590,7 @@ public class BankTransactionsTests
         IEnumerable<BankTransaction> result = await this.bankTransactions.UploadStatementAsync(
             bankAccountUri,
             statementData,
-            fileType);
+            fileName);
 
         // Assert
         result.Count().ShouldBe(2);
@@ -543,6 +601,8 @@ public class BankTransactionsTests
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenPostRequest();
         this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/bank_transactions/statement");
+        this.messageHandler.LastRequest?.RequestUri?.Query.ShouldContain("bank_account=");
+        this.messageHandler.LastRequest?.Content?.Headers.ContentType?.MediaType.ShouldBe("multipart/form-data");
     }
 
     [TestMethod]
@@ -550,8 +610,8 @@ public class BankTransactionsTests
     {
         // Arrange
         Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/456");
-        string statementData = "date,description,amount\n2024-03-01,Payment,100.00";
-        string fileType = "csv";
+        byte[] statementData = Encoding.UTF8.GetBytes("date,description,amount\n2024-03-01,Payment,100.00");
+        string fileName = "statement.csv";
 
         List<BankTransaction> parsedTransactions =
         [
@@ -561,7 +621,7 @@ public class BankTransactionsTests
         BankTransactionsRoot responseRoot = new() { BankTransactions = parsedTransactions };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
         };
@@ -570,11 +630,91 @@ public class BankTransactionsTests
         IEnumerable<BankTransaction> result = await this.bankTransactions.UploadStatementAsync(
             bankAccountUri,
             statementData,
-            fileType);
+            fileName);
 
         // Assert
         result.Count().ShouldBe(1);
         result.First().Description.ShouldBe("Payment");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPostRequest();
+    }
+
+    [TestMethod]
+    public async Task UploadStatementAsJsonAsync_WithValidTransactions_ReturnsCreatedBankTransactions()
+    {
+        // Arrange
+        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/123");
+        List<BankTransactionUpload> transactions =
+        [
+            new() { DatedOn = new DateOnly(2024, 3, 1), Description = "Deposit", Amount = 500.00m, TransactionType = "CREDIT" },
+            new() { DatedOn = new DateOnly(2024, 3, 2), Description = "Payment", Amount = -100.00m, Fitid = "TXN123", TransactionType = "DEBIT" }
+        ];
+
+        List<BankTransaction> createdTransactions =
+        [
+            new() { Description = "Deposit", Amount = 500.00m, DatedOn = new DateOnly(2024, 3, 1) },
+            new() { Description = "Payment", Amount = -100.00m, DatedOn = new DateOnly(2024, 3, 2) }
+        ];
+
+        BankTransactionsRoot responseRoot = new() { BankTransactions = createdTransactions };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<BankTransaction> result = await this.bankTransactions.UploadStatementAsJsonAsync(
+            bankAccountUri,
+            transactions);
+
+        // Assert
+        result.Count().ShouldBe(2);
+        result.Any(t => t.Description == "Deposit" && t.Amount == 500.00m).ShouldBeTrue();
+        result.Any(t => t.Description == "Payment" && t.Amount == -100.00m).ShouldBeTrue();
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPostRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/bank_transactions/statement");
+        this.messageHandler.LastRequest?.RequestUri?.Query.ShouldContain("bank_account=");
+        this.messageHandler.LastRequest?.Content?.Headers.ContentType?.MediaType.ShouldBe("application/json");
+    }
+
+    [TestMethod]
+    public async Task UploadStatementAsJsonAsync_WithMinimalRequiredFields_CreatesTransactions()
+    {
+        // Arrange
+        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/789");
+        List<BankTransactionUpload> transactions =
+        [
+            new() { DatedOn = new DateOnly(2024, 3, 15) } // Only required field
+        ];
+
+        List<BankTransaction> createdTransactions =
+        [
+            new() { Amount = 0m, DatedOn = new DateOnly(2024, 3, 15), Description = string.Empty }
+        ];
+
+        BankTransactionsRoot responseRoot = new() { BankTransactions = createdTransactions };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<BankTransaction> result = await this.bankTransactions.UploadStatementAsJsonAsync(
+            bankAccountUri,
+            transactions);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().DatedOn.ShouldBe(new DateOnly(2024, 3, 15));
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();

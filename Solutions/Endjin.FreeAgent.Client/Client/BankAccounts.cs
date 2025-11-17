@@ -76,7 +76,7 @@ public class BankAccounts
     /// <summary>
     /// Retrieves bank accounts from FreeAgent filtered by view.
     /// </summary>
-    /// <param name="view">The view filter to apply (e.g., "all", "active"). Defaults to "all".</param>
+    /// <param name="view">The view filter to apply. Valid values are "standard_bank_accounts", "credit_card_accounts", "paypal_accounts", or "all". Defaults to "all".</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
     /// <see cref="BankAccount"/> objects matching the specified view.
@@ -84,7 +84,7 @@ public class BankAccounts
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <remarks>
     /// This method calls GET /v2/bank_accounts?view={view}, handles pagination automatically, and caches the
-    /// result for 5 minutes.
+    /// result for 5 minutes. Use specific view filters to retrieve only accounts of a particular type.
     /// </remarks>
     public async Task<IEnumerable<BankAccount>> GetAllAsync(string view = "all")
     {

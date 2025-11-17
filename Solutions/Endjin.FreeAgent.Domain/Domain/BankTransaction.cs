@@ -49,6 +49,17 @@ public record BankTransaction
     public Uri? Url { get; init; }
 
     /// <summary>
+    /// Gets the unique transaction identifier from the banking institution.
+    /// </summary>
+    /// <value>
+    /// The Financial Institution Transaction ID (FITID) used for deduplication.
+    /// Transactions with the same transaction_id are considered duplicates and will not be imported again.
+    /// </value>
+    [JsonPropertyName("transaction_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TransactionId { get; init; }
+
+    /// <summary>
     /// Gets the URI reference to the bank account containing this transaction.
     /// </summary>
     /// <value>
@@ -89,6 +100,17 @@ public record BankTransaction
     public string? FullDescription { get; init; }
 
     /// <summary>
+    /// Gets the count of other transactions with matching descriptions.
+    /// </summary>
+    /// <value>
+    /// The number of transactions in the account that have the same description as this transaction.
+    /// Useful for identifying recurring or similar transactions.
+    /// </value>
+    [JsonPropertyName("matching_transactions_count")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? MatchingTransactionsCount { get; init; }
+
+    /// <summary>
     /// Gets the transaction amount.
     /// </summary>
     /// <value>
@@ -116,6 +138,10 @@ public record BankTransaction
     /// <see langword="true"/> if the entire transaction amount has been categorized through explanations;
     /// otherwise, <see langword="false"/>.
     /// </value>
+    /// <remarks>
+    /// This field is returned by the FreeAgent API but may not be documented in the official API documentation.
+    /// It provides a convenient way to check if a transaction is fully explained without comparing amounts.
+    /// </remarks>
     [JsonPropertyName("is_explained")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? IsExplained { get; init; }
@@ -138,20 +164,30 @@ public record BankTransaction
     /// <see langword="true"/> if the transaction is locked and cannot be modified or deleted; otherwise,
     /// <see langword="false"/>. Transactions are typically locked when they belong to finalized accounting periods.
     /// </value>
+    /// <remarks>
+    /// This field is returned by the FreeAgent API but may not be documented in the official API documentation.
+    /// Locked transactions typically indicate that an accounting period has been finalized and the transaction
+    /// is part of historical records that should not be modified.
+    /// </remarks>
     [JsonPropertyName("is_locked")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? IsLocked { get; init; }
 
     /// <summary>
-    /// Gets the URI reference to the explanations for this transaction.
+    /// Gets the collection of explanations for this transaction.
     /// </summary>
     /// <value>
-    /// The URI endpoint for accessing the collection of <see cref="BankTransactionExplanation"/> objects
-    /// that categorize this transaction.
+    /// An array of <see cref="BankTransactionExplanation"/> objects that fully or partially explain this transaction.
+    /// Each explanation links the transaction to invoices, bills, expenses, transfers, or other accounting categories.
     /// </value>
+    /// <remarks>
+    /// The FreeAgent API returns this as an embedded array of fully-populated explanation objects within the
+    /// transaction response. This allows immediate access to all explanations without requiring additional API calls.
+    /// A transaction may have multiple explanations to split the amount across different categories.
+    /// </remarks>
     [JsonPropertyName("bank_transaction_explanations")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Uri? BankTransactionExplanations { get; init; }
+    public IEnumerable<BankTransactionExplanation>? BankTransactionExplanations { get; init; }
 
     /// <summary>
     /// Gets the date and time when this transaction was uploaded.

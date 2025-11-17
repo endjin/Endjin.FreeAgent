@@ -19,6 +19,12 @@ namespace Endjin.FreeAgent.Domain;
 /// for audit and compliance purposes.
 /// </para>
 /// <para>
+/// <strong>Important:</strong> The FreeAgent API provides temporary URLs for accessing attachment content via the
+/// <see cref="ContentSrc"/>, <see cref="ContentSrcMedium"/>, and <see cref="ContentSrcSmall"/> properties. These URLs
+/// expire after the time specified in <see cref="ExpiresAt"/>. After expiration, you must fetch the attachment metadata
+/// again to obtain new access URLs.
+/// </para>
+/// <para>
 /// API Endpoint: /v2/attachments
 /// </para>
 /// <para>
@@ -46,7 +52,7 @@ public record Attachment
     /// <value>
     /// The name of the file as it was uploaded, including the file extension (e.g., "receipt.pdf", "invoice.jpg").
     /// </value>
-    [JsonPropertyName("filename")]
+    [JsonPropertyName("file_name")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Filename { get; init; }
 
@@ -66,7 +72,7 @@ public record Attachment
     /// <value>
     /// The size of the attached file in bytes.
     /// </value>
-    [JsonPropertyName("size")]
+    [JsonPropertyName("file_size")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? Size { get; init; }
 
@@ -89,4 +95,50 @@ public record Attachment
     [JsonPropertyName("created_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DateTime? CreatedAt { get; init; }
+
+    /// <summary>
+    /// Gets the URL to access the original full-size file content.
+    /// </summary>
+    /// <value>
+    /// A temporary URL that provides direct access to the original file. This URL expires at the time
+    /// specified in <see cref="ExpiresAt"/>. After expiration, fetch the attachment metadata again
+    /// to obtain a new URL.
+    /// </value>
+    [JsonPropertyName("content_src")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? ContentSrc { get; init; }
+
+    /// <summary>
+    /// Gets the URL to access a medium-sized thumbnail version of the file.
+    /// </summary>
+    /// <value>
+    /// A temporary URL that provides access to a medium-sized thumbnail (if available for the file type).
+    /// This property is null for non-image files. The URL expires at the time specified in <see cref="ExpiresAt"/>.
+    /// </value>
+    [JsonPropertyName("content_src_medium")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? ContentSrcMedium { get; init; }
+
+    /// <summary>
+    /// Gets the URL to access a small thumbnail version of the file.
+    /// </summary>
+    /// <value>
+    /// A temporary URL that provides access to a small thumbnail (if available for the file type).
+    /// This property is null for non-image files. The URL expires at the time specified in <see cref="ExpiresAt"/>.
+    /// </value>
+    [JsonPropertyName("content_src_small")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? ContentSrcSmall { get; init; }
+
+    /// <summary>
+    /// Gets the expiration timestamp for the content URLs.
+    /// </summary>
+    /// <value>
+    /// A <see cref="DateTime"/> in UTC indicating when the <see cref="ContentSrc"/>, <see cref="ContentSrcMedium"/>,
+    /// and <see cref="ContentSrcSmall"/> URLs will expire and no longer be accessible. After this time, you must
+    /// fetch the attachment metadata again to obtain new temporary URLs.
+    /// </value>
+    [JsonPropertyName("expires_at")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTime? ExpiresAt { get; init; }
 }

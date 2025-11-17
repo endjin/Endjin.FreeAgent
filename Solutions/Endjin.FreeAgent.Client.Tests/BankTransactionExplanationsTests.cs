@@ -92,7 +92,7 @@ public class BankTransactionExplanationsTests
         BankTransactionExplanation inputExplanation = new()
         {
             BankTransaction = new Uri("https://api.freeagent.com/v2/bank_transactions/555"),
-            LinkedInvoice = new Uri("https://api.freeagent.com/v2/invoices/999"),
+            PaidInvoice = new Uri("https://api.freeagent.com/v2/invoices/999"),
             GrossValue = 1200.00m
         };
 
@@ -100,8 +100,9 @@ public class BankTransactionExplanationsTests
         {
             Url = new Uri("https://api.freeagent.com/v2/bank_transaction_explanations/111"),
             BankTransaction = new Uri("https://api.freeagent.com/v2/bank_transactions/555"),
-            LinkedInvoice = new Uri("https://api.freeagent.com/v2/invoices/999"),
-            GrossValue = 1200.00m
+            PaidInvoice = new Uri("https://api.freeagent.com/v2/invoices/999"),
+            GrossValue = 1200.00m,
+            Type = "Invoice Receipt"
         };
 
         BankTransactionExplanationRoot responseRoot = new() { BankTransactionExplanation = responseExplanation };
@@ -117,7 +118,8 @@ public class BankTransactionExplanationsTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.LinkedInvoice.ShouldBe(new Uri("https://api.freeagent.com/v2/invoices/999"));
+        result.PaidInvoice.ShouldBe(new Uri("https://api.freeagent.com/v2/invoices/999"));
+        result.Type.ShouldBe("Invoice Receipt");
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
@@ -157,6 +159,42 @@ public class BankTransactionExplanationsTests
     }
 
     [TestMethod]
+    public async Task GetAllAsync_WithBankAccountFilter_ReturnsFilteredExplanations()
+    {
+        // Arrange
+        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/123");
+        List<BankTransactionExplanation> explanationsList =
+        [
+            new()
+            {
+                BankAccount = bankAccountUri,
+                GrossValue = 150.00m,
+                Description = "Account filtered explanation"
+            }
+        ];
+
+        BankTransactionExplanationsRoot responseRoot = new() { BankTransactionExplanations = explanationsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<BankTransactionExplanation> result = await this.bankTransactionExplanations.GetAllAsync(bankAccountUri: bankAccountUri);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().BankAccount.ShouldBe(bankAccountUri);
+        result.First().Description.ShouldBe("Account filtered explanation");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+    }
+
+    [TestMethod]
     public async Task GetAllAsync_WithBankTransactionFilter_ReturnsFilteredExplanations()
     {
         // Arrange
@@ -180,7 +218,7 @@ public class BankTransactionExplanationsTests
         };
 
         // Act
-        IEnumerable<BankTransactionExplanation> result = await this.bankTransactionExplanations.GetAllAsync(bankTransactionUri);
+        IEnumerable<BankTransactionExplanation> result = await this.bankTransactionExplanations.GetAllAsync(bankTransactionUri: bankTransactionUri);
 
         // Assert
         result.Count().ShouldBe(1);
@@ -190,6 +228,128 @@ public class BankTransactionExplanationsTests
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenGetRequest();
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithDateRangeFilter_ReturnsFilteredExplanations()
+    {
+        // Arrange
+        DateOnly fromDate = new(2024, 1, 1);
+        DateOnly toDate = new(2024, 3, 31);
+        List<BankTransactionExplanation> explanationsList =
+        [
+            new()
+            {
+                DatedOn = new DateOnly(2024, 2, 15),
+                GrossValue = 250.00m,
+                Description = "Date filtered explanation"
+            }
+        ];
+
+        BankTransactionExplanationsRoot responseRoot = new() { BankTransactionExplanations = explanationsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<BankTransactionExplanation> result = await this.bankTransactionExplanations.GetAllAsync(
+            fromDate: fromDate,
+            toDate: toDate);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().DatedOn.ShouldBe(new DateOnly(2024, 2, 15));
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.LastRequest?.RequestUri?.Query.ShouldContain("from_date=2024-01-01");
+        this.messageHandler.LastRequest?.RequestUri?.Query.ShouldContain("to_date=2024-03-31");
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithUpdatedSinceFilter_ReturnsFilteredExplanations()
+    {
+        // Arrange
+        DateTime updatedSince = new(2024, 3, 1, 10, 0, 0, DateTimeKind.Utc);
+        List<BankTransactionExplanation> explanationsList =
+        [
+            new()
+            {
+                UpdatedAt = new DateTime(2024, 3, 15, 14, 30, 0, DateTimeKind.Utc),
+                GrossValue = 180.00m,
+                Description = "Recently updated explanation"
+            }
+        ];
+
+        BankTransactionExplanationsRoot responseRoot = new() { BankTransactionExplanations = explanationsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<BankTransactionExplanation> result = await this.bankTransactionExplanations.GetAllAsync(
+            updatedSince: updatedSince);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().Description.ShouldBe("Recently updated explanation");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.LastRequest?.RequestUri?.Query.ShouldContain("updated_since=");
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithMultipleFilters_ReturnsFilteredExplanations()
+    {
+        // Arrange
+        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/456");
+        DateOnly fromDate = new(2024, 1, 1);
+        DateOnly toDate = new(2024, 12, 31);
+
+        List<BankTransactionExplanation> explanationsList =
+        [
+            new()
+            {
+                BankAccount = bankAccountUri,
+                DatedOn = new DateOnly(2024, 6, 15),
+                GrossValue = 500.00m,
+                Description = "Multi-filter explanation"
+            }
+        ];
+
+        BankTransactionExplanationsRoot responseRoot = new() { BankTransactionExplanations = explanationsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<BankTransactionExplanation> result = await this.bankTransactionExplanations.GetAllAsync(
+            bankAccountUri: bankAccountUri,
+            fromDate: fromDate,
+            toDate: toDate);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().BankAccount.ShouldBe(bankAccountUri);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.LastRequest?.RequestUri?.Query.ShouldContain("bank_account=");
+        this.messageHandler.LastRequest?.RequestUri?.Query.ShouldContain("from_date=");
+        this.messageHandler.LastRequest?.RequestUri?.Query.ShouldContain("to_date=");
     }
 
     [TestMethod]
@@ -431,5 +591,133 @@ public class BankTransactionExplanationsTests
 
         // Assert - Mock Verification: Should have made 3 calls (initial get, delete, second get after cache invalidation)
         this.messageHandler.CallCount.ShouldBe(3);
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithNewFields_DeserializesCorrectly()
+    {
+        // Arrange
+        BankTransactionExplanation explanation = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/bank_transaction_explanations/1234"),
+            Type = "Bill Payment",
+            GrossValue = 450.00m,
+            SalesTaxRate = 0.20m,
+            SalesTaxValue = 75.00m,
+            SalesTaxStatus = "TAXABLE",
+            EcStatus = "UK/Non-EC",
+            IsLocked = false,
+            IsDeletable = true,
+            MarkedForReview = false,
+            IsMoneyOut = true,
+            IsMoneyIn = false,
+            IsMoneyPaidToUser = false,
+            PaidBill = new Uri("https://api.freeagent.com/v2/bills/567"),
+            Project = new Uri("https://api.freeagent.com/v2/projects/890"),
+            DatedOn = new DateOnly(2024, 4, 1)
+        };
+
+        BankTransactionExplanationRoot responseRoot = new() { BankTransactionExplanation = explanation };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        BankTransactionExplanation result = await this.bankTransactionExplanations.GetByIdAsync("1234");
+
+        // Assert - Verify new fields
+        result.ShouldNotBeNull();
+        result.Type.ShouldBe("Bill Payment");
+        result.SalesTaxValue.ShouldBe(75.00m);
+        result.SalesTaxStatus.ShouldBe("TAXABLE");
+        result.EcStatus.ShouldBe("UK/Non-EC");
+        result.IsLocked.ShouldBe(false);
+        result.IsDeletable.ShouldBe(true);
+        result.MarkedForReview.ShouldBe(false);
+        result.IsMoneyOut.ShouldBe(true);
+        result.IsMoneyIn.ShouldBe(false);
+        result.IsMoneyPaidToUser.ShouldBe(false);
+        result.PaidBill.ShouldBe(new Uri("https://api.freeagent.com/v2/bills/567"));
+        result.Project.ShouldBe(new Uri("https://api.freeagent.com/v2/projects/890"));
+    }
+
+    [TestMethod]
+    public async Task CreateAsync_WithBankTransferFields_CreatesSuccessfully()
+    {
+        // Arrange
+        BankTransactionExplanation inputExplanation = new()
+        {
+            BankTransaction = new Uri("https://api.freeagent.com/v2/bank_transactions/111"),
+            TransferBankAccount = new Uri("https://api.freeagent.com/v2/bank_accounts/222"),
+            GrossValue = 1000.00m
+        };
+
+        BankTransactionExplanation responseExplanation = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/bank_transaction_explanations/333"),
+            BankTransaction = new Uri("https://api.freeagent.com/v2/bank_transactions/111"),
+            TransferBankAccount = new Uri("https://api.freeagent.com/v2/bank_accounts/222"),
+            GrossValue = 1000.00m,
+            Type = "Bank Transfer"
+        };
+
+        BankTransactionExplanationRoot responseRoot = new() { BankTransactionExplanation = responseExplanation };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        BankTransactionExplanation result = await this.bankTransactionExplanations.CreateAsync(inputExplanation);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.TransferBankAccount.ShouldBe(new Uri("https://api.freeagent.com/v2/bank_accounts/222"));
+        result.Type.ShouldBe("Bank Transfer");
+    }
+
+    [TestMethod]
+    public async Task CreateAsync_WithStockFields_CreatesSuccessfully()
+    {
+        // Arrange
+        BankTransactionExplanation inputExplanation = new()
+        {
+            BankTransaction = new Uri("https://api.freeagent.com/v2/bank_transactions/444"),
+            StockItem = new Uri("https://api.freeagent.com/v2/stock_items/555"),
+            StockAlteringQuantity = 10,
+            GrossValue = 250.00m
+        };
+
+        BankTransactionExplanation responseExplanation = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/bank_transaction_explanations/666"),
+            BankTransaction = new Uri("https://api.freeagent.com/v2/bank_transactions/444"),
+            StockItem = new Uri("https://api.freeagent.com/v2/stock_items/555"),
+            StockAlteringQuantity = 10,
+            GrossValue = 250.00m,
+            Type = "Stock Purchase"
+        };
+
+        BankTransactionExplanationRoot responseRoot = new() { BankTransactionExplanation = responseExplanation };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        BankTransactionExplanation result = await this.bankTransactionExplanations.CreateAsync(inputExplanation);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.StockItem.ShouldBe(new Uri("https://api.freeagent.com/v2/stock_items/555"));
+        result.StockAlteringQuantity.ShouldBe(10);
+        result.Type.ShouldBe("Stock Purchase");
     }
 }

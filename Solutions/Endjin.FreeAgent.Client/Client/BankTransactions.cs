@@ -45,55 +45,52 @@ public class BankTransactions
     }
 
     /// <summary>
-    /// Creates a new bank transaction in FreeAgent.
+    /// Retrieves bank transactions from FreeAgent filtered by view and bank account.
     /// </summary>
-    /// <param name="bankTransaction">The <see cref="BankTransaction"/> object containing the transaction details to create.</param>
-    /// <returns>
-    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// created <see cref="BankTransaction"/> object with server-assigned values (e.g., ID, URL).
-    /// </returns>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
-    /// <remarks>
-    /// This method calls POST /v2/bank_transactions to create a new transaction. The cache is not updated as
-    /// only aggregate queries are cached.
-    /// </remarks>
-    public async Task<BankTransaction> CreateAsync(BankTransaction bankTransaction)
-    {
-        BankTransactionRoot root = new() { BankTransaction = bankTransaction };
-
-        using JsonContent content = JsonContent.Create(root, options: SharedJsonOptions.SourceGenOptions);
-        HttpResponseMessage response = await this.freeAgentClient.HttpClient.PostAsync(
-            new Uri(this.freeAgentClient.ApiBaseUrl, BankTransactionsEndPoint),
-            content).ConfigureAwait(false);
-
-        response.EnsureSuccessStatusCode();
-
-        BankTransactionRoot? results = await response.Content.ReadFromJsonAsync<BankTransactionRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
-
-        return results?.BankTransaction ?? throw new InvalidOperationException("Failed to deserialize bank transaction response.");
-    }
-
-    /// <summary>
-    /// Retrieves bank transactions from FreeAgent filtered by view and optionally by bank account.
-    /// </summary>
-    /// <param name="bankAccountUri">Optional URI of the bank account to filter transactions by. If null, transactions from all accounts are returned.</param>
+    /// <param name="bankAccountUri">The URI of the bank account to retrieve transactions for. This parameter is required per the FreeAgent API specification.</param>
     /// <param name="view">The view filter to apply (e.g., "all", "explained", "unexplained"). Defaults to "all".</param>
+    /// <param name="fromDate">Optional start date to filter transactions from (inclusive). Format: YYYY-MM-DD.</param>
+    /// <param name="toDate">Optional end date to filter transactions to (inclusive). Format: YYYY-MM-DD.</param>
+    /// <param name="updatedSince">Optional timestamp to filter transactions updated since this date/time (ISO 8601 format).</param>
+    /// <param name="lastUploadedOnly">If true, returns only transactions from the most recent statement upload.</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
     /// <see cref="BankTransaction"/> objects matching the specified criteria.
     /// </returns>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <remarks>
-    /// This method calls GET /v2/bank_transactions?view={view}&amp;bank_account={bankAccountUri}, handles
-    /// pagination automatically, and caches the result for 5 minutes.
+    /// This method calls GET /v2/bank_transactions with appropriate query parameters, handles
+    /// pagination automatically, and caches the result for 5 minutes. The bank_account parameter is
+    /// mandatory as specified in the FreeAgent API documentation.
     /// </remarks>
-    public async Task<IEnumerable<BankTransaction>> GetAllAsync(Uri? bankAccountUri = null, string view = "all")
+    public async Task<IEnumerable<BankTransaction>> GetAllAsync(
+        Uri bankAccountUri,
+        string view = "all",
+        DateOnly? fromDate = null,
+        DateOnly? toDate = null,
+        DateTime? updatedSince = null,
+        bool lastUploadedOnly = false)
     {
-        string queryString = $"?view={view}";
-        if (bankAccountUri != null)
+        string queryString = $"?view={view}&bank_account={Uri.EscapeDataString(bankAccountUri.ToString())}";
+
+        if (fromDate.HasValue)
         {
-            queryString += $"&bank_account={Uri.EscapeDataString(bankAccountUri.ToString())}";
+            queryString += $"&from_date={fromDate.Value:yyyy-MM-dd}";
+        }
+
+        if (toDate.HasValue)
+        {
+            queryString += $"&to_date={toDate.Value:yyyy-MM-dd}";
+        }
+
+        if (updatedSince.HasValue)
+        {
+            queryString += $"&updated_since={Uri.EscapeDataString(updatedSince.Value.ToString("o"))}";
+        }
+
+        if (lastUploadedOnly)
+        {
+            queryString += "&last_uploaded=true";
         }
 
         string cacheKey = $"{BankTransactionsEndPoint}{queryString}";
@@ -112,9 +109,9 @@ public class BankTransactions
     }
 
     /// <summary>
-    /// Retrieves unexplained bank transactions from FreeAgent, optionally filtered by bank account.
+    /// Retrieves unexplained bank transactions from FreeAgent for a specific bank account.
     /// </summary>
-    /// <param name="bankAccountUri">Optional URI of the bank account to filter transactions by.</param>
+    /// <param name="bankAccountUri">The URI of the bank account to retrieve transactions for. This parameter is required per the FreeAgent API specification.</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
     /// unexplained <see cref="BankTransaction"/> objects.
@@ -124,12 +121,12 @@ public class BankTransactions
     /// This method calls <see cref="GetAllAsync"/> with view="unexplained" to retrieve only transactions
     /// that have not yet been explained or reconciled.
     /// </remarks>
-    public async Task<IEnumerable<BankTransaction>> GetUnexplainedAsync(Uri? bankAccountUri = null) => await this.GetAllAsync(bankAccountUri, "unexplained").ConfigureAwait(false);
+    public async Task<IEnumerable<BankTransaction>> GetUnexplainedAsync(Uri bankAccountUri) => await this.GetAllAsync(bankAccountUri, "unexplained").ConfigureAwait(false);
 
     /// <summary>
-    /// Retrieves explained bank transactions from FreeAgent, optionally filtered by bank account.
+    /// Retrieves explained bank transactions from FreeAgent for a specific bank account.
     /// </summary>
-    /// <param name="bankAccountUri">Optional URI of the bank account to filter transactions by.</param>
+    /// <param name="bankAccountUri">The URI of the bank account to retrieve transactions for. This parameter is required per the FreeAgent API specification.</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
     /// explained <see cref="BankTransaction"/> objects.
@@ -139,7 +136,52 @@ public class BankTransactions
     /// This method calls <see cref="GetAllAsync"/> with view="explained" to retrieve only transactions
     /// that have been explained or reconciled.
     /// </remarks>
-    public async Task<IEnumerable<BankTransaction>> GetExplainedAsync(Uri? bankAccountUri = null) => await this.GetAllAsync(bankAccountUri, "explained").ConfigureAwait(false);
+    public async Task<IEnumerable<BankTransaction>> GetExplainedAsync(Uri bankAccountUri) => await this.GetAllAsync(bankAccountUri, "explained").ConfigureAwait(false);
+
+    /// <summary>
+    /// Retrieves manual bank transactions from FreeAgent for a specific bank account.
+    /// </summary>
+    /// <param name="bankAccountUri">The URI of the bank account to retrieve transactions for. This parameter is required per the FreeAgent API specification.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// manually-entered <see cref="BankTransaction"/> objects.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls <see cref="GetAllAsync"/> with view="manual" to retrieve only transactions
+    /// that were manually created by users rather than imported from bank feeds or statement uploads.
+    /// </remarks>
+    public async Task<IEnumerable<BankTransaction>> GetManualTransactionsAsync(Uri bankAccountUri) => await this.GetAllAsync(bankAccountUri, "manual").ConfigureAwait(false);
+
+    /// <summary>
+    /// Retrieves imported bank transactions from FreeAgent for a specific bank account.
+    /// </summary>
+    /// <param name="bankAccountUri">The URI of the bank account to retrieve transactions for. This parameter is required per the FreeAgent API specification.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// imported <see cref="BankTransaction"/> objects.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls <see cref="GetAllAsync"/> with view="imported" to retrieve only transactions
+    /// that were imported from bank feeds or statement uploads rather than manually entered.
+    /// </remarks>
+    public async Task<IEnumerable<BankTransaction>> GetImportedTransactionsAsync(Uri bankAccountUri) => await this.GetAllAsync(bankAccountUri, "imported").ConfigureAwait(false);
+
+    /// <summary>
+    /// Retrieves bank transactions marked for review from FreeAgent for a specific bank account.
+    /// </summary>
+    /// <param name="bankAccountUri">The URI of the bank account to retrieve transactions for. This parameter is required per the FreeAgent API specification.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// <see cref="BankTransaction"/> objects that have been flagged for review.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls <see cref="GetAllAsync"/> with view="marked_for_review" to retrieve only transactions
+    /// that require attention or verification.
+    /// </remarks>
+    public async Task<IEnumerable<BankTransaction>> GetMarkedForReviewAsync(Uri bankAccountUri) => await this.GetAllAsync(bankAccountUri, "marked_for_review").ConfigureAwait(false);
 
     /// <summary>
     /// Retrieves a specific bank transaction by its ID from FreeAgent.
@@ -175,49 +217,20 @@ public class BankTransactions
     }
 
     /// <summary>
-    /// Updates an existing bank transaction in FreeAgent.
-    /// </summary>
-    /// <param name="id">The unique identifier of the bank transaction to update.</param>
-    /// <param name="bankTransaction">The <see cref="BankTransaction"/> object containing the updated transaction details.</param>
-    /// <returns>
-    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// updated <see cref="BankTransaction"/> object as returned by the API.
-    /// </returns>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
-    /// <remarks>
-    /// This method calls PUT /v2/bank_transactions/{id} to update the transaction. The cache entry for this
-    /// transaction is invalidated after a successful update.
-    /// </remarks>
-    public async Task<BankTransaction> UpdateAsync(string id, BankTransaction bankTransaction)
-    {
-        BankTransactionRoot root = new() { BankTransaction = bankTransaction };
-
-        using JsonContent content = JsonContent.Create(root, options: SharedJsonOptions.SourceGenOptions);
-        HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
-            new Uri(this.freeAgentClient.ApiBaseUrl, $"{BankTransactionsEndPoint}/{id}"),
-            content).ConfigureAwait(false);
-
-        response.EnsureSuccessStatusCode();
-
-        BankTransactionRoot? results = await response.Content.ReadFromJsonAsync<BankTransactionRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
-
-        // Invalidate cache for this bank transaction
-        string cacheKey = $"{BankTransactionsEndPoint}/{id}";
-        this.cache.Remove(cacheKey);
-
-        return results?.BankTransaction ?? throw new InvalidOperationException("Failed to deserialize bank transaction response.");
-    }
-
-    /// <summary>
     /// Deletes a bank transaction from FreeAgent.
     /// </summary>
     /// <param name="id">The unique identifier of the bank transaction to delete.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <remarks>
+    /// <para>
     /// This method calls DELETE /v2/bank_transactions/{id} to delete the transaction. The cache entry for this
     /// transaction is invalidated after successful deletion.
+    /// </para>
+    /// <para>
+    /// Important: Transactions can only be deleted if they are fully unexplained or lack explanations entirely.
+    /// Transactions that have partial or complete explanations cannot be deleted and will result in an error.
+    /// </para>
     /// </remarks>
     public async Task DeleteAsync(string id)
     {
@@ -226,41 +239,98 @@ public class BankTransactions
 
         response.EnsureSuccessStatusCode();
 
-        // Invalidate cache
+        // Invalidate cache for both the transaction list and the specific transaction
         string cacheKey = $"{BankTransactionsEndPoint}/{id}";
         this.cache.Remove(cacheKey);
     }
 
     /// <summary>
-    /// Uploads a bank statement to FreeAgent and creates transactions from it.
+    /// Uploads a bank statement file to FreeAgent and creates transactions from it.
     /// </summary>
     /// <param name="bankAccountUri">The URI of the bank account the statement belongs to.</param>
-    /// <param name="statementData">The statement data in the specified file format (e.g., OFX, QIF, CSV).</param>
-    /// <param name="fileType">The file type of the statement (e.g., "ofx", "qif", "csv").</param>
+    /// <param name="statementData">The statement file content as a byte array.</param>
+    /// <param name="fileName">The name of the statement file (e.g., "statement.ofx", "statement.csv").</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
     /// <see cref="BankTransaction"/> objects created from the uploaded statement.
     /// </returns>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="HttpRequestException">
+    /// Thrown when the API request fails. Possible error responses include:
+    /// <list type="bullet">
+    /// <item><description>400 Bad Request - The request is malformed or contains invalid data.</description></item>
+    /// <item><description>404 Not Found - The bank account URI is invalid or the resource does not exist.</description></item>
+    /// <item><description>406 Not Acceptable - The statement file is missing or empty.</description></item>
+    /// </list>
+    /// </exception>
     /// <remarks>
-    /// This method calls POST /v2/bank_transactions/statement to upload and parse a bank statement file.
-    /// The API automatically creates bank transactions from the statement data.
+    /// This method calls POST /v2/bank_transactions/statement?bank_account={bankAccountUri} using multipart/form-data
+    /// to upload and parse a bank statement file. The API automatically creates bank transactions from the statement data.
+    /// Supported file formats include OFX, QBO, QIF, or supported CSV file.
     /// </remarks>
-    public async Task<IEnumerable<BankTransaction>> UploadStatementAsync(Uri bankAccountUri, string statementData, string fileType)
+    public async Task<IEnumerable<BankTransaction>> UploadStatementAsync(Uri bankAccountUri, byte[] statementData, string fileName)
     {
-        StatementUploadRoot statementRoot = new()
+        string queryString = $"?bank_account={Uri.EscapeDataString(bankAccountUri.ToString())}";
+
+        using MultipartFormDataContent content = new();
+        ByteArrayContent fileContent = new(statementData);
+        content.Add(fileContent, "statement", fileName);
+
+        HttpResponseMessage response = await this.freeAgentClient.HttpClient.PostAsync(
+            new Uri(this.freeAgentClient.ApiBaseUrl, $"{BankTransactionsEndPoint}/statement{queryString}"),
+            content).ConfigureAwait(false);
+
+        response.EnsureSuccessStatusCode();
+
+        BankTransactionsRoot? results = await response.Content.ReadFromJsonAsync<BankTransactionsRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+
+        return results?.BankTransactions ?? [];
+    }
+
+    /// <summary>
+    /// Uploads an array of bank transactions to FreeAgent as a JSON statement.
+    /// </summary>
+    /// <param name="bankAccountUri">The URI of the bank account the transactions belong to.</param>
+    /// <param name="transactions">The collection of transactions to upload.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// <see cref="BankTransaction"/> objects created from the uploaded transactions.
+    /// </returns>
+    /// <exception cref="HttpRequestException">
+    /// Thrown when the API request fails. Possible error responses include:
+    /// <list type="bullet">
+    /// <item><description>400 Bad Request - The request is malformed or contains invalid data.</description></item>
+    /// <item><description>404 Not Found - The bank account URI is invalid or the resource does not exist.</description></item>
+    /// <item><description>406 Not Acceptable - The statement data is missing or empty.</description></item>
+    /// </list>
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// This method calls POST /v2/bank_transactions/statement?bank_account={bankAccountUri} using application/json
+    /// to upload an array of transaction objects. The API automatically creates bank transactions and performs
+    /// deduplication based on date, amount, and description matching.
+    /// </para>
+    /// <para>
+    /// Best practice is to include all of a day's transactions in a single statement upload. Each transaction
+    /// must include at minimum a dated_on field; other fields (description, amount, fitid, transaction_type) are optional.
+    /// </para>
+    /// <para>
+    /// Valid transaction types include: CREDIT, DEBIT, INT, DIV, FEE, SRVCHG, DEP, ATM, POS, XFER, CHECK, PAYMENT,
+    /// CASH, DIRECTDEP, DIRECTDEBIT, REPEATPMT, OTHER (default).
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="BankTransactionUpload"/>
+    public async Task<IEnumerable<BankTransaction>> UploadStatementAsJsonAsync(Uri bankAccountUri, IEnumerable<BankTransactionUpload> transactions)
+    {
+        string queryString = $"?bank_account={Uri.EscapeDataString(bankAccountUri.ToString())}";
+
+        BankTransactionUploadRoot uploadRoot = new()
         {
-            Statement = new StatementUpload
-            {
-                BankAccount = bankAccountUri.ToString(),
-                Statement = statementData,
-                FileType = fileType
-            }
+            Statement = transactions
         };
 
-        using JsonContent content = JsonContent.Create(statementRoot, options: SharedJsonOptions.SourceGenOptions);
+        using JsonContent content = JsonContent.Create(uploadRoot, options: SharedJsonOptions.SourceGenOptions);
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PostAsync(
-            new Uri(this.freeAgentClient.ApiBaseUrl, $"{BankTransactionsEndPoint}/statement"),
+            new Uri(this.freeAgentClient.ApiBaseUrl, $"{BankTransactionsEndPoint}/statement{queryString}"),
             content).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();

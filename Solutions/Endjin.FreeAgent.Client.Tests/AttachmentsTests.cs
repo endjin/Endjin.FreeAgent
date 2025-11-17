@@ -175,7 +175,9 @@ public class AttachmentsTests
             Size = 98765,
             ContentType = "application/pdf",
             Description = "Important document",
-            CreatedAt = new DateTime(2024, 3, 15, 10, 30, 0)
+            CreatedAt = new DateTime(2024, 3, 15, 10, 30, 0),
+            ContentSrc = new Uri("https://s3.amazonaws.com/freeagent/attachments/20/document.pdf?expires=1234567890"),
+            ExpiresAt = new DateTime(2024, 3, 15, 12, 30, 0, DateTimeKind.Utc)
         };
 
         AttachmentRoot responseRoot = new() { Attachment = attachment };
@@ -194,6 +196,10 @@ public class AttachmentsTests
         result.Filename.ShouldBe("document.pdf");
         result.Size.ShouldBe(98765);
         result.Description.ShouldBe("Important document");
+        result.ContentSrc.ShouldNotBeNull();
+        result.ContentSrc.ToString().ShouldContain("document.pdf");
+        result.ExpiresAt.ShouldNotBeNull();
+        result.ExpiresAt.Value.ShouldBe(new DateTime(2024, 3, 15, 12, 30, 0, DateTimeKind.Utc));
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
@@ -310,5 +316,54 @@ public class AttachmentsTests
 
         // Assert - Mock Verification: Should have made 3 calls (initial get, delete, second get after cache invalidation)
         this.messageHandler.CallCount.ShouldBe(3);
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithImageAttachment_ReturnsThumbnailUrls()
+    {
+        // Arrange
+        DateTime expiresAt = new(2024, 3, 15, 14, 0, 0, DateTimeKind.Utc);
+        Attachment attachment = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/attachments/70"),
+            Filename = "receipt.jpg",
+            Size = 245678,
+            ContentType = "image/jpeg",
+            Description = "Expense receipt",
+            CreatedAt = new DateTime(2024, 3, 15, 10, 0, 0, DateTimeKind.Utc),
+            ContentSrc = new Uri("https://s3.amazonaws.com/freeagent/attachments/70/receipt.jpg?expires=1234567890"),
+            ContentSrcMedium = new Uri("https://s3.amazonaws.com/freeagent/attachments/70/receipt_medium.jpg?expires=1234567890"),
+            ContentSrcSmall = new Uri("https://s3.amazonaws.com/freeagent/attachments/70/receipt_small.jpg?expires=1234567890"),
+            ExpiresAt = expiresAt
+        };
+
+        AttachmentRoot responseRoot = new() { Attachment = attachment };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Attachment result = await this.attachments.GetByIdAsync("70");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Filename.ShouldBe("receipt.jpg");
+        result.ContentType.ShouldBe("image/jpeg");
+        result.ContentSrc.ShouldNotBeNull();
+        result.ContentSrc.ToString().ShouldContain("receipt.jpg");
+        result.ContentSrcMedium.ShouldNotBeNull();
+        result.ContentSrcMedium.ToString().ShouldContain("receipt_medium.jpg");
+        result.ContentSrcSmall.ShouldNotBeNull();
+        result.ContentSrcSmall.ToString().ShouldContain("receipt_small.jpg");
+        result.ExpiresAt.ShouldNotBeNull();
+        result.ExpiresAt.Value.ShouldBe(expiresAt);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/attachments/70");
     }
 }
