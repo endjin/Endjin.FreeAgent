@@ -9,19 +9,15 @@ namespace Endjin.FreeAgent.Domain;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Capital asset types define categories for different kinds of capital assets and specify the tax treatment,
-/// depreciation rates, and capital allowance rules that apply to assets of that type. Each type determines
-/// how the asset is depreciated for accounting purposes and what tax relief can be claimed.
-/// </para>
-/// <para>
-/// Common capital asset types include Plant & Machinery, Fixtures & Fittings, Motor Vehicles, and Computer Equipment.
-/// Each type has specific capital allowance rates and treatment under tax regulations (e.g., UK Capital Allowances Act).
+/// Capital asset types define categories for fixed assets. FreeAgent provides several system default types
+/// (Computer Equipment, Fixtures and Fittings, Motor Vehicles, Other Capital Asset), and users can create
+/// custom types to categorize their capital assets.
 /// </para>
 /// <para>
 /// API Endpoint: /v2/capital_asset_types
 /// </para>
 /// <para>
-/// Minimum Access Level: Assets
+/// Minimum Access Level: Full Access
 /// </para>
 /// </remarks>
 /// <seealso cref="CapitalAsset"/>
@@ -37,31 +33,40 @@ public record CapitalAssetType
     public Uri? Url { get; init; }
 
     /// <summary>
-    /// Gets the description or name of this capital asset type.
+    /// Gets the name of this capital asset type.
     /// </summary>
     /// <value>
-    /// A descriptive name such as "Plant & Machinery", "Fixtures & Fittings", or "Motor Vehicles".
+    /// A custom or system-defined name such as "Computer Equipment", "Fixtures and Fittings",
+    /// "Motor Vehicles", or "Other Capital Asset".
     /// </value>
-    [JsonPropertyName("description")]
-    public string? Description { get; init; }
+    [JsonPropertyName("name")]
+    public string? Name { get; init; }
 
     /// <summary>
-    /// Gets the type of capital allowance applicable to this asset type.
+    /// Gets a value indicating whether this is a system default capital asset type.
     /// </summary>
     /// <value>
-    /// The allowance classification such as "Main Rate Pool", "Special Rate Pool", or "Annual Investment Allowance",
-    /// determining how tax relief is calculated for assets of this type.
+    /// <c>true</c> if this is a system default capital asset type;
+    /// <c>false</c> if it was created by a user.
     /// </value>
-    [JsonPropertyName("allowance_type")]
-    public string? AllowanceType { get; init; }
+    [JsonPropertyName("system_default")]
+    public bool? SystemDefault { get; init; }
 
     /// <summary>
-    /// Gets the depreciation or capital allowance rate for this asset type.
+    /// Gets the timestamp when this capital asset type was created.
     /// </summary>
     /// <value>
-    /// The annual rate as a decimal (e.g., 0.18 for 18% writing down allowance) used to calculate
-    /// depreciation and tax relief for assets of this type.
+    /// The creation timestamp in UTC.
     /// </value>
-    [JsonPropertyName("rate")]
-    public decimal? Rate { get; init; }
+    [JsonPropertyName("created_at")]
+    public DateTimeOffset? CreatedAt { get; init; }
+
+    /// <summary>
+    /// Gets the timestamp when this capital asset type was last updated.
+    /// </summary>
+    /// <value>
+    /// The last modification timestamp in UTC.
+    /// </value>
+    [JsonPropertyName("updated_at")]
+    public DateTimeOffset? UpdatedAt { get; init; }
 }

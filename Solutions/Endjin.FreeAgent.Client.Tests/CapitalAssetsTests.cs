@@ -230,16 +230,18 @@ public class CapitalAssetsTests
             new()
             {
                 Url = new Uri("https://api.freeagent.com/v2/capital_asset_types/1"),
-                Description = "Plant & Machinery",
-                AllowanceType = "Main Rate Pool",
-                Rate = 0.18m
+                Name = "Computer Equipment",
+                SystemDefault = true,
+                CreatedAt = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero),
+                UpdatedAt = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
             },
             new()
             {
                 Url = new Uri("https://api.freeagent.com/v2/capital_asset_types/2"),
-                Description = "Motor Vehicles",
-                AllowanceType = "Main Rate Pool",
-                Rate = 0.18m
+                Name = "Motor Vehicles",
+                SystemDefault = true,
+                CreatedAt = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero),
+                UpdatedAt = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
             }
         ];
 
