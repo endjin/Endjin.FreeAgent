@@ -48,9 +48,29 @@ public class CashFlowReportsTests
         // Arrange
         CashFlow cashFlow = new()
         {
-            FromDate = new DateOnly(2024, 1, 1),
-            ToDate = new DateOnly(2024, 3, 31),
-            NetCashFlow = 25000.00m
+            From = "2024-01-01",
+            To = "2024-03-31",
+            Balance = 12593.21m,
+            Incoming = new CashFlowDirection
+            {
+                Total = 68869.76m,
+                Months = new List<CashFlowMonthly>
+                {
+                    new() { Month = 1, Year = 2024, Total = 22956.59m },
+                    new() { Month = 2, Year = 2024, Total = 22956.59m },
+                    new() { Month = 3, Year = 2024, Total = 22956.58m }
+                }
+            },
+            Outgoing = new CashFlowDirection
+            {
+                Total = 56276.55m,
+                Months = new List<CashFlowMonthly>
+                {
+                    new() { Month = 1, Year = 2024, Total = 18758.85m },
+                    new() { Month = 2, Year = 2024, Total = 18758.85m },
+                    new() { Month = 3, Year = 2024, Total = 18758.85m }
+                }
+            }
         };
 
         CashFlowRoot responseRoot = new() { CashFlow = cashFlow };
@@ -66,7 +86,17 @@ public class CashFlowReportsTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.NetCashFlow.ShouldBe(25000.00m);
+        result.From.ShouldBe("2024-01-01");
+        result.To.ShouldBe("2024-03-31");
+        result.Balance.ShouldBe(12593.21m);
+        result.Incoming.ShouldNotBeNull();
+        result.Incoming.Total.ShouldBe(68869.76m);
+        result.Incoming.Months.ShouldNotBeNull();
+        result.Incoming.Months.Count.ShouldBe(3);
+        result.Outgoing.ShouldNotBeNull();
+        result.Outgoing.Total.ShouldBe(56276.55m);
+        result.Outgoing.Months.ShouldNotBeNull();
+        result.Outgoing.Months.Count.ShouldBe(3);
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();

@@ -68,6 +68,8 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(CapitalAssetTypeRoot))]
 [JsonSerializable(typeof(CapitalAssetTypesRoot))]
 [JsonSerializable(typeof(CashFlowRoot))]
+[JsonSerializable(typeof(CashFlowDirection))]
+[JsonSerializable(typeof(CashFlowMonthly))]
 [JsonSerializable(typeof(CategoriesRoot))]
 [JsonSerializable(typeof(CompanyRoot))]
 [JsonSerializable(typeof(ContactRoot))]

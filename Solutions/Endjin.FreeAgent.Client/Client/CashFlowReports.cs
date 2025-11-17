@@ -12,10 +12,9 @@ namespace Endjin.FreeAgent.Client;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This service class provides access to FreeAgent cash flow reports, which show the movement of money
-/// into and out of the business over a specific period. The cash flow statement tracks operating activities,
-/// investing activities, and financing activities, providing insight into the company's liquidity and
-/// cash position.
+/// This service class provides access to FreeAgent cash flow reports, which show monthly aggregated
+/// incoming and outgoing cash flow over a specific period. The report provides a simple summary of
+/// revenue and expenses broken down by month, with totals for the entire period.
 /// </para>
 /// <para>
 /// Cash flow data is cached for 30 minutes to improve performance, as financial reports are
@@ -23,7 +22,6 @@ namespace Endjin.FreeAgent.Client;
 /// </para>
 /// </remarks>
 /// <seealso cref="CashFlow"/>
-/// <seealso cref="CashFlowItem"/>
 public class CashFlowReports
 {
     private readonly FreeAgentClient client;
@@ -48,19 +46,19 @@ public class CashFlowReports
     /// <param name="toDate">The end date of the reporting period.</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// <see cref="CashFlow"/> object with cash inflows and outflows data for the period.
+    /// <see cref="CashFlow"/> object with monthly aggregated incoming and outgoing cash flow data.
     /// </returns>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
     /// <remarks>
-    /// This method calls GET /v2/cash_flow?from_date={fromDate}&amp;to_date={toDate} and caches the
-    /// result for 30 minutes. The report provides a detailed view of cash movements during the specified period.
+    /// This method calls GET /v2/cashflow?from_date={fromDate}&amp;to_date={toDate} and caches the
+    /// result for 30 minutes. The report provides monthly aggregated cash flow data during the specified period.
     /// </remarks>
     public async Task<CashFlow> GetAsync(DateOnly fromDate, DateOnly toDate)
     {
         await this.client.InitializeAndAuthorizeAsync();
 
-        string url = $"/v2/cash_flow?from_date={fromDate:yyyy-MM-dd}&to_date={toDate:yyyy-MM-dd}";
+        string url = $"/v2/cashflow?from_date={fromDate:yyyy-MM-dd}&to_date={toDate:yyyy-MM-dd}";
         string cacheKey = $"cash_flow_{fromDate:yyyy-MM-dd}_{toDate:yyyy-MM-dd}";
         
         if (this.cache.TryGetValue(cacheKey, out CashFlow? cached))

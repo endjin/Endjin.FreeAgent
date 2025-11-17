@@ -2,6 +2,8 @@
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
+using System.Text.Json.Serialization;
+
 namespace Endjin.FreeAgent.Domain;
 
 /// <summary>
@@ -19,6 +21,6 @@ public record CashFlowRoot
     /// <value>
     /// The <see cref="Domain.CashFlow"/> object returned by the API.
     /// </value>
-    [JsonPropertyName("cash_flow")]
+    [JsonPropertyName("cashflow")]
     public CashFlow? CashFlow { get; init; }
 }
