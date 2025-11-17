@@ -55,7 +55,7 @@ public class EstimateTests
             EstimateItems = [item1, item2],
             NetValue = 4900m,
             TotalValue = 5880m,
-            DatedOn = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero),
+            DatedOn = new DateOnly(2024, 6, 15),
             CreatedAt = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero),
             UpdatedAt = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero)
         };
@@ -75,7 +75,7 @@ public class EstimateTests
             DiscountPercent = 15m,
             NetValue = 1000m,
             TotalValue = 850m,
-            DatedOn = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero),
+            DatedOn = new DateOnly(2024, 6, 15),
             CreatedAt = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero),
             UpdatedAt = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero)
         };
@@ -93,10 +93,10 @@ public class EstimateTests
         {
             InvolvesSalesTax = true,
             IsInterimUkVat = true,
-            SalesTaxValue = "200.00",
+            SalesTaxValue = 200.00m,
             NetValue = 1000m,
             TotalValue = 1200m,
-            DatedOn = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero),
+            DatedOn = new DateOnly(2024, 6, 15),
             CreatedAt = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero),
             UpdatedAt = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero)
         };
@@ -104,7 +104,7 @@ public class EstimateTests
         // Assert
         estimate.InvolvesSalesTax.ShouldBe(true);
         estimate.IsInterimUkVat.ShouldBe(true);
-        estimate.SalesTaxValue.ShouldBe("200.00");
+        estimate.SalesTaxValue.ShouldBe(200.00m);
     }
 
     [TestMethod]
@@ -157,7 +157,7 @@ public class EstimateTests
         Estimate draftEstimate = new()
         {
             Status = "Draft",
-            DatedOn = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero),
+            DatedOn = new DateOnly(2024, 6, 15),
             CreatedAt = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero),
             UpdatedAt = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero)
         };
@@ -165,7 +165,7 @@ public class EstimateTests
         Estimate sentEstimate = new()
         {
             Status = "Sent",
-            DatedOn = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero),
+            DatedOn = new DateOnly(2024, 6, 15),
             CreatedAt = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero),
             UpdatedAt = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero)
         };
@@ -189,7 +189,7 @@ public class EstimateTests
         Estimate estimate = new()
         {
             EstimateItems = [.. items],
-            DatedOn = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero),
+            DatedOn = new DateOnly(2024, 6, 15),
             CreatedAt = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero),
             UpdatedAt = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero)
         };
@@ -211,7 +211,7 @@ public class EstimateTests
             Currency = "GBP",
             NetValue = 1000m,
             TotalValue = 1200m,
-            DatedOn = fixedDate,
+            DatedOn = new DateOnly(2024, 6, 15),
             CreatedAt = fixedDate,
             UpdatedAt = fixedDate,
             EstimateItems = []

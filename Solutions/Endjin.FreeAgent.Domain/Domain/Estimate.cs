@@ -26,7 +26,7 @@ namespace Endjin.FreeAgent.Domain;
 /// API Endpoint: /v2/estimates
 /// </para>
 /// <para>
-/// Minimum Access Level: Invoices
+/// Minimum Access Level: Estimates and Invoices
 /// </para>
 /// </remarks>
 /// <seealso cref="Contact"/>

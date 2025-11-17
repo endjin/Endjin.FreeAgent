@@ -58,7 +58,7 @@ public record InvoiceItem
     /// Gets the display order position of this item within the invoice.
     /// </summary>
     /// <value>
-    /// A zero-based index determining the order in which items appear on the invoice.
+    /// An integer value starting at 1 that determines the order in which items appear on the invoice.
     /// Lower numbers appear first.
     /// </value>
     [JsonPropertyName("position")]

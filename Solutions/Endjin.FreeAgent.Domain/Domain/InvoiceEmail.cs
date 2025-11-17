@@ -62,6 +62,18 @@ public record InvoiceEmail
     public string? To { get; init; }
 
     /// <summary>
+    /// Gets the sender email address.
+    /// </summary>
+    /// <value>
+    /// The email address to use as the sender. This must be an email address belonging to a registered
+    /// user in the FreeAgent account. The sender's name and email will appear in the From field of the
+    /// email sent to customers.
+    /// </value>
+    [JsonPropertyName("from")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? From { get; init; }
+
+    /// <summary>
     /// Gets the carbon copy (CC) recipient email address(es).
     /// </summary>
     /// <value>
@@ -161,15 +173,17 @@ public record InvoiceEmail
     /// Gets the collection of additional file attachments to include with the email.
     /// </summary>
     /// <value>
-    /// A list of file attachment data (typically base64-encoded) to include with the email.
+    /// A list of <see cref="EmailAttachment"/> objects containing file data to include with the email.
     /// Each attachment has a maximum size of 5MB. This allows including supporting documents,
     /// contracts, terms and conditions, or other relevant files alongside the invoice.
     /// </value>
     /// <remarks>
-    /// The FreeAgent API accepts attachments as an array of objects with file data.
-    /// Maximum total size across all attachments should not exceed reasonable email limits.
+    /// The FreeAgent API accepts attachments as an array of objects with file name, content type,
+    /// and base64-encoded data. Maximum total size across all attachments should not exceed
+    /// reasonable email limits (typically 10-25MB total).
     /// </remarks>
+    /// <seealso cref="EmailAttachment"/>
     [JsonPropertyName("attachments")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<string>? Attachments { get; init; }
+    public List<EmailAttachment>? Attachments { get; init; }
 }

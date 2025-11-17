@@ -42,7 +42,7 @@ public record EstimateItem
     /// Gets the display order position of this item within the estimate.
     /// </summary>
     /// <value>
-    /// A zero-based index determining the order in which items appear on the estimate.
+    /// An integer value starting at 1 that determines the order in which items appear on the estimate.
     /// Lower numbers appear first.
     /// </value>
     [JsonPropertyName("position")]
