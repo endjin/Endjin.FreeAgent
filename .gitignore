@@ -423,3 +423,8 @@ FodyWeavers.xsd
 Endjin.FreeAgent.sbom.spdx.json
 Endjin.FreeAgent.sbom.html
 Endjin.FreeAgent.sbom.json
+
+# Claude Code and local development files
+.claude/
+.devcontainer/
+kb/
