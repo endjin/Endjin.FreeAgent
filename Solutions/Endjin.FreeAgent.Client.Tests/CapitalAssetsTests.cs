@@ -42,54 +42,9 @@ public class CapitalAssetsTests
         this.capitalAssets = new CapitalAssets(this.freeAgentClient, this.cache);
     }
 
-    [TestMethod]
-    public async Task CreateAsync_WithValidAsset_ReturnsCreatedAsset()
-    {
-        // Arrange
-        CapitalAsset inputAsset = new()
-        {
-            Description = "Dell Laptop",
-            PurchasedOn = new DateOnly(2024, 1, 15),
-            PurchasePrice = 1200.00m,
-            AssetLifeYears = 3,
-            CapitalAssetType = new Uri("https://api.freeagent.com/v2/capital_asset_types/1")
-        };
-
-        CapitalAsset responseAsset = new()
-        {
-            Url = new Uri("https://api.freeagent.com/v2/capital_assets/123"),
-            Description = "Dell Laptop",
-            PurchasedOn = new DateOnly(2024, 1, 15),
-            PurchasePrice = 1200.00m,
-            AssetLifeYears = 3,
-            CapitalAssetType = new Uri("https://api.freeagent.com/v2/capital_asset_types/1")
-        };
-
-        CapitalAssetRoot responseRoot = new() { CapitalAsset = responseAsset };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
-
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
-        };
-
-        // Act
-        CapitalAsset result = await this.capitalAssets.CreateAsync(inputAsset);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Url.ShouldNotBeNull();
-        result.Description.ShouldBe("Dell Laptop");
-        result.PurchasePrice.ShouldBe(1200.00m);
-
-        // Mock Verification
-        this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPostRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/capital_assets");
-    }
 
     [TestMethod]
-    public async Task GetAllAsync_ReturnsAllAssets()
+    public async Task GetAllAsync_WithoutParameters_ReturnsAllAssets()
     {
         // Arrange
         List<CapitalAsset> assetsList =
@@ -98,15 +53,15 @@ public class CapitalAssetsTests
             {
                 Url = new Uri("https://api.freeagent.com/v2/capital_assets/1"),
                 Description = "Dell Laptop",
-                PurchasedOn = new DateOnly(2024, 1, 15),
-                PurchasePrice = 1200.00m
+                AssetType = "Computer Equipment",
+                PurchasedOn = new DateOnly(2024, 1, 15)
             },
             new()
             {
                 Url = new Uri("https://api.freeagent.com/v2/capital_assets/2"),
                 Description = "Office Furniture",
-                PurchasedOn = new DateOnly(2024, 2, 10),
-                PurchasePrice = 2500.00m
+                AssetType = "Fixtures and Fittings",
+                PurchasedOn = new DateOnly(2024, 2, 10)
             }
         ];
 
@@ -131,16 +86,102 @@ public class CapitalAssetsTests
     }
 
     [TestMethod]
-    public async Task GetByIdAsync_WithValidId_ReturnsAsset()
+    public async Task GetAllAsync_WithViewParameter_ReturnsFilteredAssets()
+    {
+        // Arrange
+        List<CapitalAsset> assetsList =
+        [
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/capital_assets/1"),
+                Description = "Disposed Laptop",
+                AssetType = "Computer Equipment",
+                PurchasedOn = new DateOnly(2024, 1, 15),
+                DisposedOn = new DateOnly(2024, 12, 31)
+            }
+        ];
+
+        CapitalAssetsRoot responseRoot = new() { CapitalAssets = assetsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<CapitalAsset> result = await this.capitalAssets.GetAllAsync(view: "disposed");
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().DisposedOn.ShouldNotBeNull();
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/capital_assets?view=disposed");
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithIncludeHistory_ReturnsAssetsWithHistory()
+    {
+        // Arrange
+        List<CapitalAsset> assetsList =
+        [
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/capital_assets/1"),
+                Description = "Dell Laptop",
+                AssetType = "Computer Equipment",
+                PurchasedOn = new DateOnly(2024, 1, 15),
+                CapitalAssetHistory =
+                [
+                    new()
+                    {
+                        Type = "purchase",
+                        Description = "Initial purchase",
+                        Date = new DateOnly(2024, 1, 15),
+                        Value = 1200.00m
+                    }
+                ]
+            }
+        ];
+
+        CapitalAssetsRoot responseRoot = new() { CapitalAssets = assetsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<CapitalAsset> result = await this.capitalAssets.GetAllAsync(includeHistory: true);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().CapitalAssetHistory.ShouldNotBeNull();
+        result.First().CapitalAssetHistory!.Length.ShouldBe(1);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/capital_assets?include_history=true");
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithoutHistory_ReturnsAsset()
     {
         // Arrange
         CapitalAsset asset = new()
         {
             Url = new Uri("https://api.freeagent.com/v2/capital_assets/456"),
             Description = "Company Vehicle",
+            AssetType = "Motor Vehicles",
             PurchasedOn = new DateOnly(2024, 1, 10),
-            PurchasePrice = 25000.00m,
+#pragma warning disable CS0618 // Type or member is obsolete
             AssetLifeYears = 5
+#pragma warning restore CS0618 // Type or member is obsolete
         };
 
         CapitalAssetRoot responseRoot = new() { CapitalAsset = asset };
@@ -157,7 +198,6 @@ public class CapitalAssetsTests
         // Assert
         result.ShouldNotBeNull();
         result.Description.ShouldBe("Company Vehicle");
-        result.PurchasePrice.ShouldBe(25000.00m);
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
@@ -166,25 +206,35 @@ public class CapitalAssetsTests
     }
 
     [TestMethod]
-    public async Task UpdateAsync_WithValidAsset_ReturnsUpdatedAsset()
+    public async Task GetByIdAsync_WithHistory_ReturnsAssetWithHistory()
     {
         // Arrange
-        CapitalAsset updatedAsset = new()
+        CapitalAsset asset = new()
         {
-            Description = "Dell Laptop - Updated",
-            DisposedOn = new DateOnly(2024, 12, 31)
+            Url = new Uri("https://api.freeagent.com/v2/capital_assets/456"),
+            Description = "Company Vehicle",
+            AssetType = "Motor Vehicles",
+            PurchasedOn = new DateOnly(2024, 1, 10),
+            CapitalAssetHistory =
+            [
+                new()
+                {
+                    Type = "purchase",
+                    Description = "Vehicle purchase",
+                    Date = new DateOnly(2024, 1, 10),
+                    Value = 25000.00m
+                },
+                new()
+                {
+                    Type = "depreciation",
+                    Description = "Annual depreciation",
+                    Date = new DateOnly(2024, 12, 31),
+                    Value = 5000.00m
+                }
+            ]
         };
 
-        CapitalAsset responseAsset = new()
-        {
-            Url = new Uri("https://api.freeagent.com/v2/capital_assets/789"),
-            Description = "Dell Laptop - Updated",
-            PurchasedOn = new DateOnly(2024, 1, 15),
-            DisposedOn = new DateOnly(2024, 12, 31),
-            PurchasePrice = 1200.00m
-        };
-
-        CapitalAssetRoot responseRoot = new() { CapitalAsset = responseAsset };
+        CapitalAssetRoot responseRoot = new() { CapitalAsset = asset };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -193,59 +243,46 @@ public class CapitalAssetsTests
         };
 
         // Act
-        CapitalAsset result = await this.capitalAssets.UpdateAsync("789", updatedAsset);
+        CapitalAsset result = await this.capitalAssets.GetByIdAsync("456", includeHistory: true);
 
         // Assert
         result.ShouldNotBeNull();
-        result.Description.ShouldBe("Dell Laptop - Updated");
-        result.DisposedOn.ShouldBe(new DateOnly(2024, 12, 31));
+        result.Description.ShouldBe("Company Vehicle");
+        result.CapitalAssetHistory.ShouldNotBeNull();
+        result.CapitalAssetHistory!.Length.ShouldBe(2);
+        result.CapitalAssetHistory[0].Type.ShouldBe("purchase");
+        result.CapitalAssetHistory[1].Type.ShouldBe("depreciation");
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/capital_assets/789");
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/capital_assets/456?include_history=true");
     }
 
     [TestMethod]
-    public async Task DeleteAsync_WithValidId_DeletesAsset()
+    public async Task GetAllAsync_WithViewParameterAll_ReturnsAllAssets()
     {
         // Arrange
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.NoContent);
-
-        // Act
-        await this.capitalAssets.DeleteAsync("999");
-
-        // Assert - Mock Verification
-        this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenDeleteRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/capital_assets/999");
-    }
-
-    [TestMethod]
-    public async Task GetTypesAsync_ReturnsAllAssetTypes()
-    {
-        // Arrange
-        List<CapitalAssetType> typesList =
+        List<CapitalAsset> assetsList =
         [
             new()
             {
-                Url = new Uri("https://api.freeagent.com/v2/capital_asset_types/1"),
-                Name = "Computer Equipment",
-                SystemDefault = true,
-                CreatedAt = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero),
-                UpdatedAt = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
+                Url = new Uri("https://api.freeagent.com/v2/capital_assets/1"),
+                Description = "Active Laptop",
+                AssetType = "Computer Equipment",
+                PurchasedOn = new DateOnly(2024, 1, 15)
             },
             new()
             {
-                Url = new Uri("https://api.freeagent.com/v2/capital_asset_types/2"),
-                Name = "Motor Vehicles",
-                SystemDefault = true,
-                CreatedAt = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero),
-                UpdatedAt = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
+                Url = new Uri("https://api.freeagent.com/v2/capital_assets/2"),
+                Description = "Disposed Furniture",
+                AssetType = "Fixtures and Fittings",
+                PurchasedOn = new DateOnly(2023, 1, 10),
+                DisposedOn = new DateOnly(2024, 12, 31)
             }
         ];
 
-        CapitalAssetTypesRoot responseRoot = new() { CapitalAssetTypes = typesList };
+        CapitalAssetsRoot responseRoot = new() { CapitalAssets = assetsList };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -254,7 +291,7 @@ public class CapitalAssetsTests
         };
 
         // Act
-        IEnumerable<CapitalAssetType> result = await this.capitalAssets.GetTypesAsync();
+        IEnumerable<CapitalAsset> result = await this.capitalAssets.GetAllAsync(view: "all");
 
         // Assert
         result.Count().ShouldBe(2);
@@ -262,6 +299,98 @@ public class CapitalAssetsTests
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenGetRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/capital_asset_types");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/capital_assets?view=all");
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithViewParameterDisposable_ReturnsDisposableAssets()
+    {
+        // Arrange
+        List<CapitalAsset> assetsList =
+        [
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/capital_assets/1"),
+                Description = "Fully Depreciated Equipment",
+                AssetType = "Computer Equipment",
+                PurchasedOn = new DateOnly(2020, 1, 15)
+            }
+        ];
+
+        CapitalAssetsRoot responseRoot = new() { CapitalAssets = assetsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<CapitalAsset> result = await this.capitalAssets.GetAllAsync(view: "disposable");
+
+        // Assert
+        result.Count().ShouldBe(1);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/capital_assets?view=disposable");
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithViewAndIncludeHistory_ReturnsCombinedResults()
+    {
+        // Arrange
+        List<CapitalAsset> assetsList =
+        [
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/capital_assets/1"),
+                Description = "Disposed Laptop",
+                AssetType = "Computer Equipment",
+                PurchasedOn = new DateOnly(2024, 1, 15),
+                DisposedOn = new DateOnly(2024, 12, 31),
+                CapitalAssetHistory =
+                [
+                    new()
+                    {
+                        Type = "purchase",
+                        Description = "Initial purchase",
+                        Date = new DateOnly(2024, 1, 15),
+                        Value = 1200.00m
+                    },
+                    new()
+                    {
+                        Type = "disposal",
+                        Description = "Asset disposal",
+                        Date = new DateOnly(2024, 12, 31),
+                        Value = 200.00m
+                    }
+                ]
+            }
+        ];
+
+        CapitalAssetsRoot responseRoot = new() { CapitalAssets = assetsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<CapitalAsset> result = await this.capitalAssets.GetAllAsync(view: "disposed", includeHistory: true);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().DisposedOn.ShouldNotBeNull();
+        result.First().CapitalAssetHistory.ShouldNotBeNull();
+        result.First().CapitalAssetHistory!.Length.ShouldBe(2);
+        result.First().CapitalAssetHistory![1].Type.ShouldBe("disposal");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/capital_assets?view=disposed&include_history=true");
     }
 }

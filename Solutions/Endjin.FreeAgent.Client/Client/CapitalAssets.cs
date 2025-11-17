@@ -8,17 +8,21 @@ using Endjin.FreeAgent.Domain;
 namespace Endjin.FreeAgent.Client;
 
 /// <summary>
-/// Provides methods for managing capital assets via the FreeAgent API.
+/// Provides read-only methods for retrieving capital assets via the FreeAgent API.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This service class provides access to FreeAgent capital assets, which are long-term business assets
-/// such as equipment, vehicles, and property. Capital assets are tracked for depreciation and accounting
+/// This service class provides read-only access to FreeAgent capital assets, which are long-term business
+/// assets such as equipment, vehicles, and property. Capital assets are tracked for depreciation and accounting
 /// purposes, and are associated with capital asset types and depreciation profiles.
 /// </para>
 /// <para>
-/// Results are cached for 5 minutes to improve performance. Cache entries are invalidated automatically
-/// when capital assets are created, updated, or deleted.
+/// NOTE: The documented FreeAgent Capital Assets API endpoints are read-only (GET operations only).
+/// Create, update, and delete operations are not documented in the official API specification.
+/// Assets may need to be managed through the FreeAgent web interface.
+/// </para>
+/// <para>
+/// Results are cached for 5 minutes to improve performance.
 /// </para>
 /// </remarks>
 /// <seealso cref="CapitalAsset"/>
@@ -41,56 +45,23 @@ public class CapitalAssets
         this.cache = cache ?? throw new ArgumentNullException(nameof(cache));
     }
 
-    /// <summary>
-    /// Creates a new capital asset in FreeAgent.
-    /// </summary>
-    /// <param name="asset">The <see cref="CapitalAsset"/> object containing the capital asset details to create.</param>
-    /// <returns>
-    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// created <see cref="CapitalAsset"/> object with server-assigned values (e.g., ID, URL).
-    /// </returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="asset"/> is null.</exception>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
-    /// <remarks>
-    /// This method calls POST /v2/capital_assets to create a new capital asset. The cache is invalidated
-    /// to ensure subsequent queries return up-to-date data.
-    /// </remarks>
-    public async Task<CapitalAsset> CreateAsync(CapitalAsset asset)
-    {
-        ArgumentNullException.ThrowIfNull(asset);
-
-        await this.client.InitializeAndAuthorizeAsync();
-
-        CapitalAssetRoot data = new() { CapitalAsset = asset };
-        using JsonContent content = JsonContent.Create(data, options: SharedJsonOptions.SourceGenOptions);
-
-        HttpResponseMessage response = await this.client.HttpClient.PostAsync(
-            new Uri(this.client.ApiBaseUrl, "/v2/capital_assets"),
-            content);
-        response.EnsureSuccessStatusCode();
-
-        CapitalAssetRoot? root = await response.Content.ReadFromJsonAsync<CapitalAssetRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
-
-        this.cache.Remove("capital_assets_all");
-
-        return root?.CapitalAsset ?? throw new InvalidOperationException("Failed to create capital asset");
-    }
 
     /// <summary>
     /// Retrieves all capital assets from FreeAgent.
     /// </summary>
+    /// <param name="view">Optional filter for asset status: "all", "disposed", or "disposable". If not specified, returns all assets.</param>
+    /// <param name="includeHistory">If <c>true</c>, includes the lifecycle event history for each asset. Defaults to <c>false</c>.</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
-    /// all <see cref="CapitalAsset"/> objects.
+    /// all <see cref="CapitalAsset"/> objects matching the filter criteria.
     /// </returns>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <remarks>
-    /// This method calls GET /v2/capital_assets and caches the result for 5 minutes.
+    /// This method calls GET /v2/capital_assets with optional query parameters and caches the result for 5 minutes.
     /// </remarks>
-    public async Task<IEnumerable<CapitalAsset>> GetAllAsync()
+    public async Task<IEnumerable<CapitalAsset>> GetAllAsync(string? view = null, bool includeHistory = false)
     {
-        string cacheKey = "capital_assets_all";
+        string cacheKey = $"capital_assets_view_{view ?? "all"}_history_{includeHistory}";
 
         if (this.cache.TryGetValue(cacheKey, out IEnumerable<CapitalAsset>? cached))
         {
@@ -99,8 +70,25 @@ public class CapitalAssets
 
         await this.client.InitializeAndAuthorizeAsync();
 
-        HttpResponseMessage response = await this.client.HttpClient.GetAsync(
-            new Uri(this.client.ApiBaseUrl, "/v2/capital_assets"));
+        string url = "/v2/capital_assets";
+        List<string> queryParams = [];
+
+        if (!string.IsNullOrWhiteSpace(view))
+        {
+            queryParams.Add($"view={Uri.EscapeDataString(view)}");
+        }
+
+        if (includeHistory)
+        {
+            queryParams.Add("include_history=true");
+        }
+
+        if (queryParams.Count > 0)
+        {
+            url += "?" + string.Join("&", queryParams);
+        }
+
+        HttpResponseMessage response = await this.client.HttpClient.GetAsync(new Uri(this.client.ApiBaseUrl, url));
         response.EnsureSuccessStatusCode();
 
         CapitalAssetsRoot? root = await response.Content.ReadFromJsonAsync<CapitalAssetsRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
@@ -116,6 +104,7 @@ public class CapitalAssets
     /// Retrieves a specific capital asset by its ID from FreeAgent.
     /// </summary>
     /// <param name="id">The unique identifier of the capital asset to retrieve.</param>
+    /// <param name="includeHistory">If <c>true</c>, includes the lifecycle event history for the asset. Defaults to <c>false</c>.</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
     /// <see cref="CapitalAsset"/> object with the specified ID.
@@ -124,13 +113,13 @@ public class CapitalAssets
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when no capital asset with the specified ID is found.</exception>
     /// <remarks>
-    /// This method calls GET /v2/capital_assets/{id} and caches the result for 5 minutes.
+    /// This method calls GET /v2/capital_assets/{id} with optional query parameters and caches the result for 5 minutes.
     /// </remarks>
-    public async Task<CapitalAsset> GetByIdAsync(string id)
+    public async Task<CapitalAsset> GetByIdAsync(string id, bool includeHistory = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
-        string cacheKey = $"capital_asset_{id}";
+        string cacheKey = $"capital_asset_{id}_history_{includeHistory}";
 
         if (this.cache.TryGetValue(cacheKey, out CapitalAsset? cached))
         {
@@ -139,7 +128,13 @@ public class CapitalAssets
 
         await this.client.InitializeAndAuthorizeAsync();
 
-        HttpResponseMessage response = await this.client.HttpClient.GetAsync(new Uri(this.client.ApiBaseUrl, $"/v2/capital_assets/{id}"));
+        string url = $"/v2/capital_assets/{id}";
+        if (includeHistory)
+        {
+            url += "?include_history=true";
+        }
+
+        HttpResponseMessage response = await this.client.HttpClient.GetAsync(new Uri(this.client.ApiBaseUrl, url));
         response.EnsureSuccessStatusCode();
 
         CapitalAssetRoot? root = await response.Content.ReadFromJsonAsync<CapitalAssetRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
@@ -148,106 +143,5 @@ public class CapitalAssets
         this.cache.Set(cacheKey, asset, TimeSpan.FromMinutes(5));
 
         return asset;
-    }
-
-    /// <summary>
-    /// Updates an existing capital asset in FreeAgent.
-    /// </summary>
-    /// <param name="id">The unique identifier of the capital asset to update.</param>
-    /// <param name="asset">The <see cref="CapitalAsset"/> object containing the updated capital asset details.</param>
-    /// <returns>
-    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// updated <see cref="CapitalAsset"/> object as returned by the API.
-    /// </returns>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is null or whitespace.</exception>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="asset"/> is null.</exception>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
-    /// <remarks>
-    /// This method calls PUT /v2/capital_assets/{id} to update the capital asset. The cache entries for
-    /// this capital asset and all capital asset queries are invalidated after a successful update.
-    /// </remarks>
-    public async Task<CapitalAsset> UpdateAsync(string id, CapitalAsset asset)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        ArgumentNullException.ThrowIfNull(asset);
-
-        await this.client.InitializeAndAuthorizeAsync();
-
-        CapitalAssetRoot data = new() { CapitalAsset = asset };
-        using JsonContent content = JsonContent.Create(data, options: SharedJsonOptions.SourceGenOptions);
-
-        HttpResponseMessage response = await this.client.HttpClient.PutAsync(
-            new Uri(this.client.ApiBaseUrl, $"/v2/capital_assets/{id}"),
-            content);
-        response.EnsureSuccessStatusCode();
-
-        CapitalAssetRoot? root = await response.Content.ReadFromJsonAsync<CapitalAssetRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
-
-        this.cache.Remove($"capital_asset_{id}");
-        this.cache.Remove("capital_assets_all");
-
-        return root?.CapitalAsset ?? throw new InvalidOperationException("Failed to update capital asset");
-    }
-
-    /// <summary>
-    /// Deletes a capital asset from FreeAgent.
-    /// </summary>
-    /// <param name="id">The unique identifier of the capital asset to delete.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is null or whitespace.</exception>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <remarks>
-    /// This method calls DELETE /v2/capital_assets/{id} to delete the capital asset. The cache entries
-    /// for this capital asset and all capital asset queries are invalidated after successful deletion.
-    /// </remarks>
-    public async Task DeleteAsync(string id)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(id);
-
-        await this.client.InitializeAndAuthorizeAsync();
-
-        HttpResponseMessage response = await this.client.HttpClient.DeleteAsync(
-            new Uri(this.client.ApiBaseUrl, $"/v2/capital_assets/{id}"));
-        response.EnsureSuccessStatusCode();
-
-        this.cache.Remove($"capital_asset_{id}");
-        this.cache.Remove("capital_assets_all");
-    }
-
-    /// <summary>
-    /// Retrieves all capital asset types from FreeAgent.
-    /// </summary>
-    /// <returns>
-    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
-    /// all <see cref="CapitalAssetType"/> objects.
-    /// </returns>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <remarks>
-    /// This method calls GET /v2/capital_asset_types and caches the result for 1 hour, as asset types
-    /// rarely change.
-    /// </remarks>
-    public async Task<IEnumerable<CapitalAssetType>> GetTypesAsync()
-    {
-        string cacheKey = "capital_asset_types";
-        
-        if (this.cache.TryGetValue(cacheKey, out IEnumerable<CapitalAssetType>? cached))
-        {
-            return cached!;
-        }
-
-        await this.client.InitializeAndAuthorizeAsync();
-
-        HttpResponseMessage response = await this.client.HttpClient.GetAsync(
-            new Uri(this.client.ApiBaseUrl, "/v2/capital_asset_types"));
-        response.EnsureSuccessStatusCode();
-
-        CapitalAssetTypesRoot? root = await response.Content.ReadFromJsonAsync<CapitalAssetTypesRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
-        
-        IEnumerable<CapitalAssetType> types = root?.CapitalAssetTypes ?? [];
-        
-        this.cache.Set(cacheKey, types, TimeSpan.FromHours(1)); // Cache longer as types rarely change
-        
-        return types;
     }
 }
