@@ -71,7 +71,7 @@ public class SelfAssessmentReturns
 
         await this.client.InitializeAndAuthorizeAsync();
 
-        HttpResponseMessage response = await this.client.HttpClient.GetAsync(url);
+        HttpResponseMessage response = await this.client.HttpClient.GetAsync(new Uri(this.client.ApiBaseUrl, url));
         response.EnsureSuccessStatusCode();
         
         SelfAssessmentReturnsRoot? root = await response.Content.ReadFromJsonAsync<SelfAssessmentReturnsRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
@@ -163,7 +163,7 @@ public class SelfAssessmentReturns
 
         await this.client.InitializeAndAuthorizeAsync();
 
-        HttpResponseMessage response = await this.client.HttpClient.PutAsync($"/v2/self_assessment_returns/{id}/mark_as_filed", content);
+        HttpResponseMessage response = await this.client.HttpClient.PutAsync(new Uri(this.client.ApiBaseUrl, $"/v2/self_assessment_returns/{id}/mark_as_filed"), content);
         response.EnsureSuccessStatusCode();
 
         SelfAssessmentReturnRoot? root = await response.Content.ReadFromJsonAsync<SelfAssessmentReturnRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);

@@ -107,6 +107,48 @@ public record EstimateItem
     public decimal? SalesTaxRate { get; init; }
 
     /// <summary>
+    /// Gets the sales tax status classification for this item.
+    /// </summary>
+    /// <value>
+    /// One of "TAXABLE" or "EXEMPT", determining whether sales tax is applied to this item.
+    /// </value>
+    [JsonPropertyName("sales_tax_status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SalesTaxStatus { get; init; }
+
+    /// <summary>
+    /// Gets the secondary sales tax rate for jurisdictions with dual tax systems.
+    /// </summary>
+    /// <value>
+    /// An additional tax rate (e.g., PST in Canadian provinces with GST/PST) applied on top of
+    /// the primary <see cref="SalesTaxRate"/> for universal accounts.
+    /// </value>
+    [JsonPropertyName("second_sales_tax_rate")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? SecondSalesTaxRate { get; init; }
+
+    /// <summary>
+    /// Gets the secondary sales tax status classification for this item.
+    /// </summary>
+    /// <value>
+    /// The tax status for the secondary tax rate, determining whether the second tax is applied.
+    /// </value>
+    [JsonPropertyName("second_sales_tax_status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SecondSalesTaxStatus { get; init; }
+
+    /// <summary>
+    /// Gets the calculated secondary sales tax amount for this item.
+    /// </summary>
+    /// <value>
+    /// The total secondary tax amount calculated by applying <see cref="SecondSalesTaxRate"/>
+    /// to the line item subtotal for dual-tax jurisdictions.
+    /// </value>
+    [JsonPropertyName("second_sales_tax_value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? SecondSalesTaxValue { get; init; }
+
+    /// <summary>
     /// Gets the URI reference to the accounting category for this item.
     /// </summary>
     /// <value>

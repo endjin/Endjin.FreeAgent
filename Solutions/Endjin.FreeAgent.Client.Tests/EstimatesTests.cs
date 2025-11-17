@@ -409,6 +409,472 @@ public class EstimatesTests
         this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/estimates");
     }
 
+    [TestMethod]
+    public async Task CreateAsync_WithValidEstimate_ReturnsCreatedEstimate()
+    {
+        // Arrange
+        Estimate inputEstimate = new()
+        {
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/123"),
+            Project = new Uri("https://api.freeagent.com/v2/projects/456"),
+            Reference = "EST-001",
+            Currency = "GBP",
+            EstimateItems = [new() { Description = "Development Work", Quantity = 10m, Price = 100.00m }]
+        };
+
+        Estimate responseEstimate = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/estimates/789"),
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/123"),
+            Project = new Uri("https://api.freeagent.com/v2/projects/456"),
+            Reference = "EST-001",
+            Currency = "GBP",
+            Status = "Draft"
+        };
+
+        EstimateRoot responseRoot = new() { Estimate = responseEstimate };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Estimate result = await this.estimates.CreateAsync(inputEstimate);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Url.ShouldNotBeNull();
+        result.Reference.ShouldBe("EST-001");
+        result.Status.ShouldBe("Draft");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPostRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/estimates");
+    }
+
+    [TestMethod]
+    public async Task UpdateAsync_WithValidEstimate_ReturnsUpdatedEstimate()
+    {
+        // Arrange
+        Estimate updatedEstimate = new()
+        {
+            Reference = "EST-001-UPDATED",
+            Currency = "GBP"
+        };
+
+        Estimate responseEstimate = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/estimates/123"),
+            Reference = "EST-001-UPDATED",
+            Status = "Draft",
+            Currency = "GBP"
+        };
+
+        EstimateRoot responseRoot = new() { Estimate = responseEstimate };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Estimate result = await this.estimates.UpdateAsync("123", updatedEstimate);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Reference.ShouldBe("EST-001-UPDATED");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/estimates/123");
+    }
+
+    [TestMethod]
+    public async Task DeleteAsync_WithValidId_DeletesEstimate()
+    {
+        // Arrange
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.NoContent);
+
+        // Act
+        await this.estimates.DeleteAsync("456");
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenDeleteRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/estimates/456");
+    }
+
+    [TestMethod]
+    public async Task MarkAsSentAsync_WithValidId_ReturnsEstimateWithSentStatus()
+    {
+        // Arrange
+        Estimate responseEstimate = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/estimates/111"),
+            Reference = "EST-SENT",
+            Status = "Sent"
+        };
+
+        EstimateRoot responseRoot = new() { Estimate = responseEstimate };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Estimate result = await this.estimates.MarkAsSentAsync("111");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Status.ShouldBe("Sent");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/estimates/111/transitions/mark_as_sent");
+    }
+
+    [TestMethod]
+    public async Task MarkAsDraftAsync_WithValidId_ReturnsEstimateWithDraftStatus()
+    {
+        // Arrange
+        Estimate responseEstimate = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/estimates/222"),
+            Reference = "EST-DRAFT",
+            Status = "Draft"
+        };
+
+        EstimateRoot responseRoot = new() { Estimate = responseEstimate };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Estimate result = await this.estimates.MarkAsDraftAsync("222");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Status.ShouldBe("Draft");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/estimates/222/transitions/mark_as_draft");
+    }
+
+    [TestMethod]
+    public async Task MarkAsApprovedAsync_WithValidId_ReturnsEstimateWithApprovedStatus()
+    {
+        // Arrange
+        Estimate responseEstimate = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/estimates/333"),
+            Reference = "EST-APPROVED",
+            Status = "Approved"
+        };
+
+        EstimateRoot responseRoot = new() { Estimate = responseEstimate };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Estimate result = await this.estimates.MarkAsApprovedAsync("333");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Status.ShouldBe("Approved");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/estimates/333/transitions/mark_as_approved");
+    }
+
+    [TestMethod]
+    public async Task MarkAsRejectedAsync_WithValidId_ReturnsEstimateWithRejectedStatus()
+    {
+        // Arrange
+        Estimate responseEstimate = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/estimates/444"),
+            Reference = "EST-REJECTED",
+            Status = "Rejected"
+        };
+
+        EstimateRoot responseRoot = new() { Estimate = responseEstimate };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Estimate result = await this.estimates.MarkAsRejectedAsync("444");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Status.ShouldBe("Rejected");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/estimates/444/transitions/mark_as_rejected");
+    }
+
+    [TestMethod]
+    public async Task ConvertToInvoiceAsync_WithValidId_ReturnsInvoice()
+    {
+        // Arrange
+        Invoice responseInvoice = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/invoices/999"),
+            Reference = "INV-FROM-EST",
+            Status = "Draft"
+        };
+
+        InvoiceRoot responseRoot = new() { Invoice = responseInvoice };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Invoice result = await this.estimates.ConvertToInvoiceAsync("555");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Reference.ShouldBe("INV-FROM-EST");
+        result.Status.ShouldBe("Draft");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/estimates/555/transitions/convert_to_invoice");
+    }
+
+    [TestMethod]
+    public async Task GetPdfAsync_WithValidId_ReturnsPdfData()
+    {
+        // Arrange
+        byte[] expectedPdfData = [0x25, 0x50, 0x44, 0x46]; // PDF file signature
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(expectedPdfData)
+        };
+
+        // Act
+        byte[] result = await this.estimates.GetPdfAsync("666");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Length.ShouldBe(expectedPdfData.Length);
+        result.ShouldBe(expectedPdfData);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/estimates/666/pdf");
+    }
+
+    [TestMethod]
+    public async Task DuplicateAsync_WithValidId_ReturnsDuplicatedEstimate()
+    {
+        // Arrange
+        Estimate responseEstimate = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/estimates/888"),
+            Reference = "EST-COPY",
+            Status = "Draft"
+        };
+
+        EstimateRoot responseRoot = new() { Estimate = responseEstimate };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Estimate result = await this.estimates.DuplicateAsync("777");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Url.ShouldNotBeNull();
+        result.Status.ShouldBe("Draft");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPostRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/estimates/777/duplicate");
+    }
+
+    [TestMethod]
+    public async Task SendEmailAsync_WithValidEmail_ReturnsEstimate()
+    {
+        // Arrange
+        EstimateEmail email = new()
+        {
+            To = "client@example.com",
+            Subject = "Your Quote",
+            Body = "Please review the attached quote."
+        };
+
+        Estimate responseEstimate = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/estimates/999"),
+            Reference = "EST-EMAILED",
+            Status = "Sent"
+        };
+
+        EstimateRoot responseRoot = new() { Estimate = responseEstimate };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Estimate result = await this.estimates.SendEmailAsync("999", email);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Status.ShouldBe("Sent");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPostRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/estimates/999/send_email");
+    }
+
+    [TestMethod]
+    public async Task GetAllByContactAsync_WithValidContactUrl_ReturnsFilteredEstimates()
+    {
+        // Arrange
+        Uri contactUrl = new("https://api.freeagent.com/v2/contacts/123");
+        List<Estimate> estimatesList =
+        [
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/estimates/1"),
+                Contact = contactUrl,
+                Reference = "EST-001",
+                Status = "Draft"
+            }
+        ];
+
+        EstimatesRoot responseRoot = new() { Estimates = estimatesList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<Estimate> result = await this.estimates.GetAllByContactAsync(contactUrl);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().Contact.ShouldBe(contactUrl);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+    }
+
+    [TestMethod]
+    public async Task GetAllByProjectAsync_WithValidProjectUrl_ReturnsFilteredEstimates()
+    {
+        // Arrange
+        Uri projectUrl = new("https://api.freeagent.com/v2/projects/456");
+        List<Estimate> estimatesList =
+        [
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/estimates/2"),
+                Project = projectUrl,
+                Reference = "EST-002",
+                Status = "Sent"
+            }
+        ];
+
+        EstimatesRoot responseRoot = new() { Estimates = estimatesList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<Estimate> result = await this.estimates.GetAllByProjectAsync(projectUrl);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().Project.ShouldBe(projectUrl);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+    }
+
+    [TestMethod]
+    public async Task GetAllByInvoiceAsync_WithValidInvoiceUrl_ReturnsFilteredEstimates()
+    {
+        // Arrange
+        Uri invoiceUrl = new("https://api.freeagent.com/v2/invoices/789");
+        List<Estimate> estimatesList =
+        [
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/estimates/3"),
+                Invoice = invoiceUrl,
+                Reference = "EST-003",
+                Status = "Invoiced"
+            }
+        ];
+
+        EstimatesRoot responseRoot = new() { Estimates = estimatesList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<Estimate> result = await this.estimates.GetAllByInvoiceAsync(invoiceUrl);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().Invoice.ShouldBe(invoiceUrl);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+    }
+
     [TestCleanup]
     public void Cleanup()
     {

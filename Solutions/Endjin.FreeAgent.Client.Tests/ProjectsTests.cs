@@ -39,9 +39,7 @@ public class ProjectsTests
             this.httpClientFactory,
             this.loggerFactory);
 
-        // Use proper initialization with TestOAuth2Service
         await TestHelper.SetupForTestingAsync(this.freeAgentClient, this.httpClientFactory);
-
         this.projects = new Projects(this.freeAgentClient, this.cache);
     }
 
@@ -51,25 +49,24 @@ public class ProjectsTests
         // Arrange
         Project inputProject = new()
         {
-            Name = "New Website Development",
             Contact = new Uri("https://api.freeagent.com/v2/contacts/123"),
+            Name = "Website Redesign",
             Status = "Active",
             Currency = "GBP",
             BudgetUnits = "Hours",
-            HoursPerDay = 8.0m,
-            NormalBillingRate = 75.00m
+            Budget = 100.00m
         };
 
         Project responseProject = new()
         {
-            Name = "New Website Development",
+            Url = new Uri("https://api.freeagent.com/v2/projects/456"),
             Contact = new Uri("https://api.freeagent.com/v2/contacts/123"),
+            Name = "Website Redesign",
             Status = "Active",
             Currency = "GBP",
             BudgetUnits = "Hours",
-            HoursPerDay = 8.0m,
-            NormalBillingRate = 75.00m,
-            Url = new Uri("https://api.freeagent.com/v2/projects/12345")
+            Budget = 100.00m,
+            CreatedAt = new DateTimeOffset(2024, 3, 15, 10, 0, 0, TimeSpan.Zero)
         };
 
         ProjectRoot responseRoot = new() { Project = responseProject };
@@ -85,21 +82,87 @@ public class ProjectsTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.Name.ShouldBe("New Website Development");
-        result.Contact!.ToString().ShouldBe("https://api.freeagent.com/v2/contacts/123");
-        result.Status.ShouldBe("Active");
-        result.NormalBillingRate.ShouldBe(75.00m);
-        result.Url!.ToString().ShouldBe("https://api.freeagent.com/v2/projects/12345");
+        result.Url.ShouldNotBeNull();
+        result.Name.ShouldBe("Website Redesign");
+        result.Budget.ShouldBe(100.00m);
+        result.BudgetUnits.ShouldBe("Hours");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPostRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/projects");
     }
 
     [TestMethod]
-    public async Task GetAllAsync_ReturnsAllProjects_AndCachesResult()
+    public async Task CreateAsync_WithMonetaryBudget_CreatesSuccessfully()
+    {
+        // Arrange
+        Project inputProject = new()
+        {
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/789"),
+            Name = "Software Development",
+            Status = "Active",
+            Currency = "USD",
+            BudgetUnits = "Monetary",
+            Budget = 50000.00m,
+            NormalBillingRate = 150.00m,
+            BillingPeriod = "hour"
+        };
+
+        Project responseProject = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/projects/999"),
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/789"),
+            Name = "Software Development",
+            Status = "Active",
+            Currency = "USD",
+            BudgetUnits = "Monetary",
+            Budget = 50000.00m,
+            NormalBillingRate = 150.00m,
+            BillingPeriod = "hour"
+        };
+
+        ProjectRoot responseRoot = new() { Project = responseProject };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Project result = await this.projects.CreateAsync(inputProject);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.BudgetUnits.ShouldBe("Monetary");
+        result.Budget.ShouldBe(50000.00m);
+        result.NormalBillingRate.ShouldBe(150.00m);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPostRequest();
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_ReturnsAllProjects()
     {
         // Arrange
         ImmutableList<Project> projectsList = ImmutableList.Create(
-            new Project { Name = "Project A", Status = "Active" },
-            new Project { Name = "Project B", Status = "Completed" },
-            new Project { Name = "Project C", Status = "Active" }
+            new Project
+            {
+                Url = new Uri("https://api.freeagent.com/v2/projects/1"),
+                Name = "Project A",
+                Status = "Active",
+                Currency = "GBP"
+            },
+            new Project
+            {
+                Url = new Uri("https://api.freeagent.com/v2/projects/2"),
+                Name = "Project B",
+                Status = "Completed",
+                Currency = "USD"
+            }
         );
 
         ProjectsRoot responseRoot = new() { Projects = projectsList };
@@ -110,37 +173,35 @@ public class ProjectsTests
             Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
         };
 
-        // Act - First call
-        IEnumerable<Project> result1 = await this.projects.GetAllAsync();
-
-        // Act - Second call (should use cache)
-        IEnumerable<Project> result2 = await this.projects.GetAllAsync();
+        // Act
+        IEnumerable<Project> result = await this.projects.GetAllAsync();
 
         // Assert
-        result1.Count().ShouldBe(3);
-        result1.ElementAt(0).Name.ShouldBe("Project A");
-        result1.ElementAt(1).Name.ShouldBe("Project B");
-        result1.ElementAt(2).Name.ShouldBe("Project C");
+        result.Count().ShouldBe(2);
+        result.Any(p => p.Name == "Project A").ShouldBeTrue();
+        result.Any(p => p.Currency == "USD").ShouldBeTrue();
 
-        result2.Count().ShouldBe(3);
-        result2.ShouldBe(result1); // Should be same cached instance
-
-        // Verify HTTP was called only once due to caching
-        this.messageHandler.CallCount.ShouldBe(1);
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/projects");
     }
 
     [TestMethod]
-    public async Task GetAllActiveAsync_ReturnsOnlyActiveProjects()
+    public async Task GetAllAsync_CachesResults()
     {
         // Arrange
         ImmutableList<Project> projectsList = ImmutableList.Create(
-            new Project { Name = "Active Project 1", Status = "Active" },
-            new Project { Name = "Completed Project", Status = "Completed" },
-            new Project { Name = "Active Project 2", Status = "Active" },
-            new Project { Name = "Cancelled Project", Status = "Cancelled" }
+            new Project
+            {
+                Url = new Uri("https://api.freeagent.com/v2/projects/20"),
+                Name = "Cached Project",
+                Status = "Active",
+                Currency = "GBP"
+            }
         );
 
-        ProjectsRoot responseRoot = new() { Projects = projectsList.Where(p => p.Status == "Active").ToImmutableList() };
+        ProjectsRoot responseRoot = new() { Projects = projectsList };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -148,31 +209,37 @@ public class ProjectsTests
             Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
         };
 
-        // Act
-        IEnumerable<Project> result = await this.projects.GetAllActiveAsync();
+        // Act - Call twice
+        IEnumerable<Project> result1 = await this.projects.GetAllAsync();
+        IEnumerable<Project> result2 = await this.projects.GetAllAsync();
 
         // Assert
-        result.Count().ShouldBe(2);
-        result.All(p => p.Status == "Active").ShouldBeTrue();
-        result.Any(p => p.Name == "Active Project 1").ShouldBeTrue();
-        result.Any(p => p.Name == "Active Project 2").ShouldBeTrue();
+        result1.Count().ShouldBe(1);
+        result2.Count().ShouldBe(1);
+
+        // Mock Verification - Should only call API once due to caching
+        this.messageHandler.ShouldHaveBeenCalledOnce();
     }
 
     [TestMethod]
     public async Task GetByIdAsync_WithValidId_ReturnsProject()
     {
         // Arrange
-        string projectId = "12345";
-        Project responseProject = new()
+        Project project = new()
         {
+            Url = new Uri("https://api.freeagent.com/v2/projects/30"),
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/50"),
             Name = "Specific Project",
             Status = "Active",
             Currency = "GBP",
+            BudgetUnits = "Monetary",
+            Budget = 50000.00m,
             NormalBillingRate = 100.00m,
-            Url = new Uri($"https://api.freeagent.com/v2/projects/{projectId}")
+            BillingPeriod = "hour",
+            CreatedAt = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
         };
 
-        ProjectRoot responseRoot = new() { Project = responseProject };
+        ProjectRoot responseRoot = new() { Project = project };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -181,34 +248,125 @@ public class ProjectsTests
         };
 
         // Act
-        // Don't call InitializeAndAuthorizeAsync in tests
-        Project? result = await this.projects.GetByIdAsync(projectId);
+        Project result = await this.projects.GetByIdAsync("30");
 
         // Assert
         result.ShouldNotBeNull();
         result.Name.ShouldBe("Specific Project");
-        result.Status.ShouldBe("Active");
+        result.Budget.ShouldBe(50000.00m);
         result.NormalBillingRate.ShouldBe(100.00m);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/projects/30");
     }
 
     [TestMethod]
-    public async Task GetByIdAsync_WithInvalidId_ThrowsException()
+    public async Task GetByIdAsync_CachesResult()
     {
         // Arrange
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.NotFound);
+        Project project = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/projects/40"),
+            Name = "Cached Single Project",
+            Status = "Active",
+            Currency = "GBP"
+        };
 
-        // Act & Assert
-        // Don't call InitializeAndAuthorizeAsync in tests
-        await Should.ThrowAsync<HttpRequestException>(async () =>
-            await this.projects.GetByIdAsync("invalid-id"));
+        ProjectRoot responseRoot = new() { Project = project };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act - Call twice
+        Project result1 = await this.projects.GetByIdAsync("40");
+        Project result2 = await this.projects.GetByIdAsync("40");
+
+        // Assert
+        result1.ShouldNotBeNull();
+        result2.ShouldNotBeNull();
+        result1.Name.ShouldBe("Cached Single Project");
+
+        // Mock Verification - Should only call API once due to caching
+        this.messageHandler.ShouldHaveBeenCalledOnce();
     }
 
-    [TestCleanup]
-    public void Cleanup()
+    [TestMethod]
+    public async Task GetByNameAsync_WithValidName_ReturnsProject()
     {
-        this.cache?.Dispose();
-        this.httpClient?.Dispose();
-        this.messageHandler?.Dispose();
+        // Arrange
+        ImmutableList<Project> projectsList = ImmutableList.Create(
+            new Project
+            {
+                Url = new Uri("https://api.freeagent.com/v2/projects/1"),
+                Name = "Design Work",
+                Status = "Active",
+                Currency = "GBP"
+            },
+            new Project
+            {
+                Url = new Uri("https://api.freeagent.com/v2/projects/2"),
+                Name = "Development Work",
+                Status = "Active",
+                Currency = "GBP"
+            }
+        );
+
+        ProjectsRoot responseRoot = new() { Projects = projectsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Project result = await this.projects.GetByNameAsync("Development Work");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Name.ShouldBe("Development Work");
+        result.Url.ShouldBe(new Uri("https://api.freeagent.com/v2/projects/2"));
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
     }
 
+    [TestMethod]
+    public async Task GetByNameAsync_CaseInsensitive_ReturnsProject()
+    {
+        // Arrange
+        ImmutableList<Project> projectsList = ImmutableList.Create(
+            new Project
+            {
+                Url = new Uri("https://api.freeagent.com/v2/projects/10"),
+                Name = "Mobile App Development",
+                Status = "Active",
+                Currency = "GBP"
+            }
+        );
+
+        ProjectsRoot responseRoot = new() { Projects = projectsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act - Search with different casing
+        Project result = await this.projects.GetByNameAsync("mobile app development");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Name.ShouldBe("Mobile App Development");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+    }
 }

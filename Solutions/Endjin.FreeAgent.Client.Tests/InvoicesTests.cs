@@ -323,48 +323,7 @@ public class InvoicesTests
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/mark_as_sent");
-    }
-
-    [TestMethod]
-    public async Task MarkAsPaidAsync_WithValidPaymentDetails_UpdatesInvoiceAsPaid()
-    {
-        // Arrange
-        DateOnly paidOn = new(2024, 2, 1);
-        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/789");
-
-        Invoice responseInvoice = new()
-        {
-            Url = new Uri("https://api.freeagent.com/v2/invoices/456"),
-            Reference = "INV-001",
-            Status = "Paid",
-            PaidOn = paidOn,
-            PaidValue = 1800.00m,
-            DueValue = 0.00m
-        };
-
-        InvoiceRoot responseRoot = new() { Invoice = responseInvoice };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
-
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
-        };
-
-        // Act
-        Invoice result = await this.invoices.MarkAsPaidAsync("456", paidOn, bankAccountUri);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Status.ShouldBe("Paid");
-        result.PaidOn.ShouldBe(paidOn);
-        result.PaidValue.ShouldBe(1800.00m);
-        result.DueValue.ShouldBe(0.00m);
-
-        // Mock Verification
-        this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/mark_as_paid");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/transitions/mark_as_sent");
     }
 
     [TestMethod]
@@ -405,7 +364,7 @@ public class InvoicesTests
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenPostRequest();
         this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/send_email");
     }
 
@@ -438,7 +397,7 @@ public class InvoicesTests
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/mark_as_cancelled");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/transitions/mark_as_cancelled");
     }
 
     [TestMethod]
@@ -557,7 +516,7 @@ public class InvoicesTests
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/mark_as_scheduled");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/transitions/mark_as_scheduled");
     }
 
     [TestMethod]
@@ -589,6 +548,41 @@ public class InvoicesTests
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/mark_as_draft");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/transitions/mark_as_draft");
+    }
+
+    [TestMethod]
+    public async Task DuplicateAsync_WithValidId_ReturnsDuplicatedInvoice()
+    {
+        // Arrange
+        Invoice responseInvoice = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/invoices/789"),
+            Reference = "INV-002",
+            Status = "Draft",
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/123"),
+            TotalValue = 1500.00m
+        };
+
+        InvoiceRoot responseRoot = new() { Invoice = responseInvoice };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Invoice result = await this.invoices.DuplicateAsync("456");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Status.ShouldBe("Draft");
+        result.TotalValue.ShouldBe(1500.00m);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPostRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/duplicate");
     }
 }

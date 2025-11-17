@@ -193,48 +193,4 @@ public class Bills
         string cacheKey = $"{BillsEndPoint}/{id}";
         this.cache.Remove(cacheKey);
     }
-
-    /// <summary>
-    /// Marks a bill as paid in FreeAgent.
-    /// </summary>
-    /// <param name="id">The unique identifier of the bill to mark as paid.</param>
-    /// <param name="paidOn">The date the bill was paid.</param>
-    /// <param name="bankAccountUri">The URI of the bank account the payment was made from.</param>
-    /// <returns>
-    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// updated <see cref="Bill"/> object with its status changed to paid.
-    /// </returns>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
-    /// <remarks>
-    /// This method calls PUT /v2/bills/{id}/mark_as_paid to record payment of the bill. This creates
-    /// a corresponding bank transaction. The cache entry for this bill is invalidated.
-    /// </remarks>
-    public async Task<Bill> MarkAsPaidAsync(string id, DateOnly paidOn, Uri bankAccountUri)
-    {
-        BillPaymentRoot paymentRoot = new()
-        {
-            Bill = new BillPayment
-            {
-                PaidOn = paidOn.ToString("yyyy-MM-dd"),
-                BankAccount = bankAccountUri.ToString()
-            }
-        };
-
-        using JsonContent content = JsonContent.Create(paymentRoot, options: SharedJsonOptions.SourceGenOptions);
-
-        HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
-            new Uri(this.freeAgentClient.ApiBaseUrl, $"{BillsEndPoint}/{id}/mark_as_paid"),
-            content).ConfigureAwait(false);
-
-        response.EnsureSuccessStatusCode();
-
-        BillRoot? root = await response.Content.ReadFromJsonAsync<BillRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
-
-        // Invalidate cache
-        string cacheKey = $"{BillsEndPoint}/{id}";
-        this.cache.Remove(cacheKey);
-
-        return root?.Bill ?? throw new InvalidOperationException("Failed to deserialize bill response.");
-    }
 }

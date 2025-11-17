@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(dotnet build)",
+      "Bash(dotnet sln:*)",
+      "Bash(dotnet run)",
+      "Bash(mv:*)",
+      "Bash(dotnet run:*)",
+      "Bash(pkill:*)",
+      "Bash(ls:*)",
+      "Bash(rm:*)",
+      "Bash(/dev/null)",
+      "Bash(find:*)",
+      "Bash(dotnet build:*)",
+      "Bash(apilens query:*)",
+      "Bash(grep:*)",
+      "WebSearch",
+      "Bash(for file in Solutions/Endjin.FreeAgent.Client/Client/{Expenses,HttpResponseMessageExtensions,JournalSets}.cs)",
+      "Bash(do)",
+      "Bash(done)",
+      "Bash(dotnet test:*)",
+      "WebFetch(domain:dev.freeagent.com)"
+    ],
+    "deny": []
+  },
+  "outputStyle": "default"
+}

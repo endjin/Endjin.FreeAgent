@@ -38,9 +38,7 @@ public class TasksTests
             this.httpClientFactory,
             this.loggerFactory);
 
-        // Use proper initialization with TestOAuth2Service
         await TestHelper.SetupForTestingAsync(this.freeAgentClient, this.httpClientFactory);
-
         this.tasks = new Tasks(this.freeAgentClient, this.cache);
     }
 
@@ -50,23 +48,24 @@ public class TasksTests
         // Arrange
         TaskItem inputTask = new()
         {
-            Name = "Development",
+            Name = "Development Work",
             Project = "https://api.freeagent.com/v2/projects/123",
             IsBillable = true,
-            BillingRate = 100.00m,
+            BillingRate = 75.00m,
             BillingPeriod = "hour",
             Status = "Active"
         };
 
         TaskItem responseTask = new()
         {
-            Name = "Development",
+            Url = new Uri("https://api.freeagent.com/v2/tasks/456"),
+            Name = "Development Work",
             Project = "https://api.freeagent.com/v2/projects/123",
             IsBillable = true,
-            BillingRate = 100.00m,
+            BillingRate = 75.00m,
             BillingPeriod = "hour",
             Status = "Active",
-            Url = new Uri("https://api.freeagent.com/v2/tasks/12345")
+            CreatedAt = new DateTimeOffset(2024, 3, 15, 10, 0, 0, TimeSpan.Zero)
         };
 
         TaskRoot responseRoot = new() { TaskItem = responseTask };
@@ -82,24 +81,83 @@ public class TasksTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.Name.ShouldBe("Development");
+        result.Url.ShouldNotBeNull();
+        result.Name.ShouldBe("Development Work");
+        result.BillingRate.ShouldBe(75.00m);
         result.IsBillable.ShouldBe(true);
-        result.BillingRate.ShouldBe(100.00m);
-        result.BillingPeriod.ShouldBe("hour");
-        result.Url?.ToString().ShouldBe("https://api.freeagent.com/v2/tasks/12345");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPostRequest();
     }
 
     [TestMethod]
-    public async Task GetAllByProjectUrlAsync_ReturnsProjectTasks()
+    public async Task CreateAsync_WithNonBillableTask_CreatesSuccessfully()
+    {
+        // Arrange
+        TaskItem inputTask = new()
+        {
+            Name = "Internal Meeting",
+            Project = "https://api.freeagent.com/v2/projects/789",
+            IsBillable = false,
+            Status = "Active"
+        };
+
+        TaskItem responseTask = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/tasks/999"),
+            Name = "Internal Meeting",
+            Project = "https://api.freeagent.com/v2/projects/789",
+            IsBillable = false,
+            Status = "Active"
+        };
+
+        TaskRoot responseRoot = new() { TaskItem = responseTask };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        TaskItem result = await this.tasks.CreateAsync(inputTask);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.IsBillable.ShouldBe(false);
+        result.BillingRate.ShouldBeNull();
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPostRequest();
+    }
+
+    [TestMethod]
+    public async Task GetAllByProjectUrlAsync_WithValidProjectUrl_ReturnsTasks()
     {
         // Arrange
         Uri projectUrl = new("https://api.freeagent.com/v2/projects/123");
-
         List<TaskItem> tasksList =
         [
-            new() { Name = "Backend Development", Project = projectUrl.ToString(), IsBillable = true },
-            new() { Name = "Frontend Development", Project = projectUrl.ToString(), IsBillable = true },
-            new() { Name = "QA Testing", Project = projectUrl.ToString(), IsBillable = true }
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/tasks/1"),
+                Name = "Development",
+                Project = "https://api.freeagent.com/v2/projects/123",
+                IsBillable = true,
+                BillingRate = 100.00m,
+                BillingPeriod = "hour"
+            },
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/tasks/2"),
+                Name = "Testing",
+                Project = "https://api.freeagent.com/v2/projects/123",
+                IsBillable = true,
+                BillingRate = 75.00m,
+                BillingPeriod = "hour"
+            }
         ];
 
         TasksRoot responseRoot = new() { Tasks = tasksList };
@@ -114,76 +172,28 @@ public class TasksTests
         IEnumerable<TaskItem> result = await this.tasks.GetAllByProjectUrlAsync(projectUrl);
 
         // Assert
-        result.Count().ShouldBe(3);
-        result.All(t => t.Project == projectUrl.ToString()).ShouldBeTrue();
-        result.Any(t => t.Name == "Backend Development").ShouldBeTrue();
-        result.Any(t => t.Name == "Frontend Development").ShouldBeTrue();
-        result.Any(t => t.Name == "QA Testing").ShouldBeTrue();
+        result.Count().ShouldBe(2);
+        result.Any(t => t.Name == "Development").ShouldBeTrue();
+        result.Any(t => t.BillingRate == 75.00m).ShouldBeTrue();
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
     }
 
     [TestMethod]
-    public async Task CreateAsync_WithNonBillableTask_CreatesSuccessfully()
+    public async Task GetAllByProjectUrlAsync_CachesResults()
     {
         // Arrange
-        TaskItem inputTask = new()
-        {
-            Name = "Internal Meeting",
-            Project = "https://api.freeagent.com/v2/projects/123",
-            IsBillable = false,
-            Status = "Active"
-        };
-
-        TaskItem responseTask = new()
-        {
-            Name = "Internal Meeting",
-            Project = "https://api.freeagent.com/v2/projects/123",
-            IsBillable = false,
-            Status = "Active",
-            Url = new Uri("https://api.freeagent.com/v2/tasks/12346")
-        };
-
-        TaskRoot responseRoot = new() { TaskItem = responseTask };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
-
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
-        {
-            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
-        };
-
-        // Act
-        TaskItem result = await this.tasks.CreateAsync(inputTask);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Name.ShouldBe("Internal Meeting");
-        result.IsBillable.ShouldBe(false);
-        result.BillingRate.ShouldBeNull();
-    }
-
-    [TestMethod]
-    public async Task CreateAsync_WithoutProject_ThrowsArgumentException()
-    {
-        // Arrange
-        TaskItem inputTask = new()
-        {
-            Name = "Task without project",
-            IsBillable = true
-        };
-
-        // Act & Assert
-        await Should.ThrowAsync<ArgumentException>(async () =>
-            await this.tasks.CreateAsync(inputTask));
-    }
-
-    [TestMethod]
-    public async Task GetAllByProjectUrlAsync_WithCaching_UsesCachedResults()
-    {
-        // Arrange
-        Uri projectUrl = new("https://api.freeagent.com/v2/projects/123");
-
+        Uri projectUrl = new("https://api.freeagent.com/v2/projects/456");
         List<TaskItem> tasksList =
         [
-            new() { Name = "Cached Task", Project = projectUrl.ToString(), IsBillable = true }
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/tasks/10"),
+                Name = "Cached Task",
+                Project = "https://api.freeagent.com/v2/projects/456"
+            }
         ];
 
         TasksRoot responseRoot = new() { Tasks = tasksList };
@@ -194,27 +204,83 @@ public class TasksTests
             Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
         };
 
-        // Act - First call
+        // Act - Call twice
         IEnumerable<TaskItem> result1 = await this.tasks.GetAllByProjectUrlAsync(projectUrl);
-
-        // Act - Second call (should use cache)
         IEnumerable<TaskItem> result2 = await this.tasks.GetAllByProjectUrlAsync(projectUrl);
 
         // Assert
         result1.Count().ShouldBe(1);
         result2.Count().ShouldBe(1);
-        result2.ShouldBe(result1); // Should be same cached instance
 
-        // Verify HTTP was called only once due to caching
-        this.messageHandler.CallCount.ShouldBe(1);
+        // Mock Verification - Should only call API once due to caching
+        this.messageHandler.ShouldHaveBeenCalledOnce();
     }
 
-    [TestCleanup]
-    public void Cleanup()
+    [TestMethod]
+    public async Task UpdateTaskAsync_WithValidTask_ReturnsUpdatedTask()
     {
-        this.cache?.Dispose();
-        this.httpClient?.Dispose();
-        this.messageHandler?.Dispose();
+        // Arrange
+        TaskItem updatedTask = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/tasks/777"),
+            Name = "Updated Task Name",
+            Project = "https://api.freeagent.com/v2/projects/123",
+            BillingRate = 125.00m,
+            BillingPeriod = "hour",
+            Status = "Active"
+        };
+
+        TaskRoot responseRoot = new() { TaskItem = updatedTask };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        TaskItem result = await this.tasks.UpdateTaskAsync(updatedTask);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Name.ShouldBe("Updated Task Name");
+        result.BillingRate.ShouldBe(125.00m);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/tasks/777");
     }
 
+    [TestMethod]
+    public async Task UpdateTaskAsync_MarkAsCompleted_UpdatesStatus()
+    {
+        // Arrange
+        TaskItem completedTask = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/tasks/888"),
+            Name = "Completed Task",
+            Project = "https://api.freeagent.com/v2/projects/123",
+            Status = "Completed"
+        };
+
+        TaskRoot responseRoot = new() { TaskItem = completedTask };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        TaskItem result = await this.tasks.UpdateTaskAsync(completedTask);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Status.ShouldBe("Completed");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+    }
 }

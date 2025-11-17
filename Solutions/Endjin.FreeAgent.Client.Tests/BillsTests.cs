@@ -204,42 +204,4 @@ public class BillsTests
         this.messageHandler.ShouldHaveBeenDeleteRequest();
         this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/bills/456");
     }
-
-    [TestMethod]
-    public async Task MarkAsPaidAsync_WithValidPaymentDetails_UpdatesBillAsPaid()
-    {
-        // Arrange
-        DateOnly paidOn = new(2024, 2, 5);
-        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/789");
-
-        Bill responseBill = new()
-        {
-            Url = new Uri("https://api.freeagent.com/v2/bills/456"),
-            Reference = "BILL-001",
-            Status = "Paid",
-            PaidOn = paidOn,
-            TotalValue = 600.00m
-        };
-
-        BillRoot responseRoot = new() { Bill = responseBill };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
-
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
-        };
-
-        // Act
-        Bill result = await this.bills.MarkAsPaidAsync("456", paidOn, bankAccountUri);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Status.ShouldBe("Paid");
-        result.PaidOn.ShouldBe(paidOn);
-
-        // Mock Verification
-        this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/bills/456/mark_as_paid");
-    }
 }

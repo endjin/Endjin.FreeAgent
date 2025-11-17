@@ -32,7 +32,6 @@ namespace Endjin.FreeAgent.Domain;
 /// <seealso cref="Contact"/>
 /// <seealso cref="Project"/>
 /// <seealso cref="InvoiceItem"/>
-/// <seealso cref="InvoicePayment"/>
 [DebuggerDisplay("Reference = {" + nameof(Reference) + "}, Status = {" + nameof(Status) + "}")]
 public record Invoice
 {
@@ -120,6 +119,17 @@ public record Invoice
     [JsonPropertyName("status")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Status { get; init; }
+
+    /// <summary>
+    /// Gets the human-readable status with relative due date information.
+    /// </summary>
+    /// <value>
+    /// A descriptive status string that includes relative timing information (e.g., "Open – due in 1 day",
+    /// "Overdue by 3 days"). Provides more context than the basic <see cref="Status"/> field.
+    /// </value>
+    [JsonPropertyName("long_status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? LongStatus { get; init; }
 
     /// <summary>
     /// Gets the currency for this invoice.
@@ -396,4 +406,192 @@ public record Invoice
     [JsonPropertyName("involves_sales_tax")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? InvolvesSalesTax { get; init; }
+
+    /// <summary>
+    /// Gets the total sales tax (VAT/GST) amount on this invoice.
+    /// </summary>
+    /// <value>
+    /// The calculated total of all sales tax charged on the invoice line items.
+    /// </value>
+    [JsonPropertyName("sales_tax_value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? SalesTaxValue { get; init; }
+
+    /// <summary>
+    /// Gets the EC (European Community) VAT status for this invoice.
+    /// </summary>
+    /// <value>
+    /// One of "UK/Non-EC", "EC Goods", "EC Services", or other EC-related status values.
+    /// Used for VAT reporting and compliance within the European Community.
+    /// </value>
+    [JsonPropertyName("ec_status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? EcStatus { get; init; }
+
+    /// <summary>
+    /// Gets the online payment URL for this invoice.
+    /// </summary>
+    /// <value>
+    /// A URL that clients can use to pay the invoice online through integrated payment providers
+    /// such as PayPal, Stripe, GoCardless, or Tyl. Returns <see langword="null"/> if no online payment is configured.
+    /// </value>
+    [JsonPropertyName("payment_url")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PaymentUrl { get; init; }
+
+    /// <summary>
+    /// Gets the URI reference to the property associated with this invoice.
+    /// </summary>
+    /// <value>
+    /// The URI of the property for UkUnincorporatedLandlord company types. Required for landlord invoicing.
+    /// </value>
+    [JsonPropertyName("property")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? Property { get; init; }
+
+    /// <summary>
+    /// Gets the timeslip grouping option for this invoice.
+    /// </summary>
+    /// <value>
+    /// Specifies how timeslips should be grouped when included in the invoice (e.g., "individual", "grouped", "summary").
+    /// </value>
+    [JsonPropertyName("include_timeslips")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IncludeTimeslips { get; init; }
+
+    /// <summary>
+    /// Gets the expense grouping option for this invoice.
+    /// </summary>
+    /// <value>
+    /// Specifies how expenses should be grouped when included in the invoice (e.g., "individual", "grouped", "summary").
+    /// </value>
+    [JsonPropertyName("include_expenses")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IncludeExpenses { get; init; }
+
+    /// <summary>
+    /// Gets the estimate grouping option for this invoice.
+    /// </summary>
+    /// <value>
+    /// Specifies how estimates should be included when converting to an invoice.
+    /// </value>
+    [JsonPropertyName("include_estimates")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IncludeEstimates { get; init; }
+
+    /// <summary>
+    /// Gets the Construction Industry Scheme (CIS) deduction rate band for this invoice.
+    /// </summary>
+    /// <value>
+    /// The CIS deduction band (e.g., "standard", "higher", "gross") for UK construction industry invoices.
+    /// </value>
+    [JsonPropertyName("cis_rate")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CisRate { get; init; }
+
+    /// <summary>
+    /// Gets the total CIS deduction amount for this invoice.
+    /// </summary>
+    /// <value>
+    /// The total Construction Industry Scheme deduction withheld from this invoice under UK tax regulations.
+    /// </value>
+    [JsonPropertyName("cis_deduction")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? CisDeduction { get; init; }
+
+    /// <summary>
+    /// Gets the CIS deduction rate percentage for this invoice.
+    /// </summary>
+    /// <value>
+    /// The percentage rate at which CIS deductions are calculated (e.g., 0.20 for 20%, 0.30 for 30%).
+    /// Used in Construction Industry Scheme tax calculations.
+    /// </value>
+    [JsonPropertyName("cis_deduction_rate")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? CisDeductionRate { get; init; }
+
+    /// <summary>
+    /// Gets the prepaid CIS deduction amount for this invoice.
+    /// </summary>
+    /// <value>
+    /// The amount of CIS deduction that has already been paid or suffered prior to this invoice.
+    /// </value>
+    [JsonPropertyName("cis_deduction_suffered")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? CisDeductionSuffered { get; init; }
+
+    /// <summary>
+    /// Gets the override contact name to display on this invoice.
+    /// </summary>
+    /// <value>
+    /// A custom contact name to display instead of the contact's name from their record. Useful for
+    /// addressing invoices to specific individuals within an organization.
+    /// </value>
+    [JsonPropertyName("client_contact_name")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ClientContactName { get; init; }
+
+    /// <summary>
+    /// Gets the display name from the associated contact record.
+    /// </summary>
+    /// <value>
+    /// The contact's name as stored in their contact record. This is a read-only field derived from
+    /// the associated <see cref="Contact"/>.
+    /// </value>
+    [JsonPropertyName("contact_name")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ContactName { get; init; }
+
+    /// <summary>
+    /// Gets the purchase order reference override for this invoice.
+    /// </summary>
+    /// <value>
+    /// A custom PO reference to display on this invoice, overriding the project's PO reference if present.
+    /// </value>
+    [JsonPropertyName("po_reference")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PoReference { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the project name should be displayed in the Other Information section.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> to display the project name on the invoice; otherwise, <see langword="false"/>.
+    /// </value>
+    [JsonPropertyName("show_project_name")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? ShowProjectName { get; init; }
+
+    /// <summary>
+    /// Gets the second sales tax amount for jurisdictions with dual tax systems.
+    /// </summary>
+    /// <value>
+    /// The calculated secondary tax amount (e.g., PST in Canadian provinces) for universal accounts
+    /// that operate in multi-tax jurisdictions.
+    /// </value>
+    [JsonPropertyName("second_sales_tax_value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? SecondSalesTaxValue { get; init; }
+
+    /// <summary>
+    /// Gets the place of supply for EC VAT MOSS (Mini One Stop Shop) purposes.
+    /// </summary>
+    /// <value>
+    /// The country or jurisdiction code determining where VAT is due for digital services
+    /// sold to EU customers under the MOSS scheme.
+    /// </value>
+    [JsonPropertyName("place_of_supply")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PlaceOfSupply { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether this invoice uses interim UK VAT accounting.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> if using provisional VAT registration where VAT is accounted for when cash
+    /// is received rather than when invoiced; otherwise, <see langword="false"/>.
+    /// </value>
+    [JsonPropertyName("is_interim_uk_vat")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsInterimUkVat { get; init; }
 }

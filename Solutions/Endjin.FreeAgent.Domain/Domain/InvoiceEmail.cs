@@ -119,4 +119,57 @@ public record InvoiceEmail
     [JsonPropertyName("send_pdf_attachment")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? SendPdfAttachment { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether to use a predefined email template.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> to use the default FreeAgent email template instead of custom subject and body;
+    /// <see langword="false"/> to use the custom <see cref="Subject"/> and <see cref="Body"/> values.
+    /// When set to true, the <see cref="Subject"/> and <see cref="Body"/> fields are ignored and FreeAgent
+    /// generates professional default content.
+    /// </value>
+    [JsonPropertyName("use_template")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? UseTemplate { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether to send a copy of the email to the sender.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> to send a copy to the authenticated user who is sending the email;
+    /// <see langword="false"/> to only send to the recipients specified in <see cref="To"/>, <see cref="Cc"/>,
+    /// and <see cref="Bcc"/>. Defaults to true if not specified, ensuring the sender has a record of sent invoices.
+    /// </value>
+    [JsonPropertyName("email_to_sender")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? EmailToSender { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether to attach expense receipt PDFs to the email.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> to include PDF attachments of any expense receipts associated with the invoice;
+    /// <see langword="false"/> to only include the invoice PDF. This is useful when expenses are being passed
+    /// through to the client and supporting documentation is required.
+    /// </value>
+    [JsonPropertyName("attach_expense_receipts")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? AttachExpenseReceipts { get; init; }
+
+    /// <summary>
+    /// Gets the collection of additional file attachments to include with the email.
+    /// </summary>
+    /// <value>
+    /// A list of file attachment data (typically base64-encoded) to include with the email.
+    /// Each attachment has a maximum size of 5MB. This allows including supporting documents,
+    /// contracts, terms and conditions, or other relevant files alongside the invoice.
+    /// </value>
+    /// <remarks>
+    /// The FreeAgent API accepts attachments as an array of objects with file data.
+    /// Maximum total size across all attachments should not exceed reasonable email limits.
+    /// </remarks>
+    [JsonPropertyName("attachments")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? Attachments { get; init; }
 }

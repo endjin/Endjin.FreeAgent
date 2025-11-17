@@ -154,7 +154,7 @@ public class CorporationTaxReturns
 
         await this.client.InitializeAndAuthorizeAsync();
 
-        HttpResponseMessage response = await this.client.HttpClient.PutAsync($"/v2/corporation_tax_returns/{id}/mark_as_filed", content);
+        HttpResponseMessage response = await this.client.HttpClient.PutAsync(new Uri(this.client.ApiBaseUrl, $"/v2/corporation_tax_returns/{id}/mark_as_filed"), content);
         response.EnsureSuccessStatusCode();
 
         CorporationTaxReturnRoot? root = await response.Content.ReadFromJsonAsync<CorporationTaxReturnRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);

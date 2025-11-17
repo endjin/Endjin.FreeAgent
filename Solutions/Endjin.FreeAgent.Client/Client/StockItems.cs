@@ -65,7 +65,7 @@ public class StockItems
 
         await this.client.InitializeAndAuthorizeAsync();
 
-        HttpResponseMessage response = await this.client.HttpClient.PostAsync("/v2/stock_items", content);
+        HttpResponseMessage response = await this.client.HttpClient.PostAsync(new Uri(this.client.ApiBaseUrl, "/v2/stock_items"), content);
         response.EnsureSuccessStatusCode();
 
         StockItemRoot? root = await response.Content.ReadFromJsonAsync<StockItemRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
@@ -180,7 +180,7 @@ public class StockItems
 
         await this.client.InitializeAndAuthorizeAsync();
 
-        HttpResponseMessage response = await this.client.HttpClient.PutAsync($"/v2/stock_items/{id}", content);
+        HttpResponseMessage response = await this.client.HttpClient.PutAsync(new Uri(this.client.ApiBaseUrl, $"/v2/stock_items/{id}"), content);
         response.EnsureSuccessStatusCode();
 
         StockItemRoot? root = await response.Content.ReadFromJsonAsync<StockItemRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);

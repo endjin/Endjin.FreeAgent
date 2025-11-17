@@ -35,6 +35,16 @@ namespace Endjin.FreeAgent.Domain;
 public record InvoiceItem
 {
     /// <summary>
+    /// Gets the unique identifier for this invoice item.
+    /// </summary>
+    /// <value>
+    /// The unique ID string for this line item. Required when updating or deleting individual invoice items.
+    /// </value>
+    [JsonPropertyName("id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Id { get; init; }
+
+    /// <summary>
     /// Gets the unique URI identifier for this invoice item.
     /// </summary>
     /// <value>
@@ -194,4 +204,15 @@ public record InvoiceItem
     [JsonPropertyName("stock_item")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Uri? StockItem { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether this invoice item should be deleted during an update operation.
+    /// </summary>
+    /// <value>
+    /// Set to 1 to mark this item for deletion when performing nested updates on an invoice.
+    /// Used only for update requests, not returned in responses.
+    /// </value>
+    [JsonPropertyName("_destroy")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? Destroy { get; init; }
 }

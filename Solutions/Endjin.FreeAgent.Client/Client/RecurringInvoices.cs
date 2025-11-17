@@ -65,7 +65,7 @@ public class RecurringInvoices
 
         await this.client.InitializeAndAuthorizeAsync();
 
-        HttpResponseMessage response = await this.client.HttpClient.PostAsync("/v2/recurring_invoices", content);
+        HttpResponseMessage response = await this.client.HttpClient.PostAsync(new Uri(this.client.ApiBaseUrl, "/v2/recurring_invoices"), content);
         response.EnsureSuccessStatusCode();
 
         RecurringInvoiceRoot? root = await response.Content.ReadFromJsonAsync<RecurringInvoiceRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
@@ -181,7 +181,7 @@ public class RecurringInvoices
 
         await this.client.InitializeAndAuthorizeAsync();
 
-        HttpResponseMessage response = await this.client.HttpClient.PutAsync($"/v2/recurring_invoices/{id}", content);
+        HttpResponseMessage response = await this.client.HttpClient.PutAsync(new Uri(this.client.ApiBaseUrl, $"/v2/recurring_invoices/{id}"), content);
         response.EnsureSuccessStatusCode();
 
         RecurringInvoiceRoot? root = await response.Content.ReadFromJsonAsync<RecurringInvoiceRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
@@ -239,7 +239,7 @@ public class RecurringInvoices
 
         await this.client.InitializeAndAuthorizeAsync();
 
-        HttpResponseMessage response = await this.client.HttpClient.PutAsync($"/v2/recurring_invoices/{id}/activate", null);
+        HttpResponseMessage response = await this.client.HttpClient.PutAsync(new Uri(this.client.ApiBaseUrl, $"/v2/recurring_invoices/{id}/activate"), null);
         response.EnsureSuccessStatusCode();
 
         RecurringInvoiceRoot? root = await response.Content.ReadFromJsonAsync<RecurringInvoiceRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
@@ -272,7 +272,7 @@ public class RecurringInvoices
 
         await this.client.InitializeAndAuthorizeAsync();
 
-        HttpResponseMessage response = await this.client.HttpClient.PutAsync($"/v2/recurring_invoices/{id}/deactivate", null);
+        HttpResponseMessage response = await this.client.HttpClient.PutAsync(new Uri(this.client.ApiBaseUrl, $"/v2/recurring_invoices/{id}/deactivate"), null);
         response.EnsureSuccessStatusCode();
 
         RecurringInvoiceRoot? root = await response.Content.ReadFromJsonAsync<RecurringInvoiceRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
