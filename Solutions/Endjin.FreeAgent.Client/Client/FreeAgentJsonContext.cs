@@ -91,6 +91,7 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(CreditNotePdfRoot))]
 [JsonSerializable(typeof(CurrenciesRoot))]
 [JsonSerializable(typeof(DepreciationProfilesRoot))]
+[JsonSerializable(typeof(EmailAddressesRoot))]
 [JsonSerializable(typeof(EstimateRoot))]
 [JsonSerializable(typeof(EstimatesRoot))]
 [JsonSerializable(typeof(EstimateEmailRoot))]
