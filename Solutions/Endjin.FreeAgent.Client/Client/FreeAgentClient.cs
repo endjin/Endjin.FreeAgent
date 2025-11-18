@@ -188,6 +188,7 @@ public class FreeAgentClient : ClientBase
         this.PriceListItems = new PriceListItems(this, cache);
         this.ProfitAndLossReports = new ProfitAndLossReports(this, cache);
         this.Projects = new Projects(this, cache);
+        this.Properties = new Properties(this, cache);
         this.RecurringInvoices = new RecurringInvoices(this, cache);
         this.SalesTaxRates = new SalesTaxRates(this, cache);
         this.SalesTaxPeriods = new SalesTaxPeriods(this);
@@ -403,6 +404,15 @@ public class FreeAgentClient : ClientBase
     /// </summary>
     /// <value>The <see cref="Projects"/> service instance.</value>
     public Projects Projects { get; private set; }
+
+    /// <summary>
+    /// Gets the service for managing properties for UK unincorporated landlords.
+    /// </summary>
+    /// <value>The <see cref="Properties"/> service instance.</value>
+    /// <remarks>
+    /// This endpoint is only available for companies of type <c>UkUnincorporatedLandlord</c>.
+    /// </remarks>
+    public Properties Properties { get; private set; }
 
     /// <summary>
     /// Gets the service for managing recurring invoices.
