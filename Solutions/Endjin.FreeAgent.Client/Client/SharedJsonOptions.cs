@@ -120,11 +120,9 @@ public static class SharedJsonOptions
             PropertyNameCaseInsensitive = true,
             WriteIndented = false,
             AllowTrailingCommas = true,
-            ReadCommentHandling = JsonCommentHandling.Skip
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            NumberHandling = JsonNumberHandling.AllowReadingFromString
         };
-
-        // Add any custom converters here if needed
-        // options.Converters.Add(new CustomConverter());
 
         return options;
     }
@@ -148,6 +146,7 @@ public static class SharedJsonOptions
             WriteIndented = false,
             AllowTrailingCommas = true,
             ReadCommentHandling = JsonCommentHandling.Skip,
+            NumberHandling = JsonNumberHandling.AllowReadingFromString,
             TypeInfoResolver = s_sourceGenContext
         };
 
