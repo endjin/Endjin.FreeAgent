@@ -5,35 +5,32 @@
 namespace Endjin.FreeAgent.Domain;
 
 /// <summary>
-/// Represents a profit and loss (income statement) financial report for a company in the FreeAgent accounting system.
+/// Represents a profit and loss summary report for a company in the FreeAgent accounting system.
 /// </summary>
 /// <remarks>
 /// <para>
-/// A profit and loss statement (also known as an income statement or P&amp;L) shows a company's financial performance
-/// over a specific period, detailing revenues, costs, expenses, and the resulting profit or loss. It is one of the
-/// fundamental financial statements used to assess business performance and profitability.
+/// A profit and loss summary provides a high-level view of a company's financial performance
+/// over a specific period, showing income, expenses, operating profit, and retained profit figures.
+/// All monetary values are returned in the company's native currency.
 /// </para>
 /// <para>
-/// The profit and loss statement is structured to show:
-/// - Turnover (revenue/sales): Total income from business activities
-/// - Cost of Sales: Direct costs of producing goods or services sold
-/// - Gross Profit: Turnover minus Cost of Sales
-/// - Administrative Expenses: Operating expenses and overheads
-/// - Operating Profit: Gross Profit minus Administrative Expenses
-/// - Net Profit: Final profit after all adjustments
+/// The summary includes:
+/// <list type="bullet">
+/// <item><description>Income: Total revenue from business activities</description></item>
+/// <item><description>Expenses: Total costs and operating expenses</description></item>
+/// <item><description>Operating Profit: Day-to-day profit or loss</description></item>
+/// <item><description>Deductions: Items reducing operating profit (e.g., tax, dividends)</description></item>
+/// <item><description>Retained Profit: Profit available for distribution or reinvestment</description></item>
+/// </list>
 /// </para>
 /// <para>
-/// Each section contains both summary totals and detailed entries broken down by accounting category,
-/// allowing for analysis of income sources and expense patterns.
+/// API Endpoint: GET /v2/accounting/profit_and_loss/summary
 /// </para>
 /// <para>
-/// API Endpoint: /v2/accounting/profit_and_loss
-/// </para>
-/// <para>
-/// Minimum Access Level: Accounting Plus
+/// Minimum Access Level: Tax, Accounting &amp; Users
 /// </para>
 /// </remarks>
-/// <seealso cref="ProfitAndLossEntry"/>
+/// <seealso cref="ProfitAndLossDeduction"/>
 /// <seealso cref="BalanceSheet"/>
 /// <seealso cref="CashFlow"/>
 public record ProfitAndLoss
@@ -42,107 +39,82 @@ public record ProfitAndLoss
     /// Gets the start date of the reporting period.
     /// </summary>
     /// <value>
-    /// The first date of the period covered by this profit and loss statement.
+    /// The first date of the period covered by this profit and loss summary.
     /// </value>
-    [JsonPropertyName("from_date")]
-    public DateOnly? FromDate { get; init; }
+    [JsonPropertyName("from")]
+    public DateOnly? From { get; init; }
 
     /// <summary>
     /// Gets the end date of the reporting period.
     /// </summary>
     /// <value>
-    /// The last date of the period covered by this profit and loss statement.
+    /// The last date of the period covered by this profit and loss summary.
     /// </value>
-    [JsonPropertyName("to_date")]
-    public DateOnly? ToDate { get; init; }
+    [JsonPropertyName("to")]
+    public DateOnly? To { get; init; }
 
     /// <summary>
-    /// Gets the total turnover (revenue) for the period.
+    /// Gets the total income for the period.
     /// </summary>
     /// <value>
-    /// The total income from sales of goods and services before any deductions.
-    /// Also known as revenue, sales, or gross receipts.
+    /// The total revenue from all business activities during the reporting period.
     /// </value>
-    [JsonPropertyName("turnover")]
-    public decimal? Turnover { get; init; }
+    [JsonPropertyName("income")]
+    public decimal? Income { get; init; }
 
     /// <summary>
-    /// Gets the total cost of sales for the period.
+    /// Gets the total expenses for the period.
     /// </summary>
     /// <value>
-    /// The direct costs attributable to producing the goods or services sold, including
-    /// materials, direct labor, and manufacturing overheads.
+    /// The total costs and operating expenses incurred during the reporting period.
     /// </value>
-    [JsonPropertyName("cost_of_sales")]
-    public decimal? CostOfSales { get; init; }
-
-    /// <summary>
-    /// Gets the gross profit for the period.
-    /// </summary>
-    /// <value>
-    /// The profit remaining after deducting cost of sales from turnover (Turnover - Cost of Sales).
-    /// Gross profit represents the profit from core trading activities before operating expenses.
-    /// </value>
-    [JsonPropertyName("gross_profit")]
-    public decimal? GrossProfit { get; init; }
-
-    /// <summary>
-    /// Gets the total administrative expenses for the period.
-    /// </summary>
-    /// <value>
-    /// The operating expenses and overheads including salaries, rent, utilities, marketing,
-    /// professional fees, and other business expenses not directly related to production.
-    /// </value>
-    [JsonPropertyName("administrative_expenses")]
-    public decimal? AdministrativeExpenses { get; init; }
+    [JsonPropertyName("expenses")]
+    public decimal? Expenses { get; init; }
 
     /// <summary>
     /// Gets the operating profit for the period.
     /// </summary>
     /// <value>
-    /// The profit from normal business operations (Gross Profit - Administrative Expenses).
-    /// Also known as EBIT (Earnings Before Interest and Tax).
+    /// The profit from day-to-day business operations (Income minus Expenses).
     /// </value>
     [JsonPropertyName("operating_profit")]
     public decimal? OperatingProfit { get; init; }
 
     /// <summary>
-    /// Gets the net profit for the period.
+    /// Gets the deductions from operating profit.
     /// </summary>
     /// <value>
-    /// The final profit after all income, expenses, taxes, and adjustments.
-    /// This is the "bottom line" profit available to owners.
+    /// A list of <see cref="ProfitAndLossDeduction"/> items that reduce operating profit,
+    /// such as corporation tax, dividends, or director's drawings.
     /// </value>
-    [JsonPropertyName("net_profit")]
-    public decimal? NetProfit { get; init; }
+    [JsonPropertyName("less")]
+    public List<ProfitAndLossDeduction>? Less { get; init; }
 
     /// <summary>
-    /// Gets the detailed breakdown of income by category.
+    /// Gets the retained profit for the period.
     /// </summary>
     /// <value>
-    /// A list of <see cref="ProfitAndLossEntry"/> objects showing individual income categories
-    /// that comprise the total turnover, with values and percentages.
+    /// The profit remaining after all deductions from operating profit.
     /// </value>
-    [JsonPropertyName("income_entries")]
-    public List<ProfitAndLossEntry>? IncomeEntries { get; init; }
+    [JsonPropertyName("retained_profit")]
+    public decimal? RetainedProfit { get; init; }
 
     /// <summary>
-    /// Gets the detailed breakdown of cost of sales by category.
+    /// Gets the retained profit brought forward from the previous accounting year.
     /// </summary>
     /// <value>
-    /// A list of <see cref="ProfitAndLossEntry"/> objects showing individual cost categories
-    /// that comprise the total cost of sales.
+    /// The accumulated retained profit carried over from prior accounting periods.
     /// </value>
-    [JsonPropertyName("cost_of_sales_entries")]
-    public List<ProfitAndLossEntry>? CostOfSalesEntries { get; init; }
+    [JsonPropertyName("retained_profit_brought_forward")]
+    public decimal? RetainedProfitBroughtForward { get; init; }
 
     /// <summary>
-    /// Gets the detailed breakdown of administrative expenses by category.
+    /// Gets the retained profit carried forward to the next accounting year.
     /// </summary>
     /// <value>
-    /// A list of <see cref="ProfitAndLossEntry"/> objects showing individual expense categories
-    /// such as salaries, rent, utilities, and other operating costs.
+    /// The total distributable profit, calculated as retained profit plus retained profit brought forward.
+    /// This represents the accumulated profits available for distribution to shareholders or reinvestment.
     /// </value>
-    [JsonPropertyName("administrative_expenses_entries")]
-    public List<ProfitAndLossEntry>? AdministrativeExpensesEntries { get; init; }
+    [JsonPropertyName("retained_profit_carried_forward")]
+    public decimal? RetainedProfitCarriedForward { get; init; }
 }
