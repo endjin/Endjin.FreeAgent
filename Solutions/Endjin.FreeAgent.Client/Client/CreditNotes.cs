@@ -76,30 +76,156 @@ public class CreditNotes
     }
 
     /// <summary>
-    /// Retrieves credit notes from FreeAgent filtered by view.
+    /// Retrieves credit notes from FreeAgent with optional filters.
     /// </summary>
-    /// <param name="view">The view filter to apply (e.g., "all", "draft", "sent", "open", "refunded"). Defaults to "all".</param>
+    /// <param name="view">The view filter to apply. Valid values: "all", "recent_open_or_overdue", "open", "overdue", "open_or_overdue", "draft", "refunded", or "last_N_months" (e.g., "last_3_months"). Defaults to "all".</param>
+    /// <param name="nestedCreditNoteItems">Whether to include nested credit note items in the response. Defaults to false.</param>
+    /// <param name="contact">Filter by contact URI.</param>
+    /// <param name="project">Filter by project URI.</param>
+    /// <param name="updatedSince">Filter by last update date - only return credit notes updated after this date.</param>
+    /// <param name="sort">Sort order: "created_at", "-created_at", "updated_at", or "-updated_at" (prefix with - for descending). Default is "created_at".</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
-    /// <see cref="CreditNote"/> objects matching the specified view.
+    /// <see cref="CreditNote"/> objects matching the specified criteria.
     /// </returns>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <remarks>
-    /// This method calls GET /v2/credit_notes?view={view}, handles pagination automatically, and caches the
-    /// result for 5 minutes.
+    /// This method calls GET /v2/credit_notes with query parameters, handles pagination automatically,
+    /// and caches the result for 5 minutes based on the query parameters combination.
     /// </remarks>
-    public async Task<IEnumerable<CreditNote>> GetAllAsync(string view = "all")
+    public async Task<IEnumerable<CreditNote>> GetAllAsync(
+        string view = "all",
+        bool nestedCreditNoteItems = false,
+        Uri? contact = null,
+        Uri? project = null,
+        DateTime? updatedSince = null,
+        string? sort = null)
     {
-        string cacheKey = $"{CreditNotesEndPoint}/{view}";
+        var queryParams = new List<string> { $"view={view}" };
+
+        if (nestedCreditNoteItems)
+        {
+            queryParams.Add("nested_credit_note_items=true");
+        }
+
+        if (contact != null)
+        {
+            queryParams.Add($"contact={Uri.EscapeDataString(contact.ToString())}");
+        }
+
+        if (project != null)
+        {
+            queryParams.Add($"project={Uri.EscapeDataString(project.ToString())}");
+        }
+
+        if (updatedSince.HasValue)
+        {
+            queryParams.Add($"updated_since={updatedSince.Value:yyyy-MM-ddTHH:mm:ssZ}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(sort))
+        {
+            queryParams.Add($"sort={sort}");
+        }
+
+        string queryString = string.Join("&", queryParams);
+        string cacheKey = $"{CreditNotesEndPoint}?{queryString}";
 
         if (!this.cache.TryGetValue(cacheKey, out IEnumerable<CreditNote>? results))
         {
             List<CreditNotesRoot> response = await this.freeAgentClient.ExecuteRequestAndFollowLinksAsync<CreditNotesRoot>(
-                new Uri(this.freeAgentClient.ApiBaseUrl, $"{CreditNotesEndPoint}?view={view}"))
+                new Uri(this.freeAgentClient.ApiBaseUrl, $"{CreditNotesEndPoint}?{queryString}"))
                 .ConfigureAwait(false);
 
             results = [.. response.SelectMany(x => x.CreditNotes)];
             this.cache.Set(cacheKey, results, cacheEntryOptions);
+        }
+
+        return results ?? [];
+    }
+
+    /// <summary>
+    /// Retrieves all credit notes with a specific status from FreeAgent.
+    /// </summary>
+    /// <param name="status">The status to filter by (e.g., "draft", "open", "overdue", "refunded").</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// <see cref="CreditNote"/> objects with the specified status.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method maps the status parameter to the corresponding view and calls <see cref="GetAllAsync"/>.
+    /// Status values are case-insensitive. Unrecognized status values default to "all".
+    /// </remarks>
+    public async Task<IEnumerable<CreditNote>> GetAllByStatusAsync(string status)
+    {
+        string view = status.ToLowerInvariant() switch
+        {
+            "draft" => "draft",
+            "open" => "open",
+            "overdue" => "overdue",
+            "refunded" => "refunded",
+            _ => "all"
+        };
+
+        return await this.GetAllAsync(view).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Retrieves all credit notes associated with a specific contact from FreeAgent.
+    /// </summary>
+    /// <param name="contactUri">The URI of the contact to filter credit notes by.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// <see cref="CreditNote"/> objects associated with the specified contact.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/credit_notes?contact={contactUri}, handles pagination automatically, and caches
+    /// the result for 5 minutes.
+    /// </remarks>
+    public async Task<IEnumerable<CreditNote>> GetAllByContactAsync(Uri contactUri)
+    {
+        string cacheKey = $"{CreditNotesEndPoint}/contact/{contactUri}";
+
+        if (!this.cache.TryGetValue(cacheKey, out IEnumerable<CreditNote>? results))
+        {
+            List<CreditNotesRoot> response = await this.freeAgentClient.ExecuteRequestAndFollowLinksAsync<CreditNotesRoot>(
+                new Uri(this.freeAgentClient.ApiBaseUrl, $"{CreditNotesEndPoint}?contact={Uri.EscapeDataString(contactUri.ToString())}"))
+                .ConfigureAwait(false);
+
+            results = [.. response.SelectMany(x => x.CreditNotes)];
+            this.cache.Set(cacheKey, results, this.cacheEntryOptions);
+        }
+
+        return results ?? [];
+    }
+
+    /// <summary>
+    /// Retrieves all credit notes associated with a specific project from FreeAgent.
+    /// </summary>
+    /// <param name="projectUri">The URI of the project to filter credit notes by.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// <see cref="CreditNote"/> objects associated with the specified project.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/credit_notes?project={projectUri}, handles pagination automatically, and caches
+    /// the result for 5 minutes.
+    /// </remarks>
+    public async Task<IEnumerable<CreditNote>> GetAllByProjectAsync(Uri projectUri)
+    {
+        string cacheKey = $"{CreditNotesEndPoint}/project/{projectUri}";
+
+        if (!this.cache.TryGetValue(cacheKey, out IEnumerable<CreditNote>? results))
+        {
+            List<CreditNotesRoot> response = await this.freeAgentClient.ExecuteRequestAndFollowLinksAsync<CreditNotesRoot>(
+                new Uri(this.freeAgentClient.ApiBaseUrl, $"{CreditNotesEndPoint}?project={Uri.EscapeDataString(projectUri.ToString())}"))
+                .ConfigureAwait(false);
+
+            results = [.. response.SelectMany(x => x.CreditNotes)];
+            this.cache.Set(cacheKey, results, this.cacheEntryOptions);
         }
 
         return results ?? [];
@@ -196,37 +322,56 @@ public class CreditNotes
     }
 
     /// <summary>
-    /// Marks a credit note as refunded in FreeAgent.
+    /// Retrieves a credit note as a PDF document from FreeAgent.
     /// </summary>
-    /// <param name="id">The unique identifier of the credit note to mark as refunded.</param>
-    /// <param name="refundedOn">The date the credit note was refunded.</param>
-    /// <param name="bankAccountUri">The URI of the bank account from which the refund was issued.</param>
+    /// <param name="id">The unique identifier of the credit note to retrieve as PDF.</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// updated <see cref="CreditNote"/> object with its status changed to refunded.
+    /// PDF document as a byte array.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the PDF content is null or invalid.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/credit_notes/{id}/pdf to retrieve the credit note as a PDF document.
+    /// The API returns a JSON response with base64-encoded PDF content, which is decoded before returning.
+    /// The result is not cached as PDF generation may vary.
+    /// </remarks>
+    public async Task<byte[]> GetPdfAsync(string id)
+    {
+        HttpResponseMessage response = await this.freeAgentClient.HttpClient.GetAsync(
+            new Uri(this.freeAgentClient.ApiBaseUrl, $"{CreditNotesEndPoint}/{id}/pdf")).ConfigureAwait(false);
+
+        response.EnsureSuccessStatusCode();
+
+        CreditNotePdfRoot? result = await response.Content.ReadFromJsonAsync<CreditNotePdfRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+
+        if (result?.Pdf?.Content is null)
+        {
+            throw new InvalidOperationException("The PDF content was not returned in the expected format.");
+        }
+
+        return Convert.FromBase64String(result.Pdf.Content);
+    }
+
+    /// <summary>
+    /// Marks a credit note as sent in FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the credit note to mark as sent.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="CreditNote"/> object with its status changed to sent.
     /// </returns>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
     /// <remarks>
-    /// This method calls PUT /v2/credit_notes/{id}/mark_as_refunded to record refund of the credit note.
-    /// This creates a corresponding bank transaction. The cache entry for this credit note is invalidated.
+    /// This method calls PUT /v2/credit_notes/{id}/transitions/mark_as_sent to change the credit note
+    /// status from draft to sent. The cache entry for this credit note is invalidated.
     /// </remarks>
-    public async Task<CreditNote> MarkAsRefundedAsync(string id, DateOnly refundedOn, Uri bankAccountUri)
+    public async Task<CreditNote> MarkAsSentAsync(string id)
     {
-        CreditNoteRefundRoot refundRoot = new()
-        {
-            CreditNote = new CreditNoteRefund
-            {
-                RefundedOn = refundedOn.ToString("yyyy-MM-dd"),
-                BankAccount = bankAccountUri.ToString()
-            }
-        };
-
-        using JsonContent content = JsonContent.Create(refundRoot, options: SharedJsonOptions.SourceGenOptions);
-
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
-            new Uri(this.freeAgentClient.ApiBaseUrl, $"{CreditNotesEndPoint}/{id}/mark_as_refunded"),
-            content).ConfigureAwait(false);
+            new Uri(this.freeAgentClient.ApiBaseUrl, $"{CreditNotesEndPoint}/{id}/transitions/mark_as_sent"),
+            JsonContent.Create(new { })).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
@@ -240,6 +385,38 @@ public class CreditNotes
     }
 
     /// <summary>
+    /// Marks a credit note as draft in FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the credit note to mark as draft.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="CreditNote"/> object with its status changed to draft.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls PUT /v2/credit_notes/{id}/transitions/mark_as_draft to change the credit note
+    /// status back to draft from sent. The cache entry for this credit note is invalidated.
+    /// </remarks>
+    public async Task<CreditNote> MarkAsDraftAsync(string id)
+    {
+        HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
+            new Uri(this.freeAgentClient.ApiBaseUrl, $"{CreditNotesEndPoint}/{id}/transitions/mark_as_draft"),
+            JsonContent.Create(new { })).ConfigureAwait(false);
+
+        response.EnsureSuccessStatusCode();
+
+        CreditNoteRoot? root = await response.Content.ReadFromJsonAsync<CreditNoteRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+
+        // Invalidate cache
+        string cacheKey = $"{CreditNotesEndPoint}/{id}";
+        this.cache.Remove(cacheKey);
+
+        return root?.CreditNote ?? throw new InvalidOperationException("Failed to deserialize credit note response.");
+    }
+
+
+    /// <summary>
     /// Sends a credit note via email through FreeAgent.
     /// </summary>
     /// <param name="id">The unique identifier of the credit note to send.</param>
@@ -251,7 +428,7 @@ public class CreditNotes
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
     /// <remarks>
-    /// This method calls PUT /v2/credit_notes/{id}/send_email to send the credit note. The credit note
+    /// This method calls POST /v2/credit_notes/{id}/send_email to send the credit note. The credit note
     /// status is automatically changed to "sent". The cache entry for this credit note is invalidated.
     /// </remarks>
     public async Task<CreditNote> SendEmailAsync(string id, InvoiceEmail email)
@@ -262,7 +439,7 @@ public class CreditNotes
         };
         using JsonContent content = JsonContent.Create(emailRoot, options: SharedJsonOptions.SourceGenOptions);
 
-        HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
+        HttpResponseMessage response = await this.freeAgentClient.HttpClient.PostAsync(
             new Uri(this.freeAgentClient.ApiBaseUrl, $"{CreditNotesEndPoint}/{id}/send_email"),
             content).ConfigureAwait(false);
 

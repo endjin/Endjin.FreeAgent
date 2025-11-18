@@ -171,6 +171,7 @@ public class FreeAgentClient : ClientBase
         this.Company = new Company(this, cache);
         this.Contacts = new Contacts(this, cache);
         this.CorporationTaxReturns = new CorporationTaxReturns(this, cache);
+        this.CreditNoteReconciliations = new CreditNoteReconciliations(this, cache);
         this.CreditNotes = new CreditNotes(this, cache);
         this.DepreciationProfiles = new DepreciationProfiles(this, cache);
         this.Estimates = new Estimates(this, cache);
@@ -295,6 +296,12 @@ public class FreeAgentClient : ClientBase
     /// </summary>
     /// <value>The <see cref="CorporationTaxReturns"/> service instance.</value>
     public CorporationTaxReturns CorporationTaxReturns { get; private set; }
+
+    /// <summary>
+    /// Gets the service for managing credit note reconciliations.
+    /// </summary>
+    /// <value>The <see cref="CreditNoteReconciliations"/> service instance.</value>
+    public CreditNoteReconciliations CreditNoteReconciliations { get; private set; }
 
     /// <summary>
     /// Gets the service for managing credit notes.
