@@ -134,17 +134,17 @@ public class ContactsTests
         // Assert - Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce(); // Only one HTTP call due to caching
         this.messageHandler.ShouldHaveBeenGetRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/contacts");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/contacts?view=active");
     }
 
     [TestMethod]
     public async Task GetAllWithActiveProjectsAsync_FiltersContactsWithActiveProjects()
     {
         // Arrange
+        // When using 'active_projects' view, the API should only return contacts with active projects
         ImmutableList<Contact> contactsList = ImmutableList.Create(
-            new Contact { FirstName = "John", LastName = "Doe", ActiveProjectsCount = 2 },
-            new Contact { FirstName = "Jane", LastName = "Smith", ActiveProjectsCount = 0 },
-            new Contact { FirstName = "Bob", LastName = "Johnson", ActiveProjectsCount = 5 }
+            new Contact { FirstName = "John", LastName = "Doe", ActiveProjectsCount = "2" },
+            new Contact { FirstName = "Bob", LastName = "Johnson", ActiveProjectsCount = "5" }
         );
 
         ContactsRoot responseRoot = new() { Contacts = contactsList };
@@ -160,15 +160,14 @@ public class ContactsTests
 
         // Assert
         result.Count().ShouldBe(2);
-        result.All(c => c.ActiveProjectsCount > 0).ShouldBeTrue();
+        result.All(c => !string.IsNullOrEmpty(c.ActiveProjectsCount) && int.Parse(c.ActiveProjectsCount) > 0).ShouldBeTrue();
         result.Any(c => c.FirstName == "John").ShouldBeTrue();
         result.Any(c => c.FirstName == "Bob").ShouldBeTrue();
-        result.Any(c => c.FirstName == "Jane").ShouldBeFalse();
 
         // Assert - Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenGetRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/contacts");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/contacts?view=active_projects");
     }
 
     [TestMethod]
@@ -251,7 +250,7 @@ public class ContactsTests
         // Assert - Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenGetRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/contacts");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/contacts?view=active");
     }
 
     [TestMethod]
@@ -273,7 +272,165 @@ public class ContactsTests
         // Assert - Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenGetRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/contacts");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/contacts?view=active");
+    }
+
+    [TestMethod]
+    public async Task UpdateAsync_WithValidContact_ReturnsUpdatedContact()
+    {
+        // Arrange
+        string contactId = "12345";
+        Contact inputContact = new()
+        {
+            FirstName = "John",
+            LastName = "Updated",
+            Email = "john.updated@example.com",
+            OrganisationName = "Updated Corp"
+        };
+
+        Contact responseContact = new()
+        {
+            FirstName = "John",
+            LastName = "Updated",
+            Email = "john.updated@example.com",
+            OrganisationName = "Updated Corp",
+            Url = new Uri($"https://api.freeagent.com/v2/contacts/{contactId}")
+        };
+
+        ContactRoot responseRoot = new() { Contact = responseContact };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Contact result = await this.contacts.UpdateAsync(contactId, inputContact);
+
+        // Assert - Result
+        result.ShouldNotBeNull();
+        result.FirstName.ShouldBe("John");
+        result.LastName.ShouldBe("Updated");
+        result.Email.ShouldBe("john.updated@example.com");
+        result.OrganisationName.ShouldBe("Updated Corp");
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri($"/v2/contacts/{contactId}");
+        this.messageHandler.ShouldHaveJsonContentType();
+        await this.messageHandler.ShouldHaveJsonBody<ContactRoot>(body =>
+        {
+            body.Contact.ShouldNotBeNull();
+            body.Contact.FirstName.ShouldBe("John");
+            body.Contact.LastName.ShouldBe("Updated");
+            body.Contact.Email.ShouldBe("john.updated@example.com");
+            body.Contact.OrganisationName.ShouldBe("Updated Corp");
+        });
+    }
+
+    [TestMethod]
+    public async Task DeleteAsync_WithValidId_DeletesContact()
+    {
+        // Arrange
+        string contactId = "12345";
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK);
+
+        // Act
+        await this.contacts.DeleteAsync(contactId);
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenDeleteRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri($"/v2/contacts/{contactId}");
+    }
+
+    [TestMethod]
+    public async Task DeleteAsync_WithInvalidId_ThrowsHttpRequestException()
+    {
+        // Arrange
+        string contactId = "invalid-id";
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.NotFound)
+        {
+            Content = new StringContent("Contact not found", Encoding.UTF8, "text/plain")
+        };
+
+        // Act & Assert
+        await Should.ThrowAsync<HttpRequestException>(async () =>
+            await this.contacts.DeleteAsync(contactId));
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenDeleteRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri($"/v2/contacts/{contactId}");
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithQueryParameters_AppliesFiltersCorrectly()
+    {
+        // Arrange
+        ImmutableList<Contact> contactsList = ImmutableList.Create(
+            new Contact { FirstName = "John", LastName = "Doe", Email = "john@example.com" }
+        );
+
+        ContactsRoot responseRoot = new() { Contacts = contactsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        DateTimeOffset updatedSince = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+        // Act
+        IEnumerable<Contact> result = await this.contacts.GetAllAsync(
+            view: "clients",
+            sort: "-updated_at",
+            updatedSince: updatedSince);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().FirstName.ShouldBe("John");
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+
+        // Check that the URL contains the expected query parameters
+        string expectedUpdatedSince = Uri.EscapeDataString(updatedSince.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+        string expectedUri = $"/v2/contacts?view=clients&sort=-updated_at&updated_since={expectedUpdatedSince}";
+        this.messageHandler.ShouldHaveBeenCalledWithUri(expectedUri);
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithoutParameters_UsesDefaultView()
+    {
+        // Arrange
+        ImmutableList<Contact> contactsList = ImmutableList.Create(
+            new Contact { FirstName = "Test", LastName = "User" }
+        );
+
+        ContactsRoot responseRoot = new() { Contacts = contactsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act - Call the overload without parameters
+        IEnumerable<Contact> result = await this.contacts.GetAllAsync();
+
+        // Assert
+        result.Count().ShouldBe(1);
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        // Should use view=active when called without parameters (since it delegates to GetAllAsync("active"))
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/contacts?view=active");
     }
 
     [TestCleanup]

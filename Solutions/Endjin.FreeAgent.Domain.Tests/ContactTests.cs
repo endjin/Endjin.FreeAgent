@@ -71,7 +71,18 @@ public class ContactTests
             .WithActiveProjects(5);
 
         // Assert
-        contact.ActiveProjectsCount.ShouldBe(5);
+        contact.ActiveProjectsCount.ShouldBe("5");
+    }
+
+    [TestMethod]
+    public void Contact_WithAccountBalance_StoresBalanceCorrectly()
+    {
+        // Arrange & Act
+        Contact contact = new ContactBuilder()
+            .WithAccountBalance("1234.56");
+
+        // Assert
+        contact.AccountBalance.ShouldBe("1234.56");
     }
 
     [TestMethod]

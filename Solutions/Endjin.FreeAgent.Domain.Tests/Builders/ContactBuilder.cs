@@ -24,15 +24,21 @@ public class ContactBuilder
     private string? postcode = "62701";
     private string? country = "USA";
     private bool contactNameOnInvoices = false;
-    private string? locale = "en-US";
-    private string? accountBalance = "0.00";
+    private string? locale = "en";
     private bool usesContactInvoiceSequence = false;
     private string? chargeSalesTax = "Auto";
     private string? salesTaxRegistrationNumber = null;
-    private int activeProjectsCount = 0;
+    private string? activeProjectsCount = "0";
+    private string? accountBalance = null;
     private string? status = "Active";
     private DateTimeOffset createdAt = new(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
     private DateTimeOffset updatedAt = new(2024, 1, 31, 0, 0, 0, TimeSpan.Zero);
+    private string? directDebitMandateState = null;
+    private int? defaultPaymentTermsInDays = null;
+    private bool? isCisSubcontractor = null;
+    private string? cisDeductionRate = null;
+    private string? uniqueTaxReference = null;
+    private string? subcontractorVerificationNumber = null;
 
     public ContactBuilder WithUrl(Uri? url)
     {
@@ -88,7 +94,13 @@ public class ContactBuilder
 
     public ContactBuilder WithActiveProjects(int count)
     {
-        this.activeProjectsCount = count;
+        this.activeProjectsCount = count.ToString();
+        return this;
+    }
+
+    public ContactBuilder WithAccountBalance(string? accountBalance)
+    {
+        this.accountBalance = accountBalance;
         return this;
     }
 
@@ -100,7 +112,52 @@ public class ContactBuilder
 
     public ContactBuilder AsInactive()
     {
-        this.status = "Inactive";
+        this.status = "Hidden";
+        return this;
+    }
+
+    public ContactBuilder WithDirectDebitMandateState(string? directDebitMandateState)
+    {
+        this.directDebitMandateState = directDebitMandateState;
+        return this;
+    }
+
+    public ContactBuilder WithDefaultPaymentTermsInDays(int? defaultPaymentTermsInDays)
+    {
+        this.defaultPaymentTermsInDays = defaultPaymentTermsInDays;
+        return this;
+    }
+
+    public ContactBuilder AsCisSubcontractor(bool isCisSubcontractor = true)
+    {
+        this.isCisSubcontractor = isCisSubcontractor;
+        return this;
+    }
+
+    public ContactBuilder WithCisDeductionRate(string? cisDeductionRate)
+    {
+        this.cisDeductionRate = cisDeductionRate;
+        return this;
+    }
+
+    public ContactBuilder WithUniqueTaxReference(string? uniqueTaxReference)
+    {
+        this.uniqueTaxReference = uniqueTaxReference;
+        return this;
+    }
+
+    public ContactBuilder WithSubcontractorVerificationNumber(string? subcontractorVerificationNumber)
+    {
+        this.subcontractorVerificationNumber = subcontractorVerificationNumber;
+        return this;
+    }
+
+    public ContactBuilder WithCisDetails(string? deductionRate = "cis_standard", string? utr = "1234567890", string? verificationNumber = "V1234567890")
+    {
+        this.isCisSubcontractor = true;
+        this.cisDeductionRate = deductionRate;
+        this.uniqueTaxReference = utr;
+        this.subcontractorVerificationNumber = verificationNumber;
         return this;
     }
 
@@ -123,14 +180,20 @@ public class ContactBuilder
         Country = country,
         ContactNameOnInvoices = contactNameOnInvoices,
         Locale = locale,
-        AccountBalance = accountBalance,
         UsesContactInvoiceSequence = usesContactInvoiceSequence,
         ChargeSalesTax = chargeSalesTax,
         SalesTaxRegistrationNumber = salesTaxRegistrationNumber,
         ActiveProjectsCount = activeProjectsCount,
+        AccountBalance = accountBalance,
         Status = status,
         CreatedAt = createdAt,
-        UpdatedAt = updatedAt
+        UpdatedAt = updatedAt,
+        DirectDebitMandateState = directDebitMandateState,
+        DefaultPaymentTermsInDays = defaultPaymentTermsInDays,
+        IsCisSubcontractor = isCisSubcontractor,
+        CisDeductionRate = cisDeductionRate,
+        UniqueTaxReference = uniqueTaxReference,
+        SubcontractorVerificationNumber = subcontractorVerificationNumber
     };
 
     public static implicit operator Contact(ContactBuilder builder) => builder.Build();
