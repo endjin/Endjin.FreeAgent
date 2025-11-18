@@ -2,6 +2,7 @@
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
+using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 using Endjin.FreeAgent.Domain;
 
@@ -117,6 +118,7 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(NoteRoot))]
 [JsonSerializable(typeof(NotesRoot))]
 [JsonSerializable(typeof(OpeningBalanceRoot))]
+[JsonSerializable(typeof(PayrollProfilesRoot))]
 [JsonSerializable(typeof(PayrollYearRoot))]
 [JsonSerializable(typeof(PayrollPeriodRoot))]
 [JsonSerializable(typeof(PayrollPeriod))]
@@ -232,6 +234,8 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(List<DateTimeOffset>))]
 [JsonSerializable(typeof(OpeningBalance))]
 [JsonSerializable(typeof(PaymentMethods))]
+[JsonSerializable(typeof(PayrollProfile))]
+[JsonSerializable(typeof(ImmutableList<PayrollProfile>))]
 [JsonSerializable(typeof(PayrollPayment))]
 [JsonSerializable(typeof(Payslip))]
 [JsonSerializable(typeof(Project))]
