@@ -176,7 +176,7 @@ public class FreeAgentClient : ClientBase
         this.CreditNotes = new CreditNotes(this, cache);
         this.DepreciationProfiles = new DepreciationProfiles(this, cache);
         this.Estimates = new Estimates(this, cache);
-        this.Expenses = new Expenses(this);
+        this.Expenses = new Expenses(this, cache);
         this.Invoices = new Invoices(this, cache);
         this.JournalSets = new JournalSets(this);
         this.Mileages = new Mileages(this, cache);
