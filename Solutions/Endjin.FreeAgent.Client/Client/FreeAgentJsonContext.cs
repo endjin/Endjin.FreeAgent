@@ -115,6 +115,8 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(MileageRoot))]
 [JsonSerializable(typeof(MileagesRoot))]
 [JsonSerializable(typeof(MileageSettingsRoot))]
+[JsonSerializable(typeof(NoteItem))]
+[JsonSerializable(typeof(NoteRoot))]
 [JsonSerializable(typeof(NotesRoot))]
 [JsonSerializable(typeof(OpeningBalanceRoot))]
 [JsonSerializable(typeof(PayrollPaymentRoot))]
