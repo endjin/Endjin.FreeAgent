@@ -178,6 +178,7 @@ public class FreeAgentClient : ClientBase
         this.Estimates = new Estimates(this, cache);
         this.Expenses = new Expenses(this, cache);
         this.FinalAccountsReports = new FinalAccountsReports(this, cache);
+        this.HirePurchases = new HirePurchases(this, cache);
         this.Invoices = new Invoices(this, cache);
         this.JournalSets = new JournalSets(this);
         this.Mileages = new Mileages(this, cache);
@@ -340,6 +341,15 @@ public class FreeAgentClient : ClientBase
     /// </summary>
     /// <value>The <see cref="FinalAccountsReports"/> service instance.</value>
     public FinalAccountsReports FinalAccountsReports { get; private set; }
+
+    /// <summary>
+    /// Gets the service for accessing hire purchase records.
+    /// </summary>
+    /// <value>The <see cref="HirePurchases"/> service instance.</value>
+    /// <remarks>
+    /// This endpoint is only available for UK companies.
+    /// </remarks>
+    public HirePurchases HirePurchases { get; private set; }
 
     /// <summary>
     /// Gets the service for managing invoices (sales invoices).
