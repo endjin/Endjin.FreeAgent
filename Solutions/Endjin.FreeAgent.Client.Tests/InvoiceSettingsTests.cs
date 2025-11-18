@@ -45,13 +45,11 @@ public class InvoiceSettingsTests
     [TestMethod]
     public async Task GetDefaultAdditionalTextAsync_ReturnsDefaultText()
     {
-        // Arrange
-        InvoiceDefaultAdditionalText additionalText = new()
+        // Arrange - API returns a simple string, not a nested object
+        InvoiceDefaultAdditionalTextRoot responseRoot = new()
         {
-            Text = "Payment due within 30 days. Bank details: Sort Code 12-34-56, Account 87654321."
+            DefaultAdditionalText = "Payment due within 30 days. Bank details: Sort Code 12-34-56, Account 87654321."
         };
-
-        InvoiceDefaultAdditionalTextRoot responseRoot = new() { Invoice = additionalText };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -75,13 +73,11 @@ public class InvoiceSettingsTests
     [TestMethod]
     public async Task GetDefaultAdditionalTextAsync_CachesResult()
     {
-        // Arrange
-        InvoiceDefaultAdditionalText additionalText = new()
+        // Arrange - API returns a simple string, not a nested object
+        InvoiceDefaultAdditionalTextRoot responseRoot = new()
         {
-            Text = "Cached invoice text"
+            DefaultAdditionalText = "Cached invoice text"
         };
-
-        InvoiceDefaultAdditionalTextRoot responseRoot = new() { Invoice = additionalText };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -105,15 +101,13 @@ public class InvoiceSettingsTests
     [TestMethod]
     public async Task UpdateDefaultAdditionalTextAsync_UpdatesAndReturnsText()
     {
-        // Arrange
+        // Arrange - API returns a simple string, not a nested object
         string newText = "Updated payment terms: Net 60 days.";
 
-        InvoiceDefaultAdditionalText additionalText = new()
+        InvoiceDefaultAdditionalTextRoot responseRoot = new()
         {
-            Text = newText
+            DefaultAdditionalText = newText
         };
-
-        InvoiceDefaultAdditionalTextRoot responseRoot = new() { Invoice = additionalText };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -137,9 +131,8 @@ public class InvoiceSettingsTests
     [TestMethod]
     public async Task UpdateDefaultAdditionalTextAsync_InvalidatesCache()
     {
-        // Arrange - First get to populate cache
-        InvoiceDefaultAdditionalText originalText = new() { Text = "Original invoice text" };
-        InvoiceDefaultAdditionalTextRoot originalRoot = new() { Invoice = originalText };
+        // Arrange - First get to populate cache (API returns a simple string)
+        InvoiceDefaultAdditionalTextRoot originalRoot = new() { DefaultAdditionalText = "Original invoice text" };
         string originalJson = JsonSerializer.Serialize(originalRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -150,8 +143,7 @@ public class InvoiceSettingsTests
         await this.invoiceSettings.GetDefaultAdditionalTextAsync();
 
         // Update
-        InvoiceDefaultAdditionalText updatedText = new() { Text = "Updated invoice text" };
-        InvoiceDefaultAdditionalTextRoot updatedRoot = new() { Invoice = updatedText };
+        InvoiceDefaultAdditionalTextRoot updatedRoot = new() { DefaultAdditionalText = "Updated invoice text" };
         string updatedJson = JsonSerializer.Serialize(updatedRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -195,9 +187,8 @@ public class InvoiceSettingsTests
     [TestMethod]
     public async Task DeleteDefaultAdditionalTextAsync_InvalidatesCache()
     {
-        // Arrange - First get to populate cache
-        InvoiceDefaultAdditionalText text = new() { Text = "Invoice text to delete" };
-        InvoiceDefaultAdditionalTextRoot root = new() { Invoice = text };
+        // Arrange - First get to populate cache (API returns a simple string)
+        InvoiceDefaultAdditionalTextRoot root = new() { DefaultAdditionalText = "Invoice text to delete" };
         string json = JsonSerializer.Serialize(root, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)

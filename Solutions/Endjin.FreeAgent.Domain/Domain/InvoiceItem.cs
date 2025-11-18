@@ -38,11 +38,11 @@ public record InvoiceItem
     /// Gets the unique identifier for this invoice item.
     /// </summary>
     /// <value>
-    /// The unique ID string for this line item. Required when updating or deleting individual invoice items.
+    /// The unique ID for this line item. Required when updating or deleting individual invoice items.
     /// </value>
     [JsonPropertyName("id")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Id { get; init; }
+    public int? Id { get; init; }
 
     /// <summary>
     /// Gets the unique URI identifier for this invoice item.
@@ -58,12 +58,12 @@ public record InvoiceItem
     /// Gets the display order position of this item within the invoice.
     /// </summary>
     /// <value>
-    /// An integer value starting at 1 that determines the order in which items appear on the invoice.
+    /// A decimal value starting at 1 that determines the order in which items appear on the invoice.
     /// Lower numbers appear first.
     /// </value>
     [JsonPropertyName("position")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public int? Position { get; init; }
+    public decimal? Position { get; init; }
 
     /// <summary>
     /// Gets the description of the product or service.
@@ -79,7 +79,8 @@ public record InvoiceItem
     /// Gets the type of this invoice item.
     /// </summary>
     /// <value>
-    /// One of "Product", "Service", "Time", "Expense", "Comment", or other item type identifiers.
+    /// One of "Hours", "Days", "Weeks", "Months", "Years", "Products", "Services", "Training",
+    /// "Expenses", "Comment", "Bills", "Discount", "Credit", "VAT", or "Stock".
     /// Determines how the item is classified and processed.
     /// </value>
     [JsonPropertyName("item_type")]
@@ -102,7 +103,7 @@ public record InvoiceItem
     /// </summary>
     /// <value>
     /// The price per unit, excluding tax. Multiplied by <see cref="Quantity"/> to calculate
-    /// the <see cref="Subtotal"/>.
+    /// the line item total.
     /// </value>
     [JsonPropertyName("price")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -112,7 +113,7 @@ public record InvoiceItem
     /// Gets the sales tax rate applied to this item.
     /// </summary>
     /// <value>
-    /// The primary VAT/GST rate as a decimal (e.g., 0.20 for 20% tax). Used to calculate
+    /// The primary VAT/GST rate as a percentage value (e.g., 20 for 20% tax). Used to calculate
     /// <see cref="SalesTaxValue"/>.
     /// </value>
     [JsonPropertyName("sales_tax_rate")]
@@ -120,10 +121,11 @@ public record InvoiceItem
     public decimal? SalesTaxRate { get; init; }
 
     /// <summary>
-    /// Gets the calculated sales tax amount for this item.
+    /// Gets the total value of sales tax for this item.
     /// </summary>
     /// <value>
-    /// The total tax amount calculated by applying <see cref="SalesTaxRate"/> to the <see cref="Subtotal"/>.
+    /// The total sales tax amount calculated by applying <see cref="SalesTaxRate"/> to the line item.
+    /// This is a calculated field returned by the API but not listed in the official API documentation.
     /// </value>
     [JsonPropertyName("sales_tax_value")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -133,8 +135,7 @@ public record InvoiceItem
     /// Gets the sales tax status classification for this item.
     /// </summary>
     /// <value>
-    /// One of "Standard", "Exempt", "Zero Rated", "Reduced Rate", or other tax status identifiers
-    /// determining how tax is applied to this item.
+    /// Either "TAXABLE" or "EXEMPT", determining how primary sales tax is applied to this item.
     /// </value>
     [JsonPropertyName("sales_tax_status")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -144,12 +145,35 @@ public record InvoiceItem
     /// Gets the secondary sales tax rate for jurisdictions with dual tax systems.
     /// </summary>
     /// <value>
-    /// An additional tax rate (e.g., PST in Canadian provinces with GST/PST) applied on top of
-    /// the primary <see cref="SalesTaxRate"/>.
+    /// An additional tax rate as a percentage value (e.g., 7 for 7% PST in Canadian provinces with GST/PST)
+    /// applied on top of the primary <see cref="SalesTaxRate"/>.
     /// </value>
     [JsonPropertyName("second_sales_tax_rate")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public decimal? SecondSalesTaxRate { get; init; }
+
+    /// <summary>
+    /// Gets the secondary sales tax status classification for this item.
+    /// </summary>
+    /// <value>
+    /// Either "TAXABLE" or "EXEMPT", determining how secondary sales tax is applied to this item.
+    /// Used in jurisdictions with dual tax systems (e.g., Canadian GST/PST).
+    /// </value>
+    [JsonPropertyName("second_sales_tax_status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SecondSalesTaxStatus { get; init; }
+
+    /// <summary>
+    /// Gets the total value of second sales tax for this item.
+    /// </summary>
+    /// <value>
+    /// [Universal accounts only] The total second sales tax amount calculated by applying
+    /// <see cref="SecondSalesTaxRate"/> to the line item.
+    /// This is a calculated field returned by the API but not listed in the official API documentation.
+    /// </value>
+    [JsonPropertyName("second_sales_tax_value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? SecondSalesTaxValue { get; init; }
 
     /// <summary>
     /// Gets the URI reference to the accounting category for this item.
@@ -172,27 +196,6 @@ public record InvoiceItem
     [JsonPropertyName("project")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Uri? Project { get; init; }
-
-    /// <summary>
-    /// Gets the subtotal amount for this item before tax.
-    /// </summary>
-    /// <value>
-    /// The pre-tax total calculated as <see cref="Quantity"/> × <see cref="Price"/>.
-    /// </value>
-    [JsonPropertyName("subtotal")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public decimal? Subtotal { get; init; }
-
-    /// <summary>
-    /// Gets the total amount for this item including all taxes.
-    /// </summary>
-    /// <value>
-    /// The final line total calculated as <see cref="Subtotal"/> + <see cref="SalesTaxValue"/>
-    /// (and any additional taxes).
-    /// </value>
-    [JsonPropertyName("total")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public decimal? Total { get; init; }
 
     /// <summary>
     /// Gets the URI reference to the stock item from inventory.

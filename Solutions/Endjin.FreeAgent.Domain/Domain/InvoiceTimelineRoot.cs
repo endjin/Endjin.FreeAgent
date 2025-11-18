@@ -20,6 +20,6 @@ public record InvoiceTimelineRoot
     /// <value>
     /// A list of <see cref="InvoiceTimelineEntry"/> objects representing the invoice activity timeline.
     /// </value>
-    [JsonPropertyName("timeline_entries")]
+    [JsonPropertyName("invoice_timeline_items")]
     public List<InvoiceTimelineEntry>? TimelineEntries { get; init; }
 }

@@ -14,8 +14,8 @@ namespace Endjin.FreeAgent.Client;
 /// <remarks>
 /// <para>
 /// This service class provides comprehensive access to FreeAgent invoices, which represent sales documents
-/// sent to customers for payment. Invoices can be in various statuses (draft, sent, open, overdue, paid,
-/// scheduled, cancelled) and can be associated with contacts and projects.
+/// sent to customers for payment. Invoices can be in various statuses (Draft, Scheduled To Email, Open, Zero Value,
+/// Overdue, Paid, Overpaid, Refunded, Written-off, Part written-off) and can be associated with contacts and projects.
 /// </para>
 /// <para>
 /// Results are cached for 5 minutes to improve performance. Cache entries are invalidated automatically
@@ -61,6 +61,8 @@ public class Invoices
     /// </remarks>
     public async Task<Invoice> CreateAsync(Invoice invoice)
     {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
         InvoiceRoot root = new() { Invoice = invoice };
         using JsonContent content = JsonContent.Create(root, options: SharedJsonOptions.SourceGenOptions);
 
@@ -82,27 +84,21 @@ public class Invoices
     /// The view filter to apply. Supported values:
     /// <list type="bullet">
     /// <item><description>"all" - All invoices (default)</description></item>
-    /// <item><description>"draft" - Draft invoices</description></item>
-    /// <item><description>"sent" - Sent invoices</description></item>
+    /// <item><description>"recent_open_or_overdue" - Recently open or overdue invoices</description></item>
     /// <item><description>"open" - Open invoices</description></item>
     /// <item><description>"overdue" - Overdue invoices</description></item>
     /// <item><description>"open_or_overdue" - Open or overdue invoices</description></item>
-    /// <item><description>"recent_open_or_overdue" - Recently open or overdue invoices</description></item>
+    /// <item><description>"draft" - Draft invoices</description></item>
     /// <item><description>"paid" - Paid invoices</description></item>
-    /// <item><description>"scheduled" - Scheduled invoices</description></item>
     /// <item><description>"scheduled_to_email" - Invoices scheduled to be emailed</description></item>
-    /// <item><description>"thank_you_emails" - Invoices with thank you emails</description></item>
-    /// <item><description>"reminder_emails" - Invoices with reminder emails</description></item>
-    /// <item><description>"last_3_months" - Invoices from the last 3 months</description></item>
-    /// <item><description>"last_6_months" - Invoices from the last 6 months</description></item>
-    /// <item><description>"last_12_months" - Invoices from the last 12 months</description></item>
+    /// <item><description>"thank_you_emails" - Invoices with thank you emails enabled</description></item>
+    /// <item><description>"reminder_emails" - Invoices with reminder emails enabled</description></item>
+    /// <item><description>"last_N_months" - Invoices from the last N months (e.g., "last_3_months")</description></item>
     /// </list>
     /// </param>
     /// <param name="updatedSince">Optional filter to retrieve only invoices updated after this timestamp (ISO 8601 format).</param>
     /// <param name="sort">Optional sort parameter. Use "created_at", "-created_at", "updated_at", or "-updated_at" (prefix with '-' for descending).</param>
     /// <param name="nestedInvoiceItems">If true, includes invoice line items in the response. Defaults to false.</param>
-    /// <param name="fromDate">Optional start date to filter invoices dated on or after this date.</param>
-    /// <param name="toDate">Optional end date to filter invoices dated on or before this date.</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
     /// <see cref="Invoice"/> objects matching the specified criteria.
@@ -114,17 +110,15 @@ public class Invoices
     /// </remarks>
     public async Task<IEnumerable<Invoice>> GetAllAsync(
         string view = "all",
-        DateTime? updatedSince = null,
+        DateTimeOffset? updatedSince = null,
         string? sort = null,
-        bool nestedInvoiceItems = false,
-        DateOnly? fromDate = null,
-        DateOnly? toDate = null)
+        bool nestedInvoiceItems = false)
     {
         var queryParams = new List<string> { $"view={view}" };
 
         if (updatedSince.HasValue)
         {
-            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}");
+            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}");
         }
 
         if (!string.IsNullOrEmpty(sort))
@@ -135,16 +129,6 @@ public class Invoices
         if (nestedInvoiceItems)
         {
             queryParams.Add("nested_invoice_items=true");
-        }
-
-        if (fromDate.HasValue)
-        {
-            queryParams.Add($"from_date={fromDate.Value:yyyy-MM-dd}");
-        }
-
-        if (toDate.HasValue)
-        {
-            queryParams.Add($"to_date={toDate.Value:yyyy-MM-dd}");
         }
 
         string queryString = string.Join("&", queryParams);
@@ -166,7 +150,7 @@ public class Invoices
     /// <summary>
     /// Retrieves invoices from FreeAgent filtered by status.
     /// </summary>
-    /// <param name="status">The status to filter by (e.g., "draft", "sent", "open", "overdue", "paid", "scheduled").</param>
+    /// <param name="status">The status to filter by (e.g., "draft", "open", "overdue", "paid", "scheduled_to_email").</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
     /// <see cref="Invoice"/> objects with the specified status.
@@ -181,11 +165,10 @@ public class Invoices
         string view = status.ToLowerInvariant() switch
         {
             "draft" => "draft",
-            "sent" => "sent",
             "open" => "open",
             "overdue" => "overdue",
             "paid" => "paid",
-            "scheduled" => "scheduled",
+            "scheduled_to_email" or "scheduled" => "scheduled_to_email",
             _ => "all"
         };
 
@@ -271,7 +254,9 @@ public class Invoices
 
         if (!this.cache.TryGetValue(cacheKey, out Invoice? results))
         {
-            HttpResponseMessage response = await this.freeAgentClient.HttpClient.GetAsync(new Uri(freeAgentClient.ApiBaseUrl, $"{InvoicesEndPoint}/{id}")).ConfigureAwait(false);
+            await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
+            HttpResponseMessage response = await this.freeAgentClient.HttpClient.GetAsync(new Uri(this.freeAgentClient.ApiBaseUrl, $"{InvoicesEndPoint}/{id}")).ConfigureAwait(false);
 
             response.EnsureSuccessStatusCode();
 
@@ -301,6 +286,8 @@ public class Invoices
     /// </remarks>
     public async Task<Invoice> UpdateAsync(string id, Invoice invoice)
     {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
         InvoiceRoot root = new() { Invoice = invoice };
         using JsonContent content = JsonContent.Create(root, options: SharedJsonOptions.SourceGenOptions);
 
@@ -331,6 +318,8 @@ public class Invoices
     /// </remarks>
     public async Task DeleteAsync(string id)
     {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.DeleteAsync(new Uri(this.freeAgentClient.ApiBaseUrl, $"{InvoicesEndPoint}/{id}")).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
@@ -357,6 +346,8 @@ public class Invoices
     /// </remarks>
     public async Task<Invoice> SendEmailAsync(string id, InvoiceEmail email)
     {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
         InvoiceEmailRoot emailRoot = new()
         {
             Invoice = new InvoiceEmailWrapper { Email = email }
@@ -385,19 +376,22 @@ public class Invoices
     /// <param name="id">The unique identifier of the invoice to mark as sent.</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// updated <see cref="Invoice"/> object with its status changed to sent.
+    /// updated <see cref="Invoice"/> object with its status changed to Open.
     /// </returns>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
     /// <remarks>
     /// This method calls PUT /v2/invoices/{id}/transitions/mark_as_sent to manually mark the invoice as sent without
-    /// actually sending it. The cache entry for this invoice is invalidated.
+    /// actually emailing it. The invoice status changes to Open and the SentAt timestamp is set.
+    /// The cache entry for this invoice is invalidated.
     /// </remarks>
     public async Task<Invoice> MarkAsSentAsync(string id)
     {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
             new Uri(this.freeAgentClient.ApiBaseUrl, $"{InvoicesEndPoint}/{id}/transitions/mark_as_sent"),
-            JsonContent.Create(new { })).ConfigureAwait(false);
+            JsonContent.Create(new object())).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
@@ -411,24 +405,26 @@ public class Invoices
     }
 
     /// <summary>
-    /// Marks an invoice as cancelled in FreeAgent.
+    /// Cancels a scheduled invoice and returns it to draft status in FreeAgent.
     /// </summary>
-    /// <param name="id">The unique identifier of the invoice to mark as cancelled.</param>
+    /// <param name="id">The unique identifier of the invoice to cancel.</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// updated <see cref="Invoice"/> object with its status changed to cancelled.
+    /// updated <see cref="Invoice"/> object with its status changed to Draft.
     /// </returns>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
     /// <remarks>
-    /// This method calls PUT /v2/invoices/{id}/transitions/mark_as_cancelled to cancel the invoice. The cache entry
-    /// for this invoice is invalidated.
+    /// This method calls PUT /v2/invoices/{id}/transitions/mark_as_cancelled to cancel a scheduled invoice,
+    /// returning it to Draft status for further editing or deletion. The cache entry for this invoice is invalidated.
     /// </remarks>
     public async Task<Invoice> MarkAsCancelledAsync(string id)
     {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
             new Uri(this.freeAgentClient.ApiBaseUrl, $"{InvoicesEndPoint}/{id}/transitions/mark_as_cancelled"),
-            JsonContent.Create(new { })).ConfigureAwait(false);
+            JsonContent.Create(new object())).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
@@ -442,12 +438,12 @@ public class Invoices
     }
 
     /// <summary>
-    /// Marks an invoice as scheduled in FreeAgent.
+    /// Marks an invoice as scheduled for emailing in FreeAgent.
     /// </summary>
     /// <param name="id">The unique identifier of the invoice to mark as scheduled.</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// updated <see cref="Invoice"/> object with its status changed to scheduled.
+    /// updated <see cref="Invoice"/> object with its status changed to Scheduled To Email.
     /// </returns>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
@@ -457,9 +453,11 @@ public class Invoices
     /// </remarks>
     public async Task<Invoice> MarkAsScheduledAsync(string id)
     {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
             new Uri(this.freeAgentClient.ApiBaseUrl, $"{InvoicesEndPoint}/{id}/transitions/mark_as_scheduled"),
-            JsonContent.Create(new { })).ConfigureAwait(false);
+            JsonContent.Create(new object())).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
@@ -488,9 +486,11 @@ public class Invoices
     /// </remarks>
     public async Task<Invoice> MarkAsDraftAsync(string id)
     {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
             new Uri(this.freeAgentClient.ApiBaseUrl, $"{InvoicesEndPoint}/{id}/transitions/mark_as_draft"),
-            JsonContent.Create(new { })).ConfigureAwait(false);
+            JsonContent.Create(new object())).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
@@ -512,17 +512,29 @@ public class Invoices
     /// with the PDF content of the invoice.
     /// </returns>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the PDF content cannot be decoded.</exception>
     /// <remarks>
-    /// This method calls GET /v2/invoices/{id}/pdf to retrieve the invoice as a PDF document. The result
+    /// This method calls GET /v2/invoices/{id}/pdf to retrieve the invoice as a PDF document. The API
+    /// returns a JSON response with base64-encoded PDF content which is decoded to raw bytes. The result
     /// is not cached as PDF generation may vary.
     /// </remarks>
     public async Task<byte[]> GetPdfAsync(string id)
     {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.GetAsync(new Uri(this.freeAgentClient.ApiBaseUrl, $"{InvoicesEndPoint}/{id}/pdf")).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+        InvoicePdfRoot? root = await response.Content.ReadFromJsonAsync<InvoicePdfRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+
+        string? base64Content = root?.Pdf?.Content;
+        if (string.IsNullOrEmpty(base64Content))
+        {
+            throw new InvalidOperationException("Failed to retrieve PDF content from response.");
+        }
+
+        return Convert.FromBase64String(base64Content);
     }
 
     /// <summary>
@@ -541,9 +553,11 @@ public class Invoices
     /// </remarks>
     public async Task<Invoice> DuplicateAsync(string id)
     {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PostAsync(
             new Uri(this.freeAgentClient.ApiBaseUrl, $"{InvoicesEndPoint}/{id}/duplicate"),
-            JsonContent.Create(new { })).ConfigureAwait(false);
+            JsonContent.Create(new object())).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
@@ -569,9 +583,11 @@ public class Invoices
     /// </remarks>
     public async Task<Invoice> ConvertToCreditNoteAsync(string id)
     {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
             new Uri(this.freeAgentClient.ApiBaseUrl, $"{InvoicesEndPoint}/{id}/transitions/convert_to_credit_note"),
-            JsonContent.Create(new { })).ConfigureAwait(false);
+            JsonContent.Create(new object())).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
@@ -596,9 +612,11 @@ public class Invoices
     /// </remarks>
     public async Task InitiateDirectDebitAsync(string id)
     {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PostAsync(
             new Uri(this.freeAgentClient.ApiBaseUrl, $"{InvoicesEndPoint}/{id}/direct_debit"),
-            JsonContent.Create(new { })).ConfigureAwait(false);
+            JsonContent.Create(new object())).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
     }
@@ -618,6 +636,8 @@ public class Invoices
     /// </remarks>
     public async Task<IEnumerable<InvoiceTimelineEntry>> GetTimelineAsync()
     {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.GetAsync(
             new Uri(this.freeAgentClient.ApiBaseUrl, $"{InvoicesEndPoint}/timeline")).ConfigureAwait(false);
 

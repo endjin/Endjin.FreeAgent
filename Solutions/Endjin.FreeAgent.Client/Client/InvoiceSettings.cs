@@ -32,7 +32,7 @@ namespace Endjin.FreeAgent.Client;
 /// <seealso cref="Invoice"/>
 public class InvoiceSettings
 {
-    private const string DefaultAdditionalTextEndpoint = "/v2/invoices/default_additional_text";
+    private const string DefaultAdditionalTextEndpoint = "v2/invoices/default_additional_text";
 
     private readonly FreeAgentClient client;
     private readonly IMemoryCache cache;
@@ -70,14 +70,14 @@ public class InvoiceSettings
             return cachedResult!;
         }
 
-        await this.client.InitializeAndAuthorizeAsync();
+        await this.client.InitializeAndAuthorizeAsync().ConfigureAwait(false);
 
         HttpResponseMessage response = await this.client.HttpClient.GetAsync(new Uri(this.client.ApiBaseUrl, DefaultAdditionalTextEndpoint)).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         InvoiceDefaultAdditionalTextRoot? root = await response.Content.ReadFromJsonAsync<InvoiceDefaultAdditionalTextRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
 
-        InvoiceDefaultAdditionalText result = root?.Invoice ?? new InvoiceDefaultAdditionalText();
+        InvoiceDefaultAdditionalText result = new() { Text = root?.DefaultAdditionalText };
 
         this.cache.Set(cacheKey, result, TimeSpan.FromMinutes(5));
 
@@ -99,8 +99,7 @@ public class InvoiceSettings
     /// </remarks>
     public async Task<InvoiceDefaultAdditionalText> UpdateDefaultAdditionalTextAsync(string text)
     {
-        var textObject = new InvoiceDefaultAdditionalText { Text = text };
-        var wrapper = new InvoiceDefaultAdditionalTextRoot { Invoice = textObject };
+        var wrapper = new InvoiceDefaultAdditionalTextRoot { DefaultAdditionalText = text };
 
         using JsonContent content = JsonContent.Create(wrapper, options: SharedJsonOptions.SourceGenOptions);
 
@@ -111,7 +110,7 @@ public class InvoiceSettings
 
         InvoiceDefaultAdditionalTextRoot? root = await response.Content.ReadFromJsonAsync<InvoiceDefaultAdditionalTextRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
 
-        InvoiceDefaultAdditionalText result = root?.Invoice ?? new InvoiceDefaultAdditionalText();
+        InvoiceDefaultAdditionalText result = new() { Text = root?.DefaultAdditionalText };
 
         // Invalidate cache
         string cacheKey = $"invoice_default_text";

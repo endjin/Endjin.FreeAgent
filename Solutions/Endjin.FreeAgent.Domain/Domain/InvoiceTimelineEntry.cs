@@ -25,24 +25,24 @@ namespace Endjin.FreeAgent.Domain;
 public record InvoiceTimelineEntry
 {
     /// <summary>
-    /// Gets the URI reference to the invoice associated with this timeline entry.
+    /// Gets the invoice reference.
     /// </summary>
     /// <value>
-    /// The URI of the <see cref="Invoice"/> that this activity relates to.
+    /// The reference number or identifier of the invoice this timeline entry relates to.
     /// </value>
-    [JsonPropertyName("invoice")]
+    [JsonPropertyName("reference")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Uri? Invoice { get; init; }
+    public string? Reference { get; init; }
 
     /// <summary>
-    /// Gets the type of activity or event.
+    /// Gets the summary of the timeline entry.
     /// </summary>
     /// <value>
-    /// The activity type (e.g., "created", "updated", "email_sent", "paid", "overdue").
+    /// A brief summary of the timeline event.
     /// </value>
-    [JsonPropertyName("activity_type")]
+    [JsonPropertyName("summary")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? ActivityType { get; init; }
+    public string? Summary { get; init; }
 
     /// <summary>
     /// Gets the description of the activity.
@@ -55,22 +55,22 @@ public record InvoiceTimelineEntry
     public string? Description { get; init; }
 
     /// <summary>
-    /// Gets the date and time when this activity occurred.
+    /// Gets the date when this activity occurred.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing when this event took place.
+    /// A <see cref="DateOnly"/> representing when this event took place.
     /// </value>
     [JsonPropertyName("dated_on")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? DatedOn { get; init; }
+    public DateOnly? DatedOn { get; init; }
 
     /// <summary>
-    /// Gets the user who performed this activity.
+    /// Gets the amount associated with this timeline entry.
     /// </summary>
     /// <value>
-    /// The name or identifier of the user responsible for this action, if applicable.
+    /// The monetary amount related to this timeline event (e.g., payment amount).
     /// </value>
-    [JsonPropertyName("user")]
+    [JsonPropertyName("amount")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? User { get; init; }
+    public decimal? Amount { get; init; }
 }

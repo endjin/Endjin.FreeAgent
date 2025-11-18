@@ -192,23 +192,11 @@ public record Invoice
     public decimal? DueValue { get; init; }
 
     /// <summary>
-    /// Gets the discount amount applied to this invoice.
-    /// </summary>
-    /// <value>
-    /// The monetary discount value.
-    /// </value>
-    /// <seealso cref="DiscountPercent"/>
-    [JsonPropertyName("discount")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public decimal? Discount { get; init; }
-
-    /// <summary>
     /// Gets the discount percentage applied to this invoice.
     /// </summary>
     /// <value>
     /// The percentage discount (e.g., 10 for 10% discount).
     /// </value>
-    /// <seealso cref="Discount"/>
     [JsonPropertyName("discount_percent")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public decimal? DiscountPercent { get; init; }
@@ -242,16 +230,6 @@ public record Invoice
     [JsonPropertyName("comments")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Comments { get; init; }
-
-    /// <summary>
-    /// Gets internal notes about this invoice.
-    /// </summary>
-    /// <value>
-    /// Private notes for internal use that are not displayed to the client.
-    /// </value>
-    [JsonPropertyName("notes")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Notes { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the invoice header should be omitted from the printed document.
@@ -351,41 +329,43 @@ public record Invoice
     /// Gets the date and time when this invoice was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the creation timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the creation timestamp.
     /// </value>
     [JsonPropertyName("created_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this invoice was last updated.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the last modification timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the last modification timestamp.
     /// </value>
     [JsonPropertyName("updated_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this invoice was sent to the client.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing when the invoice was emailed, or <see langword="null"/> if not yet sent.
+    /// A <see cref="DateTimeOffset"/> representing when the invoice was emailed, or <see langword="null"/> if not yet sent.
+    /// This field is returned by the API but not listed in the official API documentation.
     /// </value>
     [JsonPropertyName("sent_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? SentAt { get; init; }
+    public DateTimeOffset? SentAt { get; init; }
 
     /// <summary>
     /// Gets the collection of dates when reminder emails were sent for this invoice.
     /// </summary>
     /// <value>
-    /// A list of <see cref="DateTime"/> values representing each reminder email timestamp.
+    /// A list of <see cref="DateTimeOffset"/> values representing each reminder email timestamp.
+    /// This field is returned by the API but not listed in the official API documentation.
     /// </value>
     [JsonPropertyName("reminders_sent")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<DateTime>? RemindersSent { get; init; }
+    public List<DateTimeOffset>? RemindersSent { get; init; }
 
     /// <summary>
     /// Gets the date when this invoice was written off.
@@ -421,8 +401,10 @@ public record Invoice
     /// Gets the EC (European Community) VAT status for this invoice.
     /// </summary>
     /// <value>
-    /// One of "UK/Non-EC", "EC Goods", "EC Services", or other EC-related status values.
-    /// Used for VAT reporting and compliance within the European Community.
+    /// One of "UK/Non-EC", "EC Goods", "EC Services", "Reverse Charge", or "EC VAT MOSS".
+    /// Used for VAT reporting and compliance. Note that "EC Goods" and "EC Services" are invalid
+    /// for GB invoices dated 1/1/2021 or later, and "Reverse Charge" is only valid for invoices
+    /// dated 1/1/2021 or later.
     /// </value>
     [JsonPropertyName("ec_status")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -432,12 +414,12 @@ public record Invoice
     /// Gets the online payment URL for this invoice.
     /// </summary>
     /// <value>
-    /// A URL that clients can use to pay the invoice online through integrated payment providers
+    /// A URI that clients can use to pay the invoice online through integrated payment providers
     /// such as PayPal, Stripe, GoCardless, or Tyl. Returns <see langword="null"/> if no online payment is configured.
     /// </value>
     [JsonPropertyName("payment_url")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? PaymentUrl { get; init; }
+    public Uri? PaymentUrl { get; init; }
 
     /// <summary>
     /// Gets the URI reference to the property associated with this invoice.
@@ -453,7 +435,10 @@ public record Invoice
     /// Gets the timeslip grouping option for this invoice.
     /// </summary>
     /// <value>
-    /// Specifies how timeslips should be grouped when included in the invoice (e.g., "individual", "grouped", "summary").
+    /// Specifies how timeslips should be grouped when included in the invoice. Valid values:
+    /// null (no timeslips), "billed_grouped_by_single_timeslip" (each as separate line),
+    /// "billed_grouped_by_timeslip" (grouped by timeslip), "billed_grouped_by_timeslip_task" (grouped by task),
+    /// or "billed_grouped_by_timeslip_date" (grouped by date).
     /// </value>
     [JsonPropertyName("include_timeslips")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -463,7 +448,9 @@ public record Invoice
     /// Gets the expense grouping option for this invoice.
     /// </summary>
     /// <value>
-    /// Specifies how expenses should be grouped when included in the invoice (e.g., "individual", "grouped", "summary").
+    /// Specifies how expenses should be grouped when included in the invoice. Valid values:
+    /// null (no expenses), "billed_grouped_by_single_expense" (each as separate line),
+    /// or "billed_grouped_by_expense" (grouped together).
     /// </value>
     [JsonPropertyName("include_expenses")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -473,7 +460,9 @@ public record Invoice
     /// Gets the estimate grouping option for this invoice.
     /// </summary>
     /// <value>
-    /// Specifies how estimates should be included when converting to an invoice.
+    /// Specifies how estimates should be grouped when included in the invoice. Valid values:
+    /// null (no estimates), "billed_grouped_by_single_estimate" (each as separate line),
+    /// or "billed_grouped_by_estimate" (grouped together).
     /// </value>
     [JsonPropertyName("include_estimates")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -503,7 +492,7 @@ public record Invoice
     /// Gets the CIS deduction rate percentage for this invoice.
     /// </summary>
     /// <value>
-    /// The percentage rate at which CIS deductions are calculated (e.g., 0.20 for 20%, 0.30 for 30%).
+    /// The percentage rate at which CIS deductions are calculated as a decimal (e.g., 20 for 20%, 30 for 30%).
     /// Used in Construction Industry Scheme tax calculations.
     /// </value>
     [JsonPropertyName("cis_deduction_rate")]

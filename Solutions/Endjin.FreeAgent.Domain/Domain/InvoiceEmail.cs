@@ -123,18 +123,6 @@ public record InvoiceEmail
     public string? Body { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether to attach the invoice/credit note as a PDF.
-    /// </summary>
-    /// <value>
-    /// <see langword="true"/> to include a PDF attachment of the invoice or credit note;
-    /// <see langword="false"/> to send the email without attachment. Defaults to true if not specified.
-    /// Most scenarios include the PDF attachment for customer reference and payment.
-    /// </value>
-    [JsonPropertyName("send_pdf_attachment")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? SendPdfAttachment { get; init; }
-
-    /// <summary>
     /// Gets a value indicating whether to use a predefined email template.
     /// </summary>
     /// <value>
