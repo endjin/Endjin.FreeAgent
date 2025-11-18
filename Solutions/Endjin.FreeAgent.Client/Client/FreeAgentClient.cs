@@ -185,6 +185,7 @@ public class FreeAgentClient : ClientBase
         this.Notes = new Notes(this, cache);
         this.OpeningBalances = new OpeningBalances(this, cache);
         this.Payroll = new Payroll(this, cache);
+        this.PriceListItems = new PriceListItems(this, cache);
         this.ProfitAndLossReports = new ProfitAndLossReports(this, cache);
         this.Projects = new Projects(this, cache);
         this.RecurringInvoices = new RecurringInvoices(this, cache);
@@ -384,6 +385,12 @@ public class FreeAgentClient : ClientBase
     /// </summary>
     /// <value>The <see cref="Payroll"/> service instance.</value>
     public Payroll Payroll { get; private set; }
+
+    /// <summary>
+    /// Gets the service for managing price list items.
+    /// </summary>
+    /// <value>The <see cref="PriceListItems"/> service instance.</value>
+    public PriceListItems PriceListItems { get; private set; }
 
     /// <summary>
     /// Gets the service for accessing profit and loss reports.
