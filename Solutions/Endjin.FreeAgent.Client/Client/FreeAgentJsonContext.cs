@@ -250,6 +250,8 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(Property))]
 [JsonSerializable(typeof(ImmutableList<Property>))]
 [JsonSerializable(typeof(RecurringInvoice))]
+[JsonSerializable(typeof(ImmutableList<RecurringInvoice>))]
+[JsonSerializable(typeof(List<RecurringInvoice>))]
 [JsonSerializable(typeof(SalesTaxRate))]
 [JsonSerializable(typeof(SalesTaxPeriod))]
 [JsonSerializable(typeof(StockItem))]

@@ -42,46 +42,12 @@ public class RecurringInvoicesTests
         this.recurringInvoices = new RecurringInvoices(this.freeAgentClient, this.cache);
     }
 
-    [TestMethod]
-    public async Task CreateAsync_WithValidRecurringInvoice_ReturnsCreatedRecurringInvoice()
+    [TestCleanup]
+    public void Cleanup()
     {
-        // Arrange
-        RecurringInvoice inputInvoice = new()
-        {
-            Contact = new Uri("https://api.freeagent.com/v2/contacts/123"),
-            Frequency = "Monthly",
-            RecurringStartsOn = new DateOnly(2024, 1, 1)
-        };
-
-        RecurringInvoice responseInvoice = new()
-        {
-            Url = new Uri("https://api.freeagent.com/v2/recurring_invoices/456"),
-            Contact = new Uri("https://api.freeagent.com/v2/contacts/123"),
-            Frequency = "Monthly",
-            RecurringStartsOn = new DateOnly(2024, 1, 1),
-            Status = "Active"
-        };
-
-        RecurringInvoiceRoot responseRoot = new() { RecurringInvoice = responseInvoice };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
-
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
-        {
-            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
-        };
-
-        // Act
-        RecurringInvoice result = await this.recurringInvoices.CreateAsync(inputInvoice);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Url.ShouldNotBeNull();
-        result.Frequency.ShouldBe("Monthly");
-        result.Status.ShouldBe("Active");
-
-        // Mock Verification
-        this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPostRequest();
+        this.httpClient?.Dispose();
+        this.messageHandler?.Dispose();
+        this.cache?.Dispose();
     }
 
     [TestMethod]
@@ -90,8 +56,8 @@ public class RecurringInvoicesTests
         // Arrange
         List<RecurringInvoice> invoicesList =
         [
-            new() { Frequency = "Monthly", Status = "Active" },
-            new() { Frequency = "Quarterly", Status = "Active" }
+            new() { Frequency = "Monthly", RecurringStatus = "Active" },
+            new() { Frequency = "Quarterly", RecurringStatus = "Active" }
         ];
 
         RecurringInvoicesRoot responseRoot = new() { RecurringInvoices = invoicesList };
@@ -107,38 +73,7 @@ public class RecurringInvoicesTests
 
         // Assert
         result.Count().ShouldBe(2);
-        result.All(i => i.Status == "Active").ShouldBeTrue();
-
-        // Mock Verification
-        this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenGetRequest();
-    }
-
-    [TestMethod]
-    public async Task GetAllAsync_WithAllView_ReturnsAllRecurringInvoices()
-    {
-        // Arrange
-        List<RecurringInvoice> invoicesList =
-        [
-            new() { Frequency = "Monthly", Status = "Active" },
-            new() { Frequency = "Annually", Status = "Inactive" }
-        ];
-
-        RecurringInvoicesRoot responseRoot = new() { RecurringInvoices = invoicesList };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
-
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
-        };
-
-        // Act
-        IEnumerable<RecurringInvoice> result = await this.recurringInvoices.GetAllAsync("all");
-
-        // Assert
-        result.Count().ShouldBe(2);
-        result.Any(i => i.Status == "Active").ShouldBeTrue();
-        result.Any(i => i.Status == "Inactive").ShouldBeTrue();
+        result.All(i => i.RecurringStatus == "Active").ShouldBeTrue();
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
@@ -151,7 +86,7 @@ public class RecurringInvoicesTests
         // Arrange
         List<RecurringInvoice> invoicesList =
         [
-            new() { Frequency = "Monthly", Status = "Active" }
+            new() { Frequency = "Monthly", RecurringStatus = "Active" }
         ];
 
         RecurringInvoicesRoot responseRoot = new() { RecurringInvoices = invoicesList };
@@ -182,7 +117,7 @@ public class RecurringInvoicesTests
         {
             Url = new Uri("https://api.freeagent.com/v2/recurring_invoices/789"),
             Frequency = "Quarterly",
-            Status = "Active",
+            RecurringStatus = "Active",
             RecurringStartsOn = new DateOnly(2024, 1, 1)
         };
 
@@ -200,7 +135,7 @@ public class RecurringInvoicesTests
         // Assert
         result.ShouldNotBeNull();
         result.Frequency.ShouldBe("Quarterly");
-        result.Status.ShouldBe("Active");
+        result.RecurringStatus.ShouldBe("Active");
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
@@ -215,7 +150,7 @@ public class RecurringInvoicesTests
         {
             Url = new Uri("https://api.freeagent.com/v2/recurring_invoices/999"),
             Frequency = "Monthly",
-            Status = "Active"
+            RecurringStatus = "Active"
         };
 
         RecurringInvoiceRoot responseRoot = new() { RecurringInvoice = invoice };
@@ -239,24 +174,16 @@ public class RecurringInvoicesTests
     }
 
     [TestMethod]
-    public async Task UpdateAsync_WithValidRecurringInvoice_ReturnsUpdatedRecurringInvoice()
+    public async Task GetAllAsync_WithDraftView_ReturnsDraftRecurringInvoices()
     {
         // Arrange
-        RecurringInvoice updatedInvoice = new()
-        {
-            Frequency = "Annually",
-            RecurringEndsOn = new DateOnly(2025, 12, 31)
-        };
+        List<RecurringInvoice> invoicesList =
+        [
+            new() { Frequency = "Monthly", RecurringStatus = "Draft" },
+            new() { Frequency = "Quarterly", RecurringStatus = "Draft" }
+        ];
 
-        RecurringInvoice responseInvoice = new()
-        {
-            Url = new Uri("https://api.freeagent.com/v2/recurring_invoices/555"),
-            Frequency = "Annually",
-            RecurringEndsOn = new DateOnly(2025, 12, 31),
-            Status = "Active"
-        };
-
-        RecurringInvoiceRoot responseRoot = new() { RecurringInvoice = responseInvoice };
+        RecurringInvoicesRoot responseRoot = new() { RecurringInvoices = invoicesList };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -265,44 +192,213 @@ public class RecurringInvoicesTests
         };
 
         // Act
-        RecurringInvoice result = await this.recurringInvoices.UpdateAsync("555", updatedInvoice);
+        IEnumerable<RecurringInvoice> result = await this.recurringInvoices.GetAllAsync("draft");
 
         // Assert
-        result.ShouldNotBeNull();
-        result.Frequency.ShouldBe("Annually");
-        result.RecurringEndsOn.ShouldBe(new DateOnly(2025, 12, 31));
+        result.Count().ShouldBe(2);
+        result.All(i => i.RecurringStatus == "Draft").ShouldBeTrue();
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenGetRequest();
     }
 
     [TestMethod]
-    public async Task DeleteAsync_WithValidId_DeletesRecurringInvoice()
+    public async Task GetAllAsync_WithInactiveView_ReturnsInactiveRecurringInvoices()
     {
         // Arrange
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.NoContent);
+        List<RecurringInvoice> invoicesList =
+        [
+            new() { Frequency = "Monthly", RecurringStatus = "Inactive" },
+            new() { Frequency = "Annually", RecurringStatus = "Inactive" }
+        ];
+
+        RecurringInvoicesRoot responseRoot = new() { RecurringInvoices = invoicesList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
 
         // Act
-        await this.recurringInvoices.DeleteAsync("666");
+        IEnumerable<RecurringInvoice> result = await this.recurringInvoices.GetAllAsync("inactive");
 
-        // Assert - Mock Verification
+        // Assert
+        result.Count().ShouldBe(2);
+        result.All(i => i.RecurringStatus == "Inactive").ShouldBeTrue();
+
+        // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenDeleteRequest();
+        this.messageHandler.ShouldHaveBeenGetRequest();
     }
 
     [TestMethod]
-    public async Task ActivateAsync_WithValidId_ReturnsActivatedRecurringInvoice()
+    public async Task GetAllByContactAsync_WithValidContact_ReturnsRecurringInvoicesForContact()
     {
         // Arrange
-        RecurringInvoice responseInvoice = new()
+        Uri contactUri = new("https://api.freeagent.com/v2/contacts/123");
+
+        List<RecurringInvoice> invoicesList =
+        [
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/recurring_invoices/456"),
+                Contact = contactUri,
+                Frequency = "Monthly",
+                RecurringStatus = "Active"
+            },
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/recurring_invoices/789"),
+                Contact = contactUri,
+                Frequency = "Quarterly",
+                RecurringStatus = "Active"
+            }
+        ];
+
+        RecurringInvoicesRoot responseRoot = new() { RecurringInvoices = invoicesList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Url = new Uri("https://api.freeagent.com/v2/recurring_invoices/333"),
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<RecurringInvoice> result = await this.recurringInvoices.GetAllByContactAsync(contactUri);
+
+        // Assert
+        result.Count().ShouldBe(2);
+        result.All(i => i.Contact == contactUri).ShouldBeTrue();
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+    }
+
+    [TestMethod]
+    public async Task GetAllByContactAsync_CachesResults()
+    {
+        // Arrange
+        Uri contactUri = new("https://api.freeagent.com/v2/contacts/123");
+
+        List<RecurringInvoice> invoicesList =
+        [
+            new() { Contact = contactUri, Frequency = "Monthly", RecurringStatus = "Active" }
+        ];
+
+        RecurringInvoicesRoot responseRoot = new() { RecurringInvoices = invoicesList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act - Call twice
+        IEnumerable<RecurringInvoice> result1 = await this.recurringInvoices.GetAllByContactAsync(contactUri);
+        IEnumerable<RecurringInvoice> result2 = await this.recurringInvoices.GetAllByContactAsync(contactUri);
+
+        // Assert
+        result1.Count().ShouldBe(1);
+        result2.Count().ShouldBe(1);
+
+        // Mock Verification - Should only call API once due to caching
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithEmptyId_ThrowsArgumentException()
+    {
+        // Act & Assert
+        await Should.ThrowAsync<ArgumentException>(() => this.recurringInvoices.GetByIdAsync(string.Empty));
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithNullId_ThrowsArgumentException()
+    {
+        // Act & Assert
+        await Should.ThrowAsync<ArgumentException>(() => this.recurringInvoices.GetByIdAsync(null!));
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithWhitespaceId_ThrowsArgumentException()
+    {
+        // Act & Assert
+        await Should.ThrowAsync<ArgumentException>(() => this.recurringInvoices.GetByIdAsync("   "));
+    }
+
+    [TestMethod]
+    public async Task GetAllByContactAsync_WithNullUri_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        await Should.ThrowAsync<ArgumentNullException>(() => this.recurringInvoices.GetAllByContactAsync(null!));
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithAllProperties_ReturnsRecurringInvoiceWithAllProperties()
+    {
+        // Arrange
+        RecurringInvoice invoice = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/recurring_invoices/123"),
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/456"),
+            Project = new Uri("https://api.freeagent.com/v2/projects/789"),
+            ContactName = "Test Contact",
+            ClientContactName = "John Smith",
+            DatedOn = new DateOnly(2024, 1, 1),
             Frequency = "Monthly",
-            Status = "Active"
+            RecurringStartsOn = new DateOnly(2024, 1, 1),
+            RecurringEndDate = new DateOnly(2025, 12, 31),
+            NextRecursOn = new DateOnly(2024, 2, 1),
+            ProfileName = "Monthly Retainer",
+            Reference = "INV-001",
+            PoReference = "PO-12345",
+            Currency = "GBP",
+            ExchangeRate = 1.0m,
+            DiscountPercent = 10.0m,
+            NetValue = 1000.00m,
+            SalesTaxValue = 200.00m,
+            SecondSalesTaxValue = 50.00m,
+            TotalValue = 1200.00m,
+            InvolvesSalesTax = true,
+            RecurringStatus = "Active",
+            OmitHeader = false,
+            ShowProjectName = true,
+            AlwaysShowBicAndIban = true,
+            PaymentMethods = new PaymentMethods
+            {
+                Paypal = true,
+                Stripe = true
+            },
+            PaymentTermsInDays = 30,
+            BankAccount = new Uri("https://api.freeagent.com/v2/bank_accounts/111"),
+            EcStatus = "UK/Non-EC",
+            PlaceOfSupply = "GB",
+            CisRate = "standard",
+            CisDeductionRate = 20.0m,
+            SendNewInvoiceEmails = true,
+            SendReminderEmails = true,
+            SendThankYouEmails = true,
+            InvoiceItems =
+            [
+                new InvoiceItem
+                {
+                    Description = "Consulting Services",
+                    ItemType = "Hours",
+                    Quantity = 10.0m,
+                    Price = 100.00m,
+                    SalesTaxRate = 20.0m
+                }
+            ],
+            Comments = "Thank you for your business",
+            Property = new Uri("https://api.freeagent.com/v2/properties/222"),
+            CreatedAt = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero),
+            UpdatedAt = new DateTimeOffset(2024, 1, 15, 0, 0, 0, TimeSpan.Zero)
         };
 
-        RecurringInvoiceRoot responseRoot = new() { RecurringInvoice = responseInvoice };
+        RecurringInvoiceRoot responseRoot = new() { RecurringInvoice = invoice };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -311,29 +407,109 @@ public class RecurringInvoicesTests
         };
 
         // Act
-        RecurringInvoice result = await this.recurringInvoices.ActivateAsync("333");
+        RecurringInvoice result = await this.recurringInvoices.GetByIdAsync("123");
 
-        // Assert
+        // Assert - Core properties
         result.ShouldNotBeNull();
-        result.Status.ShouldBe("Active");
+        result.Url.ShouldBe(new Uri("https://api.freeagent.com/v2/recurring_invoices/123"));
+        result.Contact.ShouldBe(new Uri("https://api.freeagent.com/v2/contacts/456"));
+        result.ContactName.ShouldBe("Test Contact");
+        result.Frequency.ShouldBe("Monthly");
+        result.RecurringStatus.ShouldBe("Active");
+
+        // Assert - New properties
+        result.Project.ShouldBe(new Uri("https://api.freeagent.com/v2/projects/789"));
+        result.ClientContactName.ShouldBe("John Smith");
+        result.PoReference.ShouldBe("PO-12345");
+        result.DiscountPercent.ShouldBe(10.0m);
+        result.ShowProjectName.ShouldBe(true);
+        result.BankAccount.ShouldBe(new Uri("https://api.freeagent.com/v2/bank_accounts/111"));
+        result.PlaceOfSupply.ShouldBe("GB");
+        result.SendNewInvoiceEmails.ShouldBe(true);
+        result.SendReminderEmails.ShouldBe(true);
+        result.SendThankYouEmails.ShouldBe(true);
+        result.Comments.ShouldBe("Thank you for your business");
+        result.Property.ShouldBe(new Uri("https://api.freeagent.com/v2/properties/222"));
+
+        // Assert - Tax-related properties
+        result.SecondSalesTaxValue.ShouldBe(50.00m);
+        result.InvolvesSalesTax.ShouldBe(true);
+        result.CisRate.ShouldBe("standard");
+        result.CisDeductionRate.ShouldBe(20.0m);
+
+        // Assert - Invoice items
+        result.InvoiceItems.ShouldNotBeNull();
+        result.InvoiceItems.Count.ShouldBe(1);
+        result.InvoiceItems[0].Description.ShouldBe("Consulting Services");
+
+        // Assert - Payment methods
+        result.PaymentMethods.ShouldNotBeNull();
+        result.PaymentMethods.Paypal.ShouldBe(true);
+        result.PaymentMethods.Stripe.ShouldBe(true);
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenGetRequest();
     }
 
     [TestMethod]
-    public async Task DeactivateAsync_WithValidId_ReturnsDeactivatedRecurringInvoice()
+    public async Task GetByIdAsync_WithNotFoundResponse_ThrowsHttpRequestException()
     {
         // Arrange
-        RecurringInvoice responseInvoice = new()
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.NotFound)
         {
-            Url = new Uri("https://api.freeagent.com/v2/recurring_invoices/444"),
-            Frequency = "Monthly",
-            Status = "Inactive"
+            Content = new StringContent("Not Found", Encoding.UTF8, "application/json")
         };
 
-        RecurringInvoiceRoot responseRoot = new() { RecurringInvoice = responseInvoice };
+        // Act & Assert
+        await Should.ThrowAsync<HttpRequestException>(() => this.recurringInvoices.GetByIdAsync("999"));
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithServerError_ThrowsHttpRequestException()
+    {
+        // Arrange
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = new StringContent("Internal Server Error", Encoding.UTF8, "text/plain")
+        };
+
+        // Act & Assert
+        await Should.ThrowAsync<HttpRequestException>(() => this.recurringInvoices.GetByIdAsync("123"));
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithServerError_ThrowsHttpRequestException()
+    {
+        // Arrange
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = new StringContent("Internal Server Error", Encoding.UTF8, "text/plain")
+        };
+
+        // Act & Assert
+        await Should.ThrowAsync<HttpRequestException>(() => this.recurringInvoices.GetAllAsync());
+    }
+
+    [TestMethod]
+    public async Task GetAllByContactAsync_WithNotFoundResponse_ThrowsHttpRequestException()
+    {
+        // Arrange
+        Uri contactUri = new("https://api.freeagent.com/v2/contacts/999");
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.NotFound)
+        {
+            Content = new StringContent("Contact not found", Encoding.UTF8, "application/json")
+        };
+
+        // Act & Assert
+        await Should.ThrowAsync<HttpRequestException>(() => this.recurringInvoices.GetAllByContactAsync(contactUri));
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithNullRecurringInvoiceInResponse_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        RecurringInvoiceRoot responseRoot = new() { RecurringInvoice = null };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -341,15 +517,34 @@ public class RecurringInvoicesTests
             Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
         };
 
-        // Act
-        RecurringInvoice result = await this.recurringInvoices.DeactivateAsync("444");
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Status.ShouldBe("Inactive");
-
-        // Mock Verification
-        this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPutRequest();
+        // Act & Assert
+        await Should.ThrowAsync<InvalidOperationException>(() => this.recurringInvoices.GetByIdAsync("123"));
     }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithMalformedJson_ThrowsJsonException()
+    {
+        // Arrange
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{ invalid json }", Encoding.UTF8, "application/json")
+        };
+
+        // Act & Assert
+        await Should.ThrowAsync<JsonException>(() => this.recurringInvoices.GetAllAsync());
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithMalformedJson_ThrowsJsonException()
+    {
+        // Arrange
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{ \"recurring_invoice\": \"not an object\" }", Encoding.UTF8, "application/json")
+        };
+
+        // Act & Assert
+        await Should.ThrowAsync<JsonException>(() => this.recurringInvoices.GetByIdAsync("123"));
+    }
+
 }
