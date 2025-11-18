@@ -4,7 +4,6 @@
 
 using System.Net.Http.Json;
 using Endjin.FreeAgent.Domain;
-using Endjin.FreeAgent.Domain.Domain;
 
 namespace Endjin.FreeAgent.Client;
 

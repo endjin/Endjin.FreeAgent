@@ -2,7 +2,9 @@
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
-namespace Endjin.FreeAgent.Domain.Validation;
+using Endjin.FreeAgent.Domain;
+
+namespace Endjin.FreeAgent.Validation;
 
 /// <summary>
 /// Provides validation methods for category-related operations in the FreeAgent system.

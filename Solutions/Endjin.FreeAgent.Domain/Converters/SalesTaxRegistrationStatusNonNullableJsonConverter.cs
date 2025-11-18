@@ -2,9 +2,9 @@
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
-using Endjin.FreeAgent.Domain.Domain;
-
 using System.Text.Json;
+
+using Endjin.FreeAgent.Domain;
 
 namespace Endjin.FreeAgent.Converters;
 

@@ -28,8 +28,8 @@ public class ContactBuilder
     private bool usesContactInvoiceSequence = false;
     private string? chargeSalesTax = "Auto";
     private string? salesTaxRegistrationNumber = null;
-    private string? activeProjectsCount = "0";
-    private string? accountBalance = null;
+    private int? activeProjectsCount = 0;
+    private decimal? accountBalance = null;
     private string? status = "Active";
     private DateTimeOffset createdAt = new(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
     private DateTimeOffset updatedAt = new(2024, 1, 31, 0, 0, 0, TimeSpan.Zero);
@@ -94,11 +94,11 @@ public class ContactBuilder
 
     public ContactBuilder WithActiveProjects(int count)
     {
-        this.activeProjectsCount = count.ToString();
+        this.activeProjectsCount = count;
         return this;
     }
 
-    public ContactBuilder WithAccountBalance(string? accountBalance)
+    public ContactBuilder WithAccountBalance(decimal? accountBalance)
     {
         this.accountBalance = accountBalance;
         return this;

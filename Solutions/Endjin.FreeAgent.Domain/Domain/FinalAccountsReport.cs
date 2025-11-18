@@ -3,7 +3,6 @@
 // </copyright>
 
 using Endjin.FreeAgent.Converters;
-using Endjin.FreeAgent.Domain.Domain;
 
 namespace Endjin.FreeAgent.Domain;
 

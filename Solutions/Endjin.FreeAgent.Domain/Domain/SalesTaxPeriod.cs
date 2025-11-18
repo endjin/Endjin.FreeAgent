@@ -4,7 +4,7 @@
 
 using Endjin.FreeAgent.Converters;
 
-namespace Endjin.FreeAgent.Domain.Domain;
+namespace Endjin.FreeAgent.Domain;
 
 /// <summary>
 /// Represents a sales tax period in the FreeAgent accounting system.

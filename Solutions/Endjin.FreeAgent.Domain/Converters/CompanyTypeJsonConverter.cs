@@ -3,9 +3,10 @@
 // </copyright>
 
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
-namespace Endjin.FreeAgent.Domain.Converters;
+using Endjin.FreeAgent.Domain;
+
+namespace Endjin.FreeAgent.Converters;
 
 /// <summary>
 /// JSON converter for <see cref="CompanyType"/> enum that handles snake_case string conversion.

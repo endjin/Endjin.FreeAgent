@@ -143,8 +143,8 @@ public class ContactsTests
         // Arrange
         // When using 'active_projects' view, the API should only return contacts with active projects
         ImmutableList<Contact> contactsList = ImmutableList.Create(
-            new Contact { FirstName = "John", LastName = "Doe", ActiveProjectsCount = "2" },
-            new Contact { FirstName = "Bob", LastName = "Johnson", ActiveProjectsCount = "5" }
+            new Contact { FirstName = "John", LastName = "Doe", ActiveProjectsCount = 2 },
+            new Contact { FirstName = "Bob", LastName = "Johnson", ActiveProjectsCount = 5 }
         );
 
         ContactsRoot responseRoot = new() { Contacts = contactsList };
@@ -160,7 +160,7 @@ public class ContactsTests
 
         // Assert
         result.Count().ShouldBe(2);
-        result.All(c => !string.IsNullOrEmpty(c.ActiveProjectsCount) && int.Parse(c.ActiveProjectsCount) > 0).ShouldBeTrue();
+        result.All(c => c.ActiveProjectsCount.HasValue && c.ActiveProjectsCount.Value > 0).ShouldBeTrue();
         result.Any(c => c.FirstName == "John").ShouldBeTrue();
         result.Any(c => c.FirstName == "Bob").ShouldBeTrue();
 

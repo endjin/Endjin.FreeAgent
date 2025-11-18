@@ -6,7 +6,8 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 
-using Endjin.FreeAgent.Domain.Domain;
+using Endjin.FreeAgent.Domain;
+
 using Microsoft.Extensions.Logging;
 
 namespace Endjin.FreeAgent.Client.Tests;

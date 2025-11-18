@@ -4,8 +4,6 @@
 
 using System.Text.Json.Serialization;
 using Endjin.FreeAgent.Domain;
-using Endjin.FreeAgent.Domain.Converters;
-using Endjin.FreeAgent.Domain.Domain;
 
 namespace Endjin.FreeAgent.Client;
 

@@ -2,7 +2,7 @@
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
-namespace Endjin.FreeAgent.Domain.Domain;
+namespace Endjin.FreeAgent.Domain;
 
 /// <summary>
 /// Represents the filing status of a Corporation Tax return in FreeAgent.

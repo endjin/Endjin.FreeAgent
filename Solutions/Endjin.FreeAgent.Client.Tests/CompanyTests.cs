@@ -146,7 +146,7 @@ public class CompanyTests
             SalesTaxName = "VAT",
             SalesTaxEffectiveDate = new DateOnly(2020, 4, 1),
             SalesTaxIsValueAdded = true,
-            SalesTaxRegistrationStatus = Domain.Domain.SalesTaxRegistrationStatus.Registered,
+            SalesTaxRegistrationStatus = SalesTaxRegistrationStatus.Registered,
             VatFirstReturnPeriodEndsOn = new DateOnly(2020, 6, 30),
             InitialVatBasis = VatBasis.Invoice,
             InitiallyOnFrs = false,
@@ -224,7 +224,7 @@ public class CompanyTests
         result.SalesTaxName.ShouldBe("VAT");
         result.SalesTaxEffectiveDate.ShouldBe(new DateOnly(2020, 4, 1));
         result.SalesTaxIsValueAdded.ShouldBe(true);
-        result.SalesTaxRegistrationStatus.ShouldBe(Domain.Domain.SalesTaxRegistrationStatus.Registered);
+        result.SalesTaxRegistrationStatus.ShouldBe(SalesTaxRegistrationStatus.Registered);
 
         // Assert - VAT properties
         result.VatFirstReturnPeriodEndsOn.ShouldBe(new DateOnly(2020, 6, 30));

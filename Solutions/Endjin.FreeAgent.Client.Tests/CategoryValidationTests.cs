@@ -3,7 +3,7 @@
 // </copyright>
 
 using Endjin.FreeAgent.Domain;
-using Endjin.FreeAgent.Domain.Validation;
+using Endjin.FreeAgent.Validation;
 
 namespace Endjin.FreeAgent.Client.Tests;
 

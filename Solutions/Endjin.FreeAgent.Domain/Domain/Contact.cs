@@ -242,12 +242,12 @@ public record Contact
     /// Gets the number of active projects associated with this contact.
     /// </summary>
     /// <value>
-    /// The count of projects with "Active" status linked to this contact (returned as a string by the API).
+    /// The count of projects with "Active" status linked to this contact.
     /// </value>
     /// <seealso cref="Project"/>
     [JsonPropertyName("active_projects_count")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? ActiveProjectsCount { get; init; }
+    public int? ActiveProjectsCount { get; init; }
 
     /// <summary>
     /// Gets the current account balance for this contact.
@@ -261,7 +261,7 @@ public record Contact
     /// </remarks>
     [JsonPropertyName("account_balance")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? AccountBalance { get; init; }
+    public decimal? AccountBalance { get; init; }
 
     /// <summary>
     /// Gets the status of this contact.

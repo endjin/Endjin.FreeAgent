@@ -3,7 +3,8 @@
 // </copyright>
 
 using System.Net.Http.Json;
-using Endjin.FreeAgent.Domain.Domain;
+
+using Endjin.FreeAgent.Domain;
 
 namespace Endjin.FreeAgent.Client;
 

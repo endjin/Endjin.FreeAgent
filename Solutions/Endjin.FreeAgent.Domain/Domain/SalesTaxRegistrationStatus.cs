@@ -1,4 +1,4 @@
-namespace Endjin.FreeAgent.Domain.Domain;
+namespace Endjin.FreeAgent.Domain;
 
 /// <summary>
 /// Represents the sales tax registration status for a sales tax period.
