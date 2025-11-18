@@ -177,6 +177,7 @@ public class FreeAgentClient : ClientBase
         this.DepreciationProfiles = new DepreciationProfiles(this, cache);
         this.Estimates = new Estimates(this, cache);
         this.Expenses = new Expenses(this, cache);
+        this.FinalAccountsReports = new FinalAccountsReports(this, cache);
         this.Invoices = new Invoices(this, cache);
         this.JournalSets = new JournalSets(this);
         this.Mileages = new Mileages(this, cache);
@@ -333,6 +334,12 @@ public class FreeAgentClient : ClientBase
     /// </summary>
     /// <value>The <see cref="Expenses"/> service instance.</value>
     public Expenses Expenses { get; private set; }
+
+    /// <summary>
+    /// Gets the service for managing Final Accounts reports (statutory accounts).
+    /// </summary>
+    /// <value>The <see cref="FinalAccountsReports"/> service instance.</value>
+    public FinalAccountsReports FinalAccountsReports { get; private set; }
 
     /// <summary>
     /// Gets the service for managing invoices (sales invoices).
