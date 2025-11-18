@@ -407,15 +407,16 @@ public partial class Estimates
     /// <param name="id">The unique identifier of the estimate to convert.</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// newly created <see cref="Invoice"/> object converted from the estimate.
+    /// updated <see cref="Estimate"/> object with status "Invoiced" and an invoice URL reference.
     /// </returns>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
     /// <remarks>
     /// This method calls PUT /v2/estimates/{id}/transitions/convert_to_invoice to convert an approved estimate
-    /// into a draft invoice. The estimate must be in approved status. The cache entry for this estimate is invalidated.
+    /// into a draft invoice. The estimate must be in approved status. The response contains the updated estimate
+    /// with status changed to "Invoiced" and an invoice URL. The cache entry for this estimate is invalidated.
     /// </remarks>
-    public async Task<Invoice> ConvertToInvoiceAsync(string id)
+    public async Task<Estimate> ConvertToInvoiceAsync(string id)
     {
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
             new Uri(this.freeAgentClient.ApiBaseUrl, $"{EstimatesEndPoint}/{id}/transitions/convert_to_invoice"),
@@ -423,13 +424,13 @@ public partial class Estimates
 
         response.EnsureSuccessStatusCode();
 
-        InvoiceRoot? root = await response.Content.ReadFromJsonAsync<InvoiceRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+        EstimateRoot? root = await response.Content.ReadFromJsonAsync<EstimateRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
 
         // Invalidate cache
         string cacheKey = $"{EstimatesEndPoint}/{id}";
         this.cache.Remove(cacheKey);
 
-        return root?.Invoice ?? throw new InvalidOperationException("Failed to deserialize invoice response.");
+        return root?.Estimate ?? throw new InvalidOperationException("Failed to deserialize estimate response.");
     }
 
     /// <summary>
@@ -441,17 +442,27 @@ public partial class Estimates
     /// with the PDF content of the estimate.
     /// </returns>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the PDF content is null or invalid.</exception>
     /// <remarks>
-    /// This method calls GET /v2/estimates/{id}/pdf to retrieve the estimate as a PDF document. The result
-    /// is not cached as PDF generation may vary.
+    /// This method calls GET /v2/estimates/{id}/pdf to retrieve the estimate as a PDF document.
+    /// The API returns a JSON response with base64-encoded PDF content, which is decoded before returning.
+    /// The result is not cached as PDF generation may vary.
     /// </remarks>
     public async Task<byte[]> GetPdfAsync(string id)
     {
-        HttpResponseMessage response = await this.freeAgentClient.HttpClient.GetAsync(new Uri(this.freeAgentClient.ApiBaseUrl, $"{EstimatesEndPoint}/{id}/pdf")).ConfigureAwait(false);
+        HttpResponseMessage response = await this.freeAgentClient.HttpClient.GetAsync(
+            new Uri(this.freeAgentClient.ApiBaseUrl, $"{EstimatesEndPoint}/{id}/pdf")).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+        EstimatePdfRoot? result = await response.Content.ReadFromJsonAsync<EstimatePdfRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+
+        if (result?.Pdf?.Content is null)
+        {
+            throw new InvalidOperationException("The PDF content was not returned in the expected format.");
+        }
+
+        return Convert.FromBase64String(result.Pdf.Content);
     }
 
     /// <summary>

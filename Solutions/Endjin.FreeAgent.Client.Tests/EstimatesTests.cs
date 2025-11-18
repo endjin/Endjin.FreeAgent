@@ -638,31 +638,34 @@ public class EstimatesTests
     }
 
     [TestMethod]
-    public async Task ConvertToInvoiceAsync_WithValidId_ReturnsInvoice()
+    public async Task ConvertToInvoiceAsync_WithValidId_ReturnsUpdatedEstimate()
     {
         // Arrange
-        Invoice responseInvoice = new()
+        Estimate responseEstimate = new()
         {
-            Url = new Uri("https://api.freeagent.com/v2/invoices/999"),
-            Reference = "INV-FROM-EST",
-            Status = "Draft"
+            Url = new Uri("https://api.freeagent.com/v2/estimates/555"),
+            Reference = "EST-001",
+            Status = "Invoiced",
+            Invoice = new Uri("https://api.freeagent.com/v2/invoices/999")
         };
 
-        InvoiceRoot responseRoot = new() { Invoice = responseInvoice };
+        EstimateRoot responseRoot = new() { Estimate = responseEstimate };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
         };
 
         // Act
-        Invoice result = await this.estimates.ConvertToInvoiceAsync("555");
+        Estimate result = await this.estimates.ConvertToInvoiceAsync("555");
 
         // Assert
         result.ShouldNotBeNull();
-        result.Reference.ShouldBe("INV-FROM-EST");
-        result.Status.ShouldBe("Draft");
+        result.Reference.ShouldBe("EST-001");
+        result.Status.ShouldBe("Invoiced");
+        result.Invoice.ShouldNotBeNull();
+        result.Invoice!.ToString().ShouldBe("https://api.freeagent.com/v2/invoices/999");
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
@@ -675,10 +678,22 @@ public class EstimatesTests
     {
         // Arrange
         byte[] expectedPdfData = [0x25, 0x50, 0x44, 0x46]; // PDF file signature
+        string base64Content = Convert.ToBase64String(expectedPdfData);
+
+        var pdfResponse = new
+        {
+            pdf = new
+            {
+                content = base64Content
+            }
+        };
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new ByteArrayContent(expectedPdfData)
+            Content = new StringContent(
+                JsonSerializer.Serialize(pdfResponse),
+                Encoding.UTF8,
+                "application/json")
         };
 
         // Act

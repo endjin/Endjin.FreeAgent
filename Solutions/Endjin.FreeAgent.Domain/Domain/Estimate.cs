@@ -136,7 +136,7 @@ public record Estimate
     /// Gets the current status of the estimate.
     /// </summary>
     /// <value>
-    /// One of "Draft", "Sent", "Approved", or "Rejected", indicating the current stage of the estimate.
+    /// One of "Draft", "Sent", "Open", "Approved", "Rejected", or "Invoiced", indicating the current stage of the estimate.
     /// </value>
     [JsonPropertyName("status")]
     public string? Status { get; init; }
@@ -230,7 +230,7 @@ public record Estimate
     /// Gets the EC (European Community) VAT status for this estimate.
     /// </summary>
     /// <value>
-    /// One of "UK/Non-EC", "EC Goods", "EC Services", or other EC-related status values.
+    /// One of "UK/Non-EC", "EC Goods", "EC Services", "Reverse Charge", or "EC VAT MOSS".
     /// Used for VAT reporting and compliance within the European Community.
     /// </value>
     [JsonPropertyName("ec_status")]
