@@ -53,6 +53,16 @@ public class FreeAgentOptions
     public const string SectionName = "FreeAgent";
 
     /// <summary>
+    /// Gets the base URL for the FreeAgent production API.
+    /// </summary>
+    public static readonly Uri ProductionApiBaseUrl = new("https://api.freeagent.com");
+
+    /// <summary>
+    /// Gets the base URL for the FreeAgent sandbox API.
+    /// </summary>
+    public static readonly Uri SandboxApiBaseUrl = new("https://api.sandbox.freeagent.com");
+
+    /// <summary>
     /// Gets or sets the OAuth2 client ID for the FreeAgent application.
     /// </summary>
     /// <value>The OAuth2 client identifier obtained from the FreeAgent developer portal.</value>
@@ -94,6 +104,35 @@ public class FreeAgentOptions
     /// </remarks>
     [Required(ErrorMessage = "RefreshToken is required for FreeAgent authentication")]
     public string RefreshToken { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to use the FreeAgent sandbox environment.
+    /// </summary>
+    /// <value>
+    /// <c>true</c> to use the sandbox API (api.sandbox.freeagent.com);
+    /// <c>false</c> to use the production API (api.freeagent.com). Defaults to <c>false</c>.
+    /// </value>
+    /// <remarks>
+    /// <para>
+    /// The sandbox environment is intended for testing and development. It uses a separate
+    /// database from production and allows you to test API integrations without affecting
+    /// real data or incurring charges.
+    /// </para>
+    /// <para>
+    /// To use the sandbox, you must first create a sandbox account at
+    /// https://signup.sandbox.freeagent.com and register your application in the
+    /// sandbox developer dashboard.
+    /// </para>
+    /// </remarks>
+    public bool UseSandbox { get; set; }
+
+    /// <summary>
+    /// Gets the appropriate API base URL based on the <see cref="UseSandbox"/> setting.
+    /// </summary>
+    /// <value>
+    /// The sandbox API URL if <see cref="UseSandbox"/> is <c>true</c>; otherwise, the production API URL.
+    /// </value>
+    public Uri ApiBaseUrl => UseSandbox ? SandboxApiBaseUrl : ProductionApiBaseUrl;
 
     /// <summary>
     /// Validates the configuration options and throws an exception if any validation fails.

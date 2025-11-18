@@ -44,8 +44,16 @@ namespace Endjin.FreeAgent.Client;
 public abstract class ClientBase
 {
     internal const string JsonMediaType = "application/json";
-    internal readonly Uri ApiBaseUrl = new("https://api.freeagent.com");
     private readonly Lock syncRoot = new();
+
+    /// <summary>
+    /// Gets or sets the base URL for the FreeAgent API.
+    /// </summary>
+    /// <value>
+    /// The API base URL. Defaults to the production URL (https://api.freeagent.com).
+    /// Set to the sandbox URL (https://api.sandbox.freeagent.com) for testing.
+    /// </value>
+    internal Uri ApiBaseUrl { get; set; } = FreeAgentOptions.ProductionApiBaseUrl;
 
     // HTTP clients - will be initialized in InitializeAndAuthorizeAsync
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor
@@ -197,6 +205,8 @@ public abstract class ClientBase
                 ClientId = this.ClientId ?? throw new InvalidOperationException("OAuth2 client ID has not been configured."),
                 ClientSecret = this.ClientSecret ?? throw new InvalidOperationException("OAuth2 client secret has not been configured."),
                 RefreshToken = this.RefreshToken ?? throw new InvalidOperationException("OAuth2 refresh token has not been configured."),
+                TokenEndpoint = new Uri(this.ApiBaseUrl, "/v2/token_endpoint"),
+                AuthorizationEndpoint = new Uri(this.ApiBaseUrl, "/v2/approve_app"),
             };
 
             // Use existing memory cache if available, otherwise create a new one

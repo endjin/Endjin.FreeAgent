@@ -70,6 +70,66 @@ public class ClientInitializationTests
         client.Contacts.ShouldNotBeNull();
     }
 
+    [TestMethod]
+    public void FreeAgentClient_WithDefaultOptions_UsesProductionApiBaseUrl()
+    {
+        // Arrange
+        FreeAgentOptions options = new FreeAgentOptionsBuilder().Build();
+
+        // Act
+        FreeAgentClient client = new(options, this.cache, this.httpClientFactory, this.loggerFactory);
+
+        // Assert
+        client.ApiBaseUrl.ShouldBe(FreeAgentOptions.ProductionApiBaseUrl);
+    }
+
+    [TestMethod]
+    public void FreeAgentClient_WithUseSandboxTrue_UsesSandboxApiBaseUrl()
+    {
+        // Arrange
+        FreeAgentOptions options = new FreeAgentOptionsBuilder()
+            .WithUseSandbox(true)
+            .Build();
+
+        // Act
+        FreeAgentClient client = new(options, this.cache, this.httpClientFactory, this.loggerFactory);
+
+        // Assert
+        client.ApiBaseUrl.ShouldBe(FreeAgentOptions.SandboxApiBaseUrl);
+    }
+
+    [TestMethod]
+    public void FreeAgentClient_WithExplicitCredentialsAndUseSandboxTrue_UsesSandboxApiBaseUrl()
+    {
+        // Arrange & Act
+        FreeAgentClient client = new(
+            "client_id",
+            "client_secret",
+            "refresh_token",
+            this.cache,
+            this.httpClientFactory,
+            this.loggerFactory,
+            useSandbox: true);
+
+        // Assert
+        client.ApiBaseUrl.ShouldBe(FreeAgentOptions.SandboxApiBaseUrl);
+    }
+
+    [TestMethod]
+    public void FreeAgentClient_WithExplicitCredentialsDefaultUseSandbox_UsesProductionApiBaseUrl()
+    {
+        // Arrange & Act
+        FreeAgentClient client = new(
+            "client_id",
+            "client_secret",
+            "refresh_token",
+            this.cache,
+            this.httpClientFactory,
+            this.loggerFactory);
+
+        // Assert
+        client.ApiBaseUrl.ShouldBe(FreeAgentOptions.ProductionApiBaseUrl);
+    }
 
     [TestCleanup]
     public void Cleanup()

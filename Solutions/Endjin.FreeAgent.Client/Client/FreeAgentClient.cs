@@ -76,6 +76,7 @@ public class FreeAgentClient : ClientBase
         this.ClientId = options.ClientId;
         this.ClientSecret = options.ClientSecret;
         this.RefreshToken = options.RefreshToken;
+        this.ApiBaseUrl = options.ApiBaseUrl;
 
         this.InitializeServices(cache, httpClientFactory, loggerFactory);
     }
@@ -107,13 +108,14 @@ public class FreeAgentClient : ClientBase
     /// <param name="cache">The memory cache instance for caching tokens and API responses.</param>
     /// <param name="httpClientFactory">The HTTP client factory for creating managed HTTP clients.</param>
     /// <param name="loggerFactory">The logger factory for creating loggers.</param>
+    /// <param name="useSandbox">Whether to use the FreeAgent sandbox environment. Defaults to <c>false</c> (production).</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="clientId"/>, <paramref name="clientSecret"/>, or <paramref name="refreshToken"/> is null or whitespace.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="cache"/>, <paramref name="httpClientFactory"/>, or <paramref name="loggerFactory"/> is null.</exception>
     /// <remarks>
     /// This constructor is useful for direct instantiation when not using dependency injection,
     /// or when credentials need to be provided programmatically rather than through configuration.
     /// </remarks>
-    public FreeAgentClient(string clientId, string clientSecret, string refreshToken, IMemoryCache cache, IHttpClientFactory httpClientFactory, ILoggerFactory loggerFactory)
+    public FreeAgentClient(string clientId, string clientSecret, string refreshToken, IMemoryCache cache, IHttpClientFactory httpClientFactory, ILoggerFactory loggerFactory, bool useSandbox = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(clientId);
         ArgumentException.ThrowIfNullOrWhiteSpace(clientSecret);
@@ -125,6 +127,7 @@ public class FreeAgentClient : ClientBase
         this.ClientId = clientId;
         this.ClientSecret = clientSecret;
         this.RefreshToken = refreshToken;
+        this.ApiBaseUrl = useSandbox ? FreeAgentOptions.SandboxApiBaseUrl : FreeAgentOptions.ProductionApiBaseUrl;
 
         this.InitializeServices(cache, httpClientFactory, loggerFactory);
     }
