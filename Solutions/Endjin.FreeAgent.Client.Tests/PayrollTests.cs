@@ -43,31 +43,50 @@ public class PayrollTests
     }
 
     [TestMethod]
-    public async Task CreateAsync_WithValidPayment_ReturnsCreatedPayment()
+    public async Task GetPayrollYearAsync_ReturnsPeriodsAndPayments()
     {
         // Arrange
-        PayrollPayment inputPayment = new()
+        PayrollYearRoot responseRoot = new()
         {
-            User = new Uri("https://api.freeagent.com/v2/users/123"),
-            DatedOn = new DateOnly(2024, 1, 31),
-            GrossPay = 3000.00m,
-            IncomeTax = 450.00m,
-            EmployeeNi = 250.00m,
-            NetPay = 2300.00m
+            Periods =
+            [
+                new PayrollPeriod
+                {
+                    Url = new Uri("https://api.freeagent.com/v2/payroll/2026/0"),
+                    Period = 0,
+                    Frequency = "Monthly",
+                    DatedOn = new DateOnly(2025, 4, 30),
+                    Status = "filed",
+                    EmploymentAllowanceClaimed = true,
+                    EmploymentAllowanceAmount = 100.00m,
+                    ConstructionIndustrySchemeDeduction = 0.00m
+                },
+                new PayrollPeriod
+                {
+                    Url = new Uri("https://api.freeagent.com/v2/payroll/2026/1"),
+                    Period = 1,
+                    Frequency = "Monthly",
+                    DatedOn = new DateOnly(2025, 5, 31),
+                    Status = "unfiled"
+                }
+            ],
+            Payments =
+            [
+                new PayrollPayment
+                {
+                    DueOn = new DateOnly(2025, 5, 22),
+                    AmountDue = 1500.00m,
+                    Status = "unpaid"
+                },
+                new PayrollPayment
+                {
+                    DueOn = new DateOnly(2025, 6, 22),
+                    AmountDue = 1600.00m,
+                    Status = "unpaid"
+                }
+            ]
         };
 
-        PayrollPayment responsePayment = new()
-        {
-            Url = new Uri("https://api.freeagent.com/v2/payroll_payments/456"),
-            User = new Uri("https://api.freeagent.com/v2/users/123"),
-            DatedOn = new DateOnly(2024, 1, 31),
-            GrossPay = 3000.00m,
-            IncomeTax = 450.00m,
-            EmployeeNi = 250.00m,
-            NetPay = 2300.00m
-        };
-
-        PayrollPaymentRoot responseRoot = new() { PayrollPayment = responsePayment };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -76,80 +95,69 @@ public class PayrollTests
         };
 
         // Act
-        PayrollPayment result = await this.payroll.CreateAsync(inputPayment);
+        PayrollYearRoot result = await this.payroll.GetPayrollYearAsync(2026);
 
         // Assert
         result.ShouldNotBeNull();
-        result.Url.ShouldNotBeNull();
-        result.GrossPay.ShouldBe(3000.00m);
-        result.NetPay.ShouldBe(2300.00m);
-
-        // Mock Verification
-        this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPostRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/payroll_payments");
-    }
-
-    [TestMethod]
-    public async Task GetAllAsync_WithoutFilters_ReturnsAllPayments()
-    {
-        // Arrange
-        List<PayrollPayment> paymentsList =
-        [
-            new()
-            {
-                Url = new Uri("https://api.freeagent.com/v2/payroll_payments/1"),
-                User = new Uri("https://api.freeagent.com/v2/users/123"),
-                DatedOn = new DateOnly(2024, 1, 31),
-                GrossPay = 3000.00m,
-                NetPay = 2300.00m
-            },
-            new()
-            {
-                Url = new Uri("https://api.freeagent.com/v2/payroll_payments/2"),
-                User = new Uri("https://api.freeagent.com/v2/users/124"),
-                DatedOn = new DateOnly(2024, 2, 28),
-                GrossPay = 3500.00m,
-                NetPay = 2700.00m
-            }
-        ];
-
-        PayrollPaymentsRoot responseRoot = new() { PayrollPayments = paymentsList };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
-
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
-        };
-
-        // Act
-        IEnumerable<PayrollPayment> result = await this.payroll.GetAllAsync();
-
-        // Assert
-        result.Count().ShouldBe(2);
+        result.Periods.Count.ShouldBe(2);
+        result.Payments.Count.ShouldBe(2);
+        result.Periods[0].Period.ShouldBe(0);
+        result.Periods[0].Status.ShouldBe("filed");
+        result.Payments[0].AmountDue.ShouldBe(1500.00m);
+        result.Payments[0].Status.ShouldBe("unpaid");
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenGetRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/payroll_payments");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/payroll/2026");
     }
 
     [TestMethod]
-    public async Task GetAllAsync_WithUserFilter_ReturnsFilteredPayments()
+    public async Task GetPayrollPeriodAsync_ReturnsPayslips()
     {
         // Arrange
-        List<PayrollPayment> paymentsList =
-        [
-            new()
+        PayrollPeriodRoot responseRoot = new()
+        {
+            Period = new PayrollPeriod
             {
-                Url = new Uri("https://api.freeagent.com/v2/payroll_payments/1"),
-                User = new Uri("https://api.freeagent.com/v2/users/123"),
-                DatedOn = new DateOnly(2024, 1, 31),
-                GrossPay = 3000.00m
+                Url = new Uri("https://api.freeagent.com/v2/payroll/2026/0"),
+                Period = 0,
+                Frequency = "Monthly",
+                DatedOn = new DateOnly(2025, 4, 30),
+                Status = "filed",
+                EmploymentAllowanceClaimed = true,
+                EmploymentAllowanceAmount = 100.00m,
+                Payslips =
+                [
+                    new Payslip
+                    {
+                        User = new Uri("https://api.freeagent.com/v2/users/123"),
+                        TaxCode = "1257L",
+                        DatedOn = new DateOnly(2025, 4, 30),
+                        BasicPay = 3000.00m,
+                        TaxDeducted = 450.00m,
+                        EmployeeNi = 250.00m,
+                        EmployerNi = 300.00m,
+                        EmployeePension = 150.00m,
+                        EmployerPension = 90.00m,
+                        NiLetter = "A",
+                        NiCalcType = "Employee",
+                        Frequency = "Monthly"
+                    },
+                    new Payslip
+                    {
+                        User = new Uri("https://api.freeagent.com/v2/users/124"),
+                        TaxCode = "1257L",
+                        DatedOn = new DateOnly(2025, 4, 30),
+                        BasicPay = 3500.00m,
+                        TaxDeducted = 550.00m,
+                        EmployeeNi = 280.00m,
+                        EmployerNi = 350.00m
+                    }
+                ]
             }
-        ];
+        };
 
-        PayrollPaymentsRoot responseRoot = new() { PayrollPayments = paymentsList };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -158,115 +166,65 @@ public class PayrollTests
         };
 
         // Act
-        IEnumerable<PayrollPayment> result = await this.payroll.GetAllAsync(userId: "123");
-
-        // Assert
-        result.Count().ShouldBe(1);
-
-        // Mock Verification
-        this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenGetRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/payroll_payments?user=123");
-    }
-
-    [TestMethod]
-    public async Task GetAllAsync_WithDateFilters_ReturnsFilteredPayments()
-    {
-        // Arrange
-        List<PayrollPayment> paymentsList =
-        [
-            new()
-            {
-                Url = new Uri("https://api.freeagent.com/v2/payroll_payments/1"),
-                DatedOn = new DateOnly(2024, 1, 31),
-                GrossPay = 3000.00m
-            }
-        ];
-
-        PayrollPaymentsRoot responseRoot = new() { PayrollPayments = paymentsList };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
-
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
-        };
-
-        // Act
-        IEnumerable<PayrollPayment> result = await this.payroll.GetAllAsync(
-            fromDate: new DateOnly(2024, 1, 1),
-            toDate: new DateOnly(2024, 1, 31));
-
-        // Assert
-        result.Count().ShouldBe(1);
-
-        // Mock Verification
-        this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenGetRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/payroll_payments?from_date=2024-01-01&to_date=2024-01-31");
-    }
-
-    [TestMethod]
-    public async Task GetByIdAsync_WithValidId_ReturnsPayment()
-    {
-        // Arrange
-        PayrollPayment payment = new()
-        {
-            Url = new Uri("https://api.freeagent.com/v2/payroll_payments/789"),
-            User = new Uri("https://api.freeagent.com/v2/users/123"),
-            DatedOn = new DateOnly(2024, 1, 31),
-            GrossPay = 3000.00m,
-            IncomeTax = 450.00m,
-            EmployeeNi = 250.00m,
-            NetPay = 2300.00m
-        };
-
-        PayrollPaymentRoot responseRoot = new() { PayrollPayment = payment };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
-
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
-        };
-
-        // Act
-        PayrollPayment result = await this.payroll.GetByIdAsync("789");
+        PayrollPeriod result = await this.payroll.GetPayrollPeriodAsync(2026, 0);
 
         // Assert
         result.ShouldNotBeNull();
-        result.GrossPay.ShouldBe(3000.00m);
-        result.NetPay.ShouldBe(2300.00m);
+        result.Period.ShouldBe(0);
+        result.Payslips.ShouldNotBeNull();
+        result.Payslips!.Count.ShouldBe(2);
+        result.Payslips[0].BasicPay.ShouldBe(3000.00m);
+        result.Payslips[0].TaxCode.ShouldBe("1257L");
+        result.Payslips[0].NiLetter.ShouldBe("A");
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenGetRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/payroll_payments/789");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/payroll/2026/0");
     }
 
     [TestMethod]
-    public async Task UpdateAsync_WithValidPayment_ReturnsUpdatedPayment()
+    public async Task GetPayrollPeriodAsync_WithInvalidPeriod_ThrowsArgumentOutOfRangeException()
+    {
+        // Act & Assert
+        await Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
+            await this.payroll.GetPayrollPeriodAsync(2026, 12));
+    }
+
+    [TestMethod]
+    public async Task GetPayrollPeriodAsync_WithNegativePeriod_ThrowsArgumentOutOfRangeException()
+    {
+        // Act & Assert
+        await Should.ThrowAsync<ArgumentOutOfRangeException>(async () =>
+            await this.payroll.GetPayrollPeriodAsync(2026, -1));
+    }
+
+    [TestMethod]
+    public async Task MarkPaymentAsPaidAsync_UpdatesPaymentStatus()
     {
         // Arrange
-        PayrollPayment updatedPayment = new()
+        PayrollYearRoot responseRoot = new()
         {
-            DatedOn = new DateOnly(2024, 1, 31),
-            GrossPay = 3200.00m,
-            IncomeTax = 480.00m,
-            EmployeeNi = 260.00m,
-            NetPay = 2460.00m
+            Periods =
+            [
+                new PayrollPeriod
+                {
+                    Url = new Uri("https://api.freeagent.com/v2/payroll/2026/0"),
+                    Period = 0,
+                    Status = "filed"
+                }
+            ],
+            Payments =
+            [
+                new PayrollPayment
+                {
+                    DueOn = new DateOnly(2025, 5, 22),
+                    AmountDue = 1500.00m,
+                    Status = "marked_as_paid"
+                }
+            ]
         };
 
-        PayrollPayment responsePayment = new()
-        {
-            Url = new Uri("https://api.freeagent.com/v2/payroll_payments/999"),
-            User = new Uri("https://api.freeagent.com/v2/users/123"),
-            DatedOn = new DateOnly(2024, 1, 31),
-            GrossPay = 3200.00m,
-            IncomeTax = 480.00m,
-            EmployeeNi = 260.00m,
-            NetPay = 2460.00m
-        };
-
-        PayrollPaymentRoot responseRoot = new() { PayrollPayment = responsePayment };
         string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
@@ -275,31 +233,230 @@ public class PayrollTests
         };
 
         // Act
-        PayrollPayment result = await this.payroll.UpdateAsync("999", updatedPayment);
+        PayrollYearRoot result = await this.payroll.MarkPaymentAsPaidAsync(2026, "2025-05-22");
 
         // Assert
         result.ShouldNotBeNull();
-        result.GrossPay.ShouldBe(3200.00m);
-        result.NetPay.ShouldBe(2460.00m);
+        result.Payments[0].Status.ShouldBe("marked_as_paid");
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/payroll_payments/999");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/payroll/2026/payments/2025-05-22/mark_as_paid");
     }
 
     [TestMethod]
-    public async Task DeleteAsync_WithValidId_DeletesPayment()
+    public async Task MarkPaymentAsUnpaidAsync_UpdatesPaymentStatus()
     {
         // Arrange
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.NoContent);
+        PayrollYearRoot responseRoot = new()
+        {
+            Periods =
+            [
+                new PayrollPeriod
+                {
+                    Url = new Uri("https://api.freeagent.com/v2/payroll/2026/0"),
+                    Period = 0,
+                    Status = "filed"
+                }
+            ],
+            Payments =
+            [
+                new PayrollPayment
+                {
+                    DueOn = new DateOnly(2025, 5, 22),
+                    AmountDue = 1500.00m,
+                    Status = "unpaid"
+                }
+            ]
+        };
+
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
 
         // Act
-        await this.payroll.DeleteAsync("888");
+        PayrollYearRoot result = await this.payroll.MarkPaymentAsUnpaidAsync(2026, "2025-05-22");
 
-        // Assert - Mock Verification
+        // Assert
+        result.ShouldNotBeNull();
+        result.Payments[0].Status.ShouldBe("unpaid");
+
+        // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenDeleteRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/payroll_payments/888");
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/payroll/2026/payments/2025-05-22/mark_as_unpaid");
+    }
+
+    [TestMethod]
+    public async Task GetPayrollYearAsync_CachesResult()
+    {
+        // Arrange
+        PayrollYearRoot responseRoot = new()
+        {
+            Periods = [new PayrollPeriod { Period = 0, Status = "filed" }],
+            Payments = [new PayrollPayment { AmountDue = 1500.00m }]
+        };
+
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act - Call twice
+        PayrollYearRoot result1 = await this.payroll.GetPayrollYearAsync(2026);
+        PayrollYearRoot result2 = await this.payroll.GetPayrollYearAsync(2026);
+
+        // Assert - Should only make one API call due to caching
+        result1.ShouldNotBeNull();
+        result2.ShouldNotBeNull();
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+    }
+
+    [TestMethod]
+    public async Task MarkPaymentAsPaidAsync_InvalidatesCache()
+    {
+        // Arrange - First get the year data
+        PayrollYearRoot yearRoot = new()
+        {
+            Periods = [new PayrollPeriod { Period = 0 }],
+            Payments = [new PayrollPayment { AmountDue = 1500.00m, Status = "unpaid" }]
+        };
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(yearRoot, SharedJsonOptions.Instance),
+                Encoding.UTF8,
+                "application/json")
+        };
+
+        await this.payroll.GetPayrollYearAsync(2026);
+
+        // Arrange - Now mark as paid
+        PayrollYearRoot paidRoot = new()
+        {
+            Periods = [new PayrollPeriod { Period = 0 }],
+            Payments = [new PayrollPayment { AmountDue = 1500.00m, Status = "marked_as_paid" }]
+        };
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(paidRoot, SharedJsonOptions.Instance),
+                Encoding.UTF8,
+                "application/json")
+        };
+
+        // Act
+        await this.payroll.MarkPaymentAsPaidAsync(2026, "2025-05-22");
+
+        // Arrange - Get year data again (should not be cached)
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(paidRoot, SharedJsonOptions.Instance),
+                Encoding.UTF8,
+                "application/json")
+        };
+
+        await this.payroll.GetPayrollYearAsync(2026);
+
+        // Assert - Should have made 3 calls (initial get, mark as paid, second get)
+        this.messageHandler.CallCount.ShouldBe(3);
+    }
+
+    [TestMethod]
+    public async Task PayslipDeserialization_WithAllFields_DeserializesCorrectly()
+    {
+        // Arrange - Test deserialization of all payslip fields
+        PayrollPeriodRoot responseRoot = new()
+        {
+            Period = new PayrollPeriod
+            {
+                Period = 0,
+                Payslips =
+                [
+                    new Payslip
+                    {
+                        User = new Uri("https://api.freeagent.com/v2/users/123"),
+                        TaxCode = "1257L",
+                        DatedOn = new DateOnly(2025, 4, 30),
+                        BasicPay = 3000.00m,
+                        TaxDeducted = 450.00m,
+                        EmployeeNi = 250.00m,
+                        EmployerNi = 300.00m,
+                        OtherDeductions = 50.00m,
+                        StudentLoanDeduction = 100.00m,
+                        PostgradLoanDeduction = 25.00m,
+                        Overtime = 200.00m,
+                        Commission = 150.00m,
+                        Bonus = 500.00m,
+                        Allowance = 100.00m,
+                        StatutorySickPay = 0.00m,
+                        StatutoryMaternityPay = 0.00m,
+                        StatutoryPaternityPay = 0.00m,
+                        StatutoryAdoptionPay = 0.00m,
+                        StatutoryParentalBereavementPay = 0.00m,
+                        StatutoryNeonatalCarePay = 0.00m,
+                        AbsencePayments = 0.00m,
+                        OtherPayments = 75.00m,
+                        EmployeePension = 150.00m,
+                        EmployerPension = 90.00m,
+                        Attachments = 0.00m,
+                        PayrollGiving = 10.00m,
+                        NiCalcType = "Employee",
+                        Frequency = "Monthly",
+                        NiLetter = "A",
+                        DeductStudentLoan = true,
+                        StudentLoanDeductionsPlan = "Plan 2",
+                        DeductPostgradLoan = true,
+                        Week1Month1Basis = false,
+                        DeductionFreePay = 1047.50m,
+                        HoursWorked = 160.00m
+                    }
+                ]
+            }
+        };
+
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        PayrollPeriod result = await this.payroll.GetPayrollPeriodAsync(2026, 0);
+
+        // Assert
+        Payslip payslip = result.Payslips![0];
+        payslip.TaxCode.ShouldBe("1257L");
+        payslip.BasicPay.ShouldBe(3000.00m);
+        payslip.TaxDeducted.ShouldBe(450.00m);
+        payslip.EmployeeNi.ShouldBe(250.00m);
+        payslip.EmployerNi.ShouldBe(300.00m);
+        payslip.StudentLoanDeduction.ShouldBe(100.00m);
+        payslip.PostgradLoanDeduction.ShouldBe(25.00m);
+        payslip.Overtime.ShouldBe(200.00m);
+        payslip.Commission.ShouldBe(150.00m);
+        payslip.Bonus.ShouldBe(500.00m);
+        payslip.Allowance.ShouldBe(100.00m);
+        payslip.EmployeePension.ShouldBe(150.00m);
+        payslip.EmployerPension.ShouldBe(90.00m);
+        payslip.PayrollGiving.ShouldBe(10.00m);
+        payslip.NiCalcType.ShouldBe("Employee");
+        payslip.NiLetter.ShouldBe("A");
+        payslip.DeductStudentLoan.ShouldBe(true);
+        payslip.StudentLoanDeductionsPlan.ShouldBe("Plan 2");
+        payslip.DeductPostgradLoan.ShouldBe(true);
+        payslip.Week1Month1Basis.ShouldBe(false);
+        payslip.DeductionFreePay.ShouldBe(1047.50m);
+        payslip.HoursWorked.ShouldBe(160.00m);
     }
 }

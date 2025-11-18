@@ -185,8 +185,6 @@ public class FreeAgentClient : ClientBase
         this.Notes = new Notes(this, cache);
         this.OpeningBalances = new OpeningBalances(this, cache);
         this.Payroll = new Payroll(this, cache);
-        this.PayrollProfiles = new PayrollProfiles(this, cache);
-        this.Payslips = new Payslips(this, cache);
         this.ProfitAndLossReports = new ProfitAndLossReports(this, cache);
         this.Projects = new Projects(this, cache);
         this.RecurringInvoices = new RecurringInvoices(this, cache);
@@ -382,22 +380,10 @@ public class FreeAgentClient : ClientBase
     public OpeningBalances OpeningBalances { get; private set; }
 
     /// <summary>
-    /// Gets the service for managing payroll payments.
+    /// Gets the service for accessing UK RTI payroll data.
     /// </summary>
     /// <value>The <see cref="Payroll"/> service instance.</value>
     public Payroll Payroll { get; private set; }
-
-    /// <summary>
-    /// Gets the service for managing payroll profiles.
-    /// </summary>
-    /// <value>The <see cref="PayrollProfiles"/> service instance.</value>
-    public PayrollProfiles PayrollProfiles { get; private set; }
-
-    /// <summary>
-    /// Gets the service for managing employee payslips.
-    /// </summary>
-    /// <value>The <see cref="Payslips"/> service instance.</value>
-    public Payslips Payslips { get; private set; }
 
     /// <summary>
     /// Gets the service for accessing profit and loss reports.
