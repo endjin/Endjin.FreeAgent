@@ -50,7 +50,18 @@ public record Project
     /// </value>
     /// <seealso cref="ContactEntry"/>
     [JsonPropertyName("contact")]
-    public Uri? Contact { get; init; }
+    public required Uri Contact { get; init; }
+
+    /// <summary>
+    /// Gets the display name of the contact associated with this project.
+    /// </summary>
+    /// <value>
+    /// The display name of the contact for whom this project is being performed.
+    /// This value is returned by the API but is read-only.
+    /// </value>
+    [JsonPropertyName("contact_name")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ContactName { get; init; }
 
     /// <summary>
     /// Gets the <see cref="Domain.Contact"/> object associated with this project.
@@ -69,16 +80,16 @@ public record Project
     /// A descriptive name identifying the project. This field is required when creating a project.
     /// </value>
     [JsonPropertyName("name")]
-    public string? Name { get; init; }
+    public required string Name { get; init; }
 
     /// <summary>
     /// Gets the current status of the project.
     /// </summary>
     /// <value>
-    /// One of "Active", "Completed", "Cancelled", or "Hidden". This field is required when creating a project.
+    /// Required. One of "Active", "Completed", "Cancelled", or "Hidden".
     /// </value>
     [JsonPropertyName("status")]
-    public string? Status { get; init; }
+    public required string Status { get; init; }
 
     /// <summary>
     /// Gets the contract or purchase order reference number for this project.
@@ -95,41 +106,41 @@ public record Project
     /// </summary>
     /// <value>
     /// <see langword="true"/> if this project has its own invoice numbering sequence; otherwise, <see langword="false"/>
-    /// to use the contact or global invoice numbering sequence.
+    /// to use the contact or global invoice numbering sequence. This field is required when creating a project.
     /// </value>
     [JsonPropertyName("uses_project_invoice_sequence")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? UsesProjectInvoiceSequence { get; init; }
+    public required bool UsesProjectInvoiceSequence { get; init; }
 
     /// <summary>
     /// Gets the currency code for this project.
     /// </summary>
     /// <value>
-    /// A three-letter ISO 4217 currency code (e.g., "GBP", "USD", "EUR"). This field is required when creating a project.
+    /// A three-letter ISO 4217 currency code (e.g., "GBP", "USD", "EUR").
+    /// This field is required when creating a project.
     /// </value>
     [JsonPropertyName("currency")]
-    public string? Currency { get; init; }
+    public required string Currency { get; init; }
 
     /// <summary>
     /// Gets the budget amount for this project.
     /// </summary>
     /// <value>
     /// The budget value, interpreted according to <see cref="BudgetUnits"/>. Can represent hours, days, or monetary amount.
+    /// This field is required when creating a project. Use 0 for no budget.
     /// </value>
     /// <seealso cref="BudgetUnits"/>
     [JsonPropertyName("budget")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public decimal? Budget { get; init; }
+    public required decimal Budget { get; init; }
 
     /// <summary>
     /// Gets the units for the project budget.
     /// </summary>
     /// <value>
-    /// One of "Hours", "Days", or "Monetary" (excluding VAT), determining how <see cref="Budget"/> should be interpreted.
-    /// This field is required when creating a project.
+    /// One of "Hours", "Days", or "Monetary (ex-VAT)", determining how <see cref="Budget"/> should be interpreted.
     /// </value>
     /// <seealso cref="Budget"/>
     [JsonPropertyName("budget_units")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? BudgetUnits { get; init; }
 
     /// <summary>
@@ -176,11 +187,11 @@ public record Project
     public bool? IsIr35 { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether this project originated from an estimate.
+    /// Gets a value indicating whether this project is associated with a draft estimate.
     /// </summary>
     /// <value>
-    /// <see langword="true"/> if the project was created from an estimate; otherwise, <see langword="false"/>.
-    /// This property is not serialized to JSON.
+    /// <see langword="true"/> if the project is associated with a draft estimate; otherwise, <see langword="false"/>.
+    /// This is a client-side property set when processing estimates and is not serialized to JSON.
     /// </value>
     [JsonIgnore]
     public bool? IsEstimate { get; init; }
@@ -204,6 +215,27 @@ public record Project
     [JsonPropertyName("ends_on")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DateTimeOffset? EndsOn { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether unbilled time should be included in profitability calculations.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> to include unbilled time in profitability reports; otherwise, <see langword="false"/>.
+    /// </value>
+    [JsonPropertyName("include_unbilled_time_in_profitability")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IncludeUnbilledTimeInProfitability { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether this project can be deleted.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> if the project can be deleted; otherwise, <see langword="false"/>.
+    /// This property is only returned when retrieving a single project.
+    /// </value>
+    [JsonPropertyName("is_deletable")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsDeletable { get; init; }
 
     /// <summary>
     /// Gets the date and time when this project was created.

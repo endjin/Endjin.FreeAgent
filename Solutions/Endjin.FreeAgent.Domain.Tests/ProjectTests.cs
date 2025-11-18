@@ -171,6 +171,12 @@ public class ProjectTests
         // Arrange & Act
         Project project = new()
         {
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/1"),
+            Name = "Test Project",
+            Status = "Active",
+            BudgetUnits = "Hours",
+            Budget = 0m,
+            UsesProjectInvoiceSequence = false,
             Currency = "USD"
         };
 
@@ -184,6 +190,13 @@ public class ProjectTests
         // Arrange & Act
         Project project = new()
         {
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/1"),
+            Name = "Test Project",
+            Status = "Active",
+            Currency = "GBP",
+            BudgetUnits = "Hours",
+            Budget = 0m,
+            UsesProjectInvoiceSequence = false,
             ContractPoReference = "PO-2024-001"
         };
 
@@ -197,6 +210,13 @@ public class ProjectTests
         // Arrange & Act
         Project project = new()
         {
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/1"),
+            Name = "Test Project",
+            Status = "Active",
+            Currency = "GBP",
+            BudgetUnits = "Hours",
+            Budget = 0m,
+            UsesProjectInvoiceSequence = false,
             HoursPerDay = 7.5m
         };
 

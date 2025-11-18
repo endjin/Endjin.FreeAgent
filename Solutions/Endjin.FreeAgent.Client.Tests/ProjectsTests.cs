@@ -9,6 +9,7 @@ using System.Text.Json;
 
 using Endjin.FreeAgent.Domain;
 using Microsoft.Extensions.Logging;
+using NodaTime;
 
 namespace Endjin.FreeAgent.Client.Tests;
 
@@ -54,7 +55,8 @@ public class ProjectsTests
             Status = "Active",
             Currency = "GBP",
             BudgetUnits = "Hours",
-            Budget = 100.00m
+            Budget = 100.00m,
+            UsesProjectInvoiceSequence = false
         };
 
         Project responseProject = new()
@@ -66,6 +68,7 @@ public class ProjectsTests
             Currency = "GBP",
             BudgetUnits = "Hours",
             Budget = 100.00m,
+            UsesProjectInvoiceSequence = false,
             CreatedAt = new DateTimeOffset(2024, 3, 15, 10, 0, 0, TimeSpan.Zero)
         };
 
@@ -105,6 +108,7 @@ public class ProjectsTests
             Currency = "USD",
             BudgetUnits = "Monetary",
             Budget = 50000.00m,
+            UsesProjectInvoiceSequence = false,
             NormalBillingRate = 150.00m,
             BillingPeriod = "hour"
         };
@@ -118,6 +122,7 @@ public class ProjectsTests
             Currency = "USD",
             BudgetUnits = "Monetary",
             Budget = 50000.00m,
+            UsesProjectInvoiceSequence = false,
             NormalBillingRate = 150.00m,
             BillingPeriod = "hour"
         };
@@ -152,16 +157,24 @@ public class ProjectsTests
             new Project
             {
                 Url = new Uri("https://api.freeagent.com/v2/projects/1"),
+                Contact = new Uri("https://api.freeagent.com/v2/contacts/1"),
                 Name = "Project A",
                 Status = "Active",
-                Currency = "GBP"
+                Currency = "GBP",
+                BudgetUnits = "Hours",
+                Budget = 100.00m,
+                UsesProjectInvoiceSequence = false
             },
             new Project
             {
                 Url = new Uri("https://api.freeagent.com/v2/projects/2"),
+                Contact = new Uri("https://api.freeagent.com/v2/contacts/2"),
                 Name = "Project B",
                 Status = "Completed",
-                Currency = "USD"
+                Currency = "USD",
+                BudgetUnits = "Hours",
+                Budget = 200.00m,
+                UsesProjectInvoiceSequence = false
             }
         );
 
@@ -195,9 +208,13 @@ public class ProjectsTests
             new Project
             {
                 Url = new Uri("https://api.freeagent.com/v2/projects/20"),
+                Contact = new Uri("https://api.freeagent.com/v2/contacts/20"),
                 Name = "Cached Project",
                 Status = "Active",
-                Currency = "GBP"
+                Currency = "GBP",
+                BudgetUnits = "Hours",
+                Budget = 100.00m,
+                UsesProjectInvoiceSequence = false
             }
         );
 
@@ -234,6 +251,7 @@ public class ProjectsTests
             Currency = "GBP",
             BudgetUnits = "Monetary",
             Budget = 50000.00m,
+            UsesProjectInvoiceSequence = false,
             NormalBillingRate = 100.00m,
             BillingPeriod = "hour",
             CreatedAt = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
@@ -269,9 +287,13 @@ public class ProjectsTests
         Project project = new()
         {
             Url = new Uri("https://api.freeagent.com/v2/projects/40"),
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/40"),
             Name = "Cached Single Project",
             Status = "Active",
-            Currency = "GBP"
+            Currency = "GBP",
+            BudgetUnits = "Hours",
+            Budget = 100.00m,
+            UsesProjectInvoiceSequence = false
         };
 
         ProjectRoot responseRoot = new() { Project = project };
@@ -303,16 +325,24 @@ public class ProjectsTests
             new Project
             {
                 Url = new Uri("https://api.freeagent.com/v2/projects/1"),
+                Contact = new Uri("https://api.freeagent.com/v2/contacts/1"),
                 Name = "Design Work",
                 Status = "Active",
-                Currency = "GBP"
+                Currency = "GBP",
+                BudgetUnits = "Hours",
+                Budget = 100.00m,
+                UsesProjectInvoiceSequence = false
             },
             new Project
             {
                 Url = new Uri("https://api.freeagent.com/v2/projects/2"),
+                Contact = new Uri("https://api.freeagent.com/v2/contacts/2"),
                 Name = "Development Work",
                 Status = "Active",
-                Currency = "GBP"
+                Currency = "GBP",
+                BudgetUnits = "Hours",
+                Budget = 200.00m,
+                UsesProjectInvoiceSequence = false
             }
         );
 
@@ -345,9 +375,13 @@ public class ProjectsTests
             new Project
             {
                 Url = new Uri("https://api.freeagent.com/v2/projects/10"),
+                Contact = new Uri("https://api.freeagent.com/v2/contacts/10"),
                 Name = "Mobile App Development",
                 Status = "Active",
-                Currency = "GBP"
+                Currency = "GBP",
+                BudgetUnits = "Hours",
+                Budget = 100.00m,
+                UsesProjectInvoiceSequence = false
             }
         );
 
@@ -368,5 +402,305 @@ public class ProjectsTests
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
+    }
+
+    [TestMethod]
+    public async Task UpdateAsync_WithValidProject_ReturnsUpdatedProject()
+    {
+        // Arrange
+        Project inputProject = new()
+        {
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/123"),
+            Name = "Updated Project Name",
+            Status = "Completed",
+            Currency = "GBP",
+            BudgetUnits = "Hours",
+            Budget = 200.00m,
+            UsesProjectInvoiceSequence = false
+        };
+
+        Project responseProject = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/projects/456"),
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/123"),
+            Name = "Updated Project Name",
+            Status = "Completed",
+            Currency = "GBP",
+            BudgetUnits = "Hours",
+            Budget = 200.00m,
+            UsesProjectInvoiceSequence = false,
+            UpdatedAt = new DateTimeOffset(2024, 3, 20, 10, 0, 0, TimeSpan.Zero)
+        };
+
+        ProjectRoot responseRoot = new() { Project = responseProject };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Project result = await this.projects.UpdateAsync("456", inputProject);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Name.ShouldBe("Updated Project Name");
+        result.Status.ShouldBe("Completed");
+        result.Budget.ShouldBe(200.00m);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/projects/456");
+    }
+
+    [TestMethod]
+    public async Task DeleteAsync_WithValidId_Succeeds()
+    {
+        // Arrange
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK);
+
+        // Act & Assert (should not throw)
+        await this.projects.DeleteAsync("123");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenDeleteRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/projects/123");
+    }
+
+    [TestMethod]
+    public async Task GetByContactAsync_ReturnsProjectsForContact()
+    {
+        // Arrange
+        Uri contactUri = new("https://api.freeagent.com/v2/contacts/100");
+        ImmutableList<Project> projectsList = ImmutableList.Create(
+            new Project
+            {
+                Url = new Uri("https://api.freeagent.com/v2/projects/1"),
+                Contact = contactUri,
+                Name = "Project for Contact",
+                Status = "Active",
+                Currency = "GBP",
+                BudgetUnits = "Hours",
+                Budget = 100.00m,
+                UsesProjectInvoiceSequence = false
+            }
+        );
+
+        ProjectsRoot responseRoot = new() { Projects = projectsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<Project> result = await this.projects.GetByContactAsync(contactUri);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().Name.ShouldBe("Project for Contact");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+    }
+
+    [TestMethod]
+    public async Task GetAllCompletedAsync_ReturnsCompletedProjects()
+    {
+        // Arrange
+        ImmutableList<Project> projectsList = ImmutableList.Create(
+            new Project
+            {
+                Url = new Uri("https://api.freeagent.com/v2/projects/1"),
+                Contact = new Uri("https://api.freeagent.com/v2/contacts/1"),
+                Name = "Completed Project",
+                Status = "Completed",
+                Currency = "GBP",
+                BudgetUnits = "Hours",
+                Budget = 100.00m,
+                UsesProjectInvoiceSequence = false
+            }
+        );
+
+        ProjectsRoot responseRoot = new() { Projects = projectsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<Project> result = await this.projects.GetAllCompletedAsync();
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().Status.ShouldBe("Completed");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/projects?view=completed");
+    }
+
+    [TestMethod]
+    public async Task GetAllCancelledAsync_ReturnsCancelledProjects()
+    {
+        // Arrange
+        ImmutableList<Project> projectsList = ImmutableList.Create(
+            new Project
+            {
+                Url = new Uri("https://api.freeagent.com/v2/projects/1"),
+                Contact = new Uri("https://api.freeagent.com/v2/contacts/1"),
+                Name = "Cancelled Project",
+                Status = "Cancelled",
+                Currency = "GBP",
+                BudgetUnits = "Hours",
+                Budget = 100.00m,
+                UsesProjectInvoiceSequence = false
+            }
+        );
+
+        ProjectsRoot responseRoot = new() { Projects = projectsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<Project> result = await this.projects.GetAllCancelledAsync();
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().Status.ShouldBe("Cancelled");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/projects?view=cancelled");
+    }
+
+    [TestMethod]
+    public async Task GetAllHiddenAsync_ReturnsHiddenProjects()
+    {
+        // Arrange
+        ImmutableList<Project> projectsList = ImmutableList.Create(
+            new Project
+            {
+                Url = new Uri("https://api.freeagent.com/v2/projects/1"),
+                Contact = new Uri("https://api.freeagent.com/v2/contacts/1"),
+                Name = "Hidden Project",
+                Status = "Hidden",
+                Currency = "GBP",
+                BudgetUnits = "Hours",
+                Budget = 100.00m,
+                UsesProjectInvoiceSequence = false
+            }
+        );
+
+        ProjectsRoot responseRoot = new() { Projects = projectsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<Project> result = await this.projects.GetAllHiddenAsync();
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().Status.ShouldBe("Hidden");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/projects?view=hidden");
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithNewProperties_DeserializesCorrectly()
+    {
+        // Arrange
+        Project project = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/projects/50"),
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/60"),
+            ContactName = "Test Client Ltd",
+            Name = "Full Featured Project",
+            Status = "Active",
+            Currency = "GBP",
+            BudgetUnits = "Hours",
+            Budget = 100.00m,
+            UsesProjectInvoiceSequence = false,
+            IncludeUnbilledTimeInProfitability = true,
+            IsDeletable = false,
+            CreatedAt = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
+        };
+
+        ProjectRoot responseRoot = new() { Project = project };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Project result = await this.projects.GetByIdAsync("50");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ContactName.ShouldBe("Test Client Ltd");
+        result.IncludeUnbilledTimeInProfitability.ShouldBe(true);
+        result.IsDeletable.ShouldBe(false);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/projects/50");
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithSortingByUpdatedAtDescending_RequestsCorrectEndpoint()
+    {
+        // Arrange
+        Project testProject = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/projects/1"),
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/1"),
+            Name = "Test Project",
+            Status = "Active",
+            Currency = "GBP",
+            BudgetUnits = "Hours",
+            Budget = 100m,
+            UsesProjectInvoiceSequence = false
+        };
+        ProjectsRoot projectsData = new() { Projects = [testProject] };
+        string responseJson = JsonSerializer.Serialize(projectsData, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<Project> result = await this.projects.GetAllAsync(sort: "-updated_at", nested: null);
+
+        // Assert
+        result.Count().ShouldBe(1);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/projects?sort=-updated_at");
     }
 }

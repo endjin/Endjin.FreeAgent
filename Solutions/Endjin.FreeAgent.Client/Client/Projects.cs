@@ -64,6 +64,8 @@ public class Projects
     /// </remarks>
     public async Task<Project> CreateAsync(Project project)
     {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
         ProjectRoot root = new() { Project = project };
         using JsonContent content = JsonContent.Create(root, options: SharedJsonOptions.SourceGenOptions);
 
@@ -74,6 +76,87 @@ public class Projects
         ProjectRoot? result = await response.Content.ReadFromJsonAsync<ProjectRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
 
         return result?.Project ?? throw new InvalidOperationException("Failed to deserialize project response.");
+    }
+
+    /// <summary>
+    /// Updates an existing project in FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the project to update.</param>
+    /// <param name="project">The <see cref="Project"/> object containing the updated project details.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="Project"/> object with server-assigned values.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// This method calls PUT /v2/projects/{id} to update an existing project.
+    /// </remarks>
+    public async Task<Project> UpdateAsync(string id, Project project)
+    {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
+        ProjectRoot root = new() { Project = project };
+        using JsonContent content = JsonContent.Create(root, options: SharedJsonOptions.SourceGenOptions);
+
+        HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
+            new Uri(freeAgentClient.ApiBaseUrl, $"{ProjectEndPoint}/{id}"), content).ConfigureAwait(false);
+
+        response.EnsureSuccessStatusCode();
+
+        ProjectRoot? result = await response.Content.ReadFromJsonAsync<ProjectRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+
+        return result?.Project ?? throw new InvalidOperationException("Failed to deserialize project response.");
+    }
+
+    /// <summary>
+    /// Deletes a project from FreeAgent.
+    /// </summary>
+    /// <param name="id">The unique identifier of the project to delete.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls DELETE /v2/projects/{id} to delete a project. The project must be deletable
+    /// (check <see cref="Project.IsDeletable"/>) before calling this method.
+    /// </remarks>
+    public async Task DeleteAsync(string id)
+    {
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
+        HttpResponseMessage response = await this.freeAgentClient.HttpClient.DeleteAsync(
+            new Uri(freeAgentClient.ApiBaseUrl, $"{ProjectEndPoint}/{id}")).ConfigureAwait(false);
+
+        response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>
+    /// Retrieves all projects associated with a specific contact from FreeAgent.
+    /// </summary>
+    /// <param name="contactUri">The URI of the contact whose projects to retrieve.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// <see cref="Project"/> objects associated with the specified contact.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/projects?contact={contactUri} and handles pagination automatically.
+    /// Results are cached for 5 minutes.
+    /// </remarks>
+    public async Task<IEnumerable<Project>> GetByContactAsync(Uri contactUri)
+    {
+        string urlSegment = $"{ProjectEndPoint}?contact={Uri.EscapeDataString(contactUri.ToString())}";
+        string cacheKey = urlSegment;
+
+        if (!this.cache.TryGetValue(cacheKey, out List<Project>? results))
+        {
+            List<ProjectsRoot> response = await this.freeAgentClient.ExecuteRequestAndFollowLinksAsync<ProjectsRoot>(new Uri(freeAgentClient.ApiBaseUrl, urlSegment)).ConfigureAwait(false);
+
+            results = [.. response.SelectMany(x => x.Projects)];
+
+            this.cache.Set(cacheKey, results, cacheEntryOptions);
+        }
+
+        return results ?? [];
     }
 
     /// <summary>
@@ -91,21 +174,260 @@ public class Projects
     /// </remarks>
     public async Task<IEnumerable<Project>> GetAllActiveAsync()
     {
-        string urlSegment = $"{ProjectEndPoint}?view=active";
+        return await GetAllActiveAsync(sort: null, nested: null).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Retrieves all active projects from FreeAgent with optional sorting and nested contact expansion.
+    /// </summary>
+    /// <param name="sort">
+    /// Optional sorting parameter. Valid values are "name" (default), "contact_name", "contact_display_name",
+    /// "created_at", or "updated_at". Prefix with "-" for descending order (e.g., "-updated_at").
+    /// </param>
+    /// <param name="nested">
+    /// When true, returns full contact objects inline instead of just references.
+    /// When false, returns only contact URIs and ContactEntry will be populated via separate query.
+    /// When null, defaults to false and ContactEntry will be populated for backward compatibility.
+    /// </param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// active <see cref="Project"/> objects with their associated <see cref="Contact"/> entries populated.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/projects?view=active with optional parameters, handles pagination automatically,
+    /// and enriches each project with contact information. When nested is false or null, contacts are retrieved
+    /// separately for backward compatibility. Results are cached for 5 minutes.
+    /// </remarks>
+    public async Task<IEnumerable<Project>> GetAllActiveAsync(string? sort, bool? nested)
+    {
+        List<string> queryParams = ["view=active"];
+        if (!string.IsNullOrEmpty(sort))
+        {
+            queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
+        }
+        if (nested.HasValue)
+        {
+            queryParams.Add($"nested={nested.Value.ToString().ToLowerInvariant()}");
+        }
+
+        string urlSegment = $"{ProjectEndPoint}?{string.Join("&", queryParams)}";
         string cacheKey = urlSegment;
 
         if (!this.cache.TryGetValue(cacheKey, out List<Project>? results))
         {
-            Task<IEnumerable<Contact>> contactsTask = this.freeAgentClient.Contacts?.GetAllWithActiveProjectsAsync() ?? Task.FromResult(Enumerable.Empty<Contact>());
-            Task<List<ProjectsRoot>> projectsTask = this.freeAgentClient.ExecuteRequestAndFollowLinksAsync<ProjectsRoot>(new Uri(freeAgentClient.ApiBaseUrl, urlSegment));
+            // If nested is not true, fetch contacts separately for backward compatibility
+            if (!nested.GetValueOrDefault(false))
+            {
+                Task<IEnumerable<Contact>> contactsTask = this.freeAgentClient.Contacts?.GetAllWithActiveProjectsAsync() ?? Task.FromResult(Enumerable.Empty<Contact>());
+                Task<List<ProjectsRoot>> projectsTask = this.freeAgentClient.ExecuteRequestAndFollowLinksAsync<ProjectsRoot>(new Uri(freeAgentClient.ApiBaseUrl, urlSegment));
 
-            await Task.WhenAll(contactsTask, projectsTask);
+                await Task.WhenAll(contactsTask, projectsTask).ConfigureAwait(false);
 
-            List<Contact> contacts = [.. (contactsTask.Result)];
-            results = [.. (projectsTask.Result).SelectMany(x => x.Projects)];
+                List<Contact> contacts = [.. (contactsTask.Result)];
+                results = [.. (projectsTask.Result).SelectMany(x => x.Projects)];
 
-            // Update projects with their contact entries using immutable pattern
-            results = [.. results.Select(project => project with { ContactEntry = contacts.FirstOrDefault(x => x.Url == project.Contact) })];
+                // Update projects with their contact entries using immutable pattern
+                results = [.. results.Select(project => project with { ContactEntry = contacts.FirstOrDefault(x => x.Url == project.Contact) })];
+            }
+            else
+            {
+                // When nested is true, the API returns contacts inline
+                List<ProjectsRoot> response = await this.freeAgentClient.ExecuteRequestAndFollowLinksAsync<ProjectsRoot>(new Uri(freeAgentClient.ApiBaseUrl, urlSegment)).ConfigureAwait(false);
+                results = [.. response.SelectMany(x => x.Projects)];
+            }
+
+            this.cache.Set(cacheKey, results, cacheEntryOptions);
+        }
+
+        return results ?? [];
+    }
+
+    /// <summary>
+    /// Retrieves all completed projects from FreeAgent.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// completed <see cref="Project"/> objects.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/projects?view=completed and handles pagination automatically.
+    /// Results are cached for 5 minutes.
+    /// </remarks>
+    public async Task<IEnumerable<Project>> GetAllCompletedAsync()
+    {
+        return await GetAllCompletedAsync(sort: null, nested: null).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Retrieves all completed projects from FreeAgent with optional sorting and nested contact expansion.
+    /// </summary>
+    /// <param name="sort">
+    /// Optional sorting parameter. Valid values are "name" (default), "contact_name", "contact_display_name",
+    /// "created_at", or "updated_at". Prefix with "-" for descending order (e.g., "-updated_at").
+    /// </param>
+    /// <param name="nested">
+    /// When true, returns full contact objects inline instead of just references.
+    /// When false or null, returns only contact URIs.
+    /// </param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// completed <see cref="Project"/> objects.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/projects?view=completed with optional parameters and handles
+    /// pagination automatically. Results are cached for 5 minutes.
+    /// </remarks>
+    public async Task<IEnumerable<Project>> GetAllCompletedAsync(string? sort, bool? nested)
+    {
+        List<string> queryParams = ["view=completed"];
+        if (!string.IsNullOrEmpty(sort))
+        {
+            queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
+        }
+        if (nested.HasValue)
+        {
+            queryParams.Add($"nested={nested.Value.ToString().ToLowerInvariant()}");
+        }
+
+        string urlSegment = $"{ProjectEndPoint}?{string.Join("&", queryParams)}";
+        string cacheKey = urlSegment;
+
+        if (!this.cache.TryGetValue(cacheKey, out List<Project>? results))
+        {
+            List<ProjectsRoot> response = await this.freeAgentClient.ExecuteRequestAndFollowLinksAsync<ProjectsRoot>(new Uri(freeAgentClient.ApiBaseUrl, urlSegment)).ConfigureAwait(false);
+
+            results = [.. response.SelectMany(x => x.Projects)];
+
+            this.cache.Set(cacheKey, results, cacheEntryOptions);
+        }
+
+        return results ?? [];
+    }
+
+    /// <summary>
+    /// Retrieves all cancelled projects from FreeAgent.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// cancelled <see cref="Project"/> objects.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/projects?view=cancelled and handles pagination automatically.
+    /// Results are cached for 5 minutes.
+    /// </remarks>
+    public async Task<IEnumerable<Project>> GetAllCancelledAsync()
+    {
+        return await GetAllCancelledAsync(sort: null, nested: null).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Retrieves all cancelled projects from FreeAgent with optional sorting and nested contact expansion.
+    /// </summary>
+    /// <param name="sort">
+    /// Optional sorting parameter. Valid values are "name" (default), "contact_name", "contact_display_name",
+    /// "created_at", or "updated_at". Prefix with "-" for descending order (e.g., "-updated_at").
+    /// </param>
+    /// <param name="nested">
+    /// When true, returns full contact objects inline instead of just references.
+    /// When false or null, returns only contact URIs.
+    /// </param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// cancelled <see cref="Project"/> objects.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/projects?view=cancelled with optional parameters and handles
+    /// pagination automatically. Results are cached for 5 minutes.
+    /// </remarks>
+    public async Task<IEnumerable<Project>> GetAllCancelledAsync(string? sort, bool? nested)
+    {
+        List<string> queryParams = ["view=cancelled"];
+        if (!string.IsNullOrEmpty(sort))
+        {
+            queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
+        }
+        if (nested.HasValue)
+        {
+            queryParams.Add($"nested={nested.Value.ToString().ToLowerInvariant()}");
+        }
+
+        string urlSegment = $"{ProjectEndPoint}?{string.Join("&", queryParams)}";
+        string cacheKey = urlSegment;
+
+        if (!this.cache.TryGetValue(cacheKey, out List<Project>? results))
+        {
+            List<ProjectsRoot> response = await this.freeAgentClient.ExecuteRequestAndFollowLinksAsync<ProjectsRoot>(new Uri(freeAgentClient.ApiBaseUrl, urlSegment)).ConfigureAwait(false);
+
+            results = [.. response.SelectMany(x => x.Projects)];
+
+            this.cache.Set(cacheKey, results, cacheEntryOptions);
+        }
+
+        return results ?? [];
+    }
+
+    /// <summary>
+    /// Retrieves all hidden projects from FreeAgent.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// hidden <see cref="Project"/> objects.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/projects?view=hidden and handles pagination automatically.
+    /// Results are cached for 5 minutes.
+    /// </remarks>
+    public async Task<IEnumerable<Project>> GetAllHiddenAsync()
+    {
+        return await GetAllHiddenAsync(sort: null, nested: null).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Retrieves all hidden projects from FreeAgent with optional sorting and nested contact expansion.
+    /// </summary>
+    /// <param name="sort">
+    /// Optional sorting parameter. Valid values are "name" (default), "contact_name", "contact_display_name",
+    /// "created_at", or "updated_at". Prefix with "-" for descending order (e.g., "-updated_at").
+    /// </param>
+    /// <param name="nested">
+    /// When true, returns full contact objects inline instead of just references.
+    /// When false or null, returns only contact URIs.
+    /// </param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// hidden <see cref="Project"/> objects.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/projects?view=hidden with optional parameters and handles
+    /// pagination automatically. Results are cached for 5 minutes.
+    /// </remarks>
+    public async Task<IEnumerable<Project>> GetAllHiddenAsync(string? sort, bool? nested)
+    {
+        List<string> queryParams = ["view=hidden"];
+        if (!string.IsNullOrEmpty(sort))
+        {
+            queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
+        }
+        if (nested.HasValue)
+        {
+            queryParams.Add($"nested={nested.Value.ToString().ToLowerInvariant()}");
+        }
+
+        string urlSegment = $"{ProjectEndPoint}?{string.Join("&", queryParams)}";
+        string cacheKey = urlSegment;
+
+        if (!this.cache.TryGetValue(cacheKey, out List<Project>? results))
+        {
+            List<ProjectsRoot> response = await this.freeAgentClient.ExecuteRequestAndFollowLinksAsync<ProjectsRoot>(new Uri(freeAgentClient.ApiBaseUrl, urlSegment)).ConfigureAwait(false);
+
+            results = [.. response.SelectMany(x => x.Projects)];
 
             this.cache.Set(cacheKey, results, cacheEntryOptions);
         }
@@ -127,11 +449,48 @@ public class Projects
     /// </remarks>
     public async Task<IEnumerable<Project>> GetAllAsync()
     {
-        string cacheKey = ProjectEndPoint;
+        return await GetAllAsync(sort: null, nested: null).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Retrieves all projects from FreeAgent with optional sorting and nested contact expansion.
+    /// </summary>
+    /// <param name="sort">
+    /// Optional sorting parameter. Valid values are "name" (default), "contact_name", "contact_display_name",
+    /// "created_at", or "updated_at". Prefix with "-" for descending order (e.g., "-updated_at").
+    /// </param>
+    /// <param name="nested">
+    /// When true, returns full contact objects inline instead of just references.
+    /// When false or null, returns only contact URIs.
+    /// </param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// all <see cref="Project"/> objects in the FreeAgent account.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/projects with optional query parameters, handles pagination automatically,
+    /// and caches the result for 5 minutes. All projects are included regardless of status.
+    /// </remarks>
+    public async Task<IEnumerable<Project>> GetAllAsync(string? sort, bool? nested)
+    {
+        List<string> queryParams = [];
+        if (!string.IsNullOrEmpty(sort))
+        {
+            queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
+        }
+        if (nested.HasValue)
+        {
+            queryParams.Add($"nested={nested.Value.ToString().ToLowerInvariant()}");
+        }
+
+        string queryString = queryParams.Count > 0 ? $"?{string.Join("&", queryParams)}" : string.Empty;
+        string urlSegment = $"{ProjectEndPoint}{queryString}";
+        string cacheKey = urlSegment;
 
         if (!this.cache.TryGetValue(cacheKey, out List<Project>? results))
         {
-            List<ProjectsRoot> response = await this.freeAgentClient.ExecuteRequestAndFollowLinksAsync<ProjectsRoot>(new Uri(freeAgentClient.ApiBaseUrl, ProjectEndPoint)).ConfigureAwait(false);
+            List<ProjectsRoot> response = await this.freeAgentClient.ExecuteRequestAndFollowLinksAsync<ProjectsRoot>(new Uri(freeAgentClient.ApiBaseUrl, urlSegment)).ConfigureAwait(false);
 
             results = [.. response.SelectMany(x => x.Projects)];
 
@@ -162,7 +521,7 @@ public class Projects
 
         if (!this.cache.TryGetValue(cacheKey, out Project? results))
         {
-            HttpResponseMessage response = await this.freeAgentClient.HttpClient.GetAsync(new Uri(freeAgentClient.ApiBaseUrl, $"{ProjectEndPoint}/{id}"));
+            HttpResponseMessage response = await this.freeAgentClient.HttpClient.GetAsync(new Uri(freeAgentClient.ApiBaseUrl, $"{ProjectEndPoint}/{id}")).ConfigureAwait(false);
 
             response.EnsureSuccessStatusCode();
 
