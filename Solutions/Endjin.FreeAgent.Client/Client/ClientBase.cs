@@ -4,6 +4,7 @@
 
 using System.Net;
 using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 using Corvus.Retry;
@@ -248,6 +249,65 @@ public abstract class ClientBase
     internal void SetOAuth2Service(IOAuth2Service service) => this.oauth2Service = service;
 
     /// <summary>
+    /// Executes an HTTP GET request and automatically follows pagination links to retrieve all results as an asynchronous stream.
+    /// </summary>
+    /// <typeparam name="T">The type of the response content.</typeparam>
+    /// <param name="uri">The initial URI to request.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>An asynchronous stream of response objects from the current page and all subsequent pages.</returns>
+    /// <exception cref="HttpRequestException">Thrown when the HTTP request fails after retries.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the response cannot be deserialized.</exception>
+    public async IAsyncEnumerable<T> ExecuteRequestAndFollowLinksAsyncEnumerable<T>(Uri uri, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        if (!this.IsInitialized)
+        {
+            await this.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+        }
+
+        Uri? currentUri = uri;
+
+        while (currentUri != null)
+        {
+            bool haveTriedRefreshingToken = false;
+            HttpResponseMessage response = await Retriable.RetryAsync(
+                async () =>
+                {
+                    HttpResponseMessage result = await this.HttpClient.GetAsync(currentUri, cancellationToken).ConfigureAwait(false);
+
+                    if (result.StatusCode == HttpStatusCode.Unauthorized && !haveTriedRefreshingToken)
+                    {
+                        InitializeOAuth2Service();
+
+                        string newAccessToken = await oauth2Service!.RefreshAccessTokenAsync().ConfigureAwait(false);
+
+                        lock (syncRoot)
+                        {
+                            this.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", newAccessToken);
+                        }
+
+                        haveTriedRefreshingToken = true;
+
+                        result = await this.HttpClient.GetAsync(currentUri, cancellationToken).ConfigureAwait(false);
+                    }
+                    result.EnsureSuccessStatusCode();
+                    return result;
+                },
+                cancellationToken,
+                new Backoff(),
+                new AnyExceptionPolicy()).ConfigureAwait(false);
+
+            string jsonContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            T content = JsonSerializer.Deserialize<T>(jsonContent, SharedJsonOptions.Instance) ?? throw new InvalidOperationException("Failed to deserialize response content.");
+
+            yield return content;
+
+            IEnumerable<Link> links = ExtractLinksFromHeader(response.Headers);
+            Link? nextPage = links.FirstOrDefault(x => x.Rel == "next");
+            currentUri = nextPage?.Uri;
+        }
+    }
+
+    /// <summary>
     /// Executes an HTTP GET request and automatically follows pagination links to retrieve all results.
     /// </summary>
     /// <typeparam name="T">The type of the response content.</typeparam>
@@ -275,57 +335,10 @@ public abstract class ClientBase
     public async Task<List<T>> ExecuteRequestAndFollowLinksAsync<T>(Uri uri)
     {
         List<T> results = [];
-
-        if (!this.IsInitialized)
+        await foreach (T item in ExecuteRequestAndFollowLinksAsyncEnumerable<T>(uri).ConfigureAwait(false))
         {
-            await this.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+            results.Add(item);
         }
-
-        bool haveTriedRefreshingToken = false;
-        HttpResponseMessage response = await Retriable.RetryAsync(
-            async () =>
-            {
-                HttpResponseMessage result = await this.HttpClient.GetAsync(uri);
-
-                if (result.StatusCode == HttpStatusCode.Unauthorized && !haveTriedRefreshingToken)
-                {
-                    // We get a 401 when the access token expires. If that's the first time that's
-                    // happened with this request, it might simply be time to refresh the token,
-                    // so we should do that and retry the request.
-                    InitializeOAuth2Service();
-
-                    string newAccessToken = await oauth2Service!.RefreshAccessTokenAsync().ConfigureAwait(false);
-
-                    lock (syncRoot)
-                    {
-                        this.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", newAccessToken);
-                    }
-
-                    haveTriedRefreshingToken = true;
-
-                    result = await this.HttpClient.GetAsync(uri).ConfigureAwait(false);
-                }
-                result.EnsureSuccessStatusCode();
-                return result;
-            },
-            CancellationToken.None,
-            new Backoff(),
-            new AnyExceptionPolicy());
-
-        string jsonContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-        T content = JsonSerializer.Deserialize<T>(jsonContent, SharedJsonOptions.Instance) ?? throw new InvalidOperationException("Failed to deserialize response content.");
-
-        results.Add(content);
-
-        IEnumerable<Link> links = ExtractLinksFromHeader(response.Headers);
-        Link? nextPage = links.FirstOrDefault(x => x.Rel == "next");
-
-        if (nextPage != null)
-        {
-            List<T> nestedContent = await this.ExecuteRequestAndFollowLinksAsync<T>(nextPage.Uri).ConfigureAwait(false);
-            results.AddRange(nestedContent);
-        }
-
         return results;
     }
 
