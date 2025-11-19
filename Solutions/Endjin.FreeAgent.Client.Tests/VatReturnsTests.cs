@@ -50,17 +50,41 @@ public class VatReturnsTests
         [
             new()
             {
+                Url = new Uri("https://api.freeagent.com/v2/vat_returns/2024-03-31"),
                 PeriodStartsOn = new DateOnly(2024, 1, 1),
                 PeriodEndsOn = new DateOnly(2024, 3, 31),
-                Status = "draft",
-                Box5NetVatDue = 17500.00m
+                FilingDueOn = new DateOnly(2024, 5, 7),
+                FilingStatus = "unfiled",
+                Box5NetVatDue = 17500.00m,
+                Payments =
+                [
+                    new VatReturnPayment
+                    {
+                        Label = "VAT Payment",
+                        DueOn = new DateOnly(2024, 5, 7),
+                        AmountDue = 17500.00m,
+                        Status = "unpaid"
+                    }
+                ]
             },
             new()
             {
+                Url = new Uri("https://api.freeagent.com/v2/vat_returns/2023-12-31"),
                 PeriodStartsOn = new DateOnly(2023, 10, 1),
                 PeriodEndsOn = new DateOnly(2023, 12, 31),
-                Status = "filed",
-                Box5NetVatDue = 12500.00m
+                FilingDueOn = new DateOnly(2024, 2, 7),
+                FilingStatus = "filed",
+                Box5NetVatDue = 12500.00m,
+                Payments =
+                [
+                    new VatReturnPayment
+                    {
+                        Label = "VAT Payment",
+                        DueOn = new DateOnly(2024, 2, 7),
+                        AmountDue = 12500.00m,
+                        Status = "marked_as_paid"
+                    }
+                ]
             }
         ];
 
@@ -92,13 +116,24 @@ public class VatReturnsTests
         // Arrange
         VatReturn vatReturn = new()
         {
-            Url = new Uri("https://api.freeagent.com/v2/vat_returns/101"),
+            Url = new Uri("https://api.freeagent.com/v2/vat_returns/2024-03-31"),
             PeriodStartsOn = new DateOnly(2024, 1, 1),
             PeriodEndsOn = new DateOnly(2024, 3, 31),
-            Status = "draft",
+            FilingDueOn = new DateOnly(2024, 5, 7),
+            FilingStatus = "unfiled",
             Box1VatDueOnSales = 25000.00m,
             Box4VatReclaimed = 8000.00m,
-            Box5NetVatDue = 17500.00m
+            Box5NetVatDue = 17000.00m,
+            Payments =
+            [
+                new VatReturnPayment
+                {
+                    Label = "VAT Payment",
+                    DueOn = new DateOnly(2024, 5, 7),
+                    AmountDue = 17000.00m,
+                    Status = "unpaid"
+                }
+            ]
         };
 
         VatReturnRoot responseRoot = new() { VatReturn = vatReturn };
@@ -110,17 +145,20 @@ public class VatReturnsTests
         };
 
         // Act
-        VatReturn result = await this.vatReturns.GetByIdAsync("101");
+        VatReturn result = await this.vatReturns.GetByIdAsync("2024-03-31");
 
         // Assert
         result.ShouldNotBeNull();
-        result.Status.ShouldBe("draft");
-        result.Box5NetVatDue.ShouldBe(17500.00m);
+        result.FilingStatus.ShouldBe("unfiled");
+        result.Box5NetVatDue.ShouldBe(17000.00m);
+        result.Payments.ShouldNotBeNull();
+        result.Payments.Count.ShouldBe(1);
+        result.Payments[0].AmountDue.ShouldBe(17000.00m);
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenGetRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/vat_returns/101");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/vat_returns/2024-03-31");
     }
 
     [TestMethod]
@@ -128,15 +166,28 @@ public class VatReturnsTests
     {
         // Arrange
         DateOnly filedOn = new(2024, 4, 15);
-        string hmrcReference = "123456789012";
+        string filedReference = "123456789012";
 
         VatReturn responseReturn = new()
         {
-            Url = new Uri("https://api.freeagent.com/v2/vat_returns/101"),
-            Status = "filed",
-            FiledOn = filedOn,
+            Url = new Uri("https://api.freeagent.com/v2/vat_returns/2024-03-31"),
+            PeriodStartsOn = new DateOnly(2024, 1, 1),
+            PeriodEndsOn = new DateOnly(2024, 3, 31),
+            FilingDueOn = new DateOnly(2024, 5, 7),
+            FilingStatus = "marked_as_filed",
+            FiledAt = new DateTimeOffset(2024, 4, 15, 10, 30, 0, TimeSpan.Zero),
             FiledOnline = true,
-            HmrcReference = hmrcReference
+            FiledReference = filedReference,
+            Payments =
+            [
+                new VatReturnPayment
+                {
+                    Label = "VAT Payment",
+                    DueOn = new DateOnly(2024, 5, 7),
+                    AmountDue = 17000.00m,
+                    Status = "unpaid"
+                }
+            ]
         };
 
         VatReturnRoot responseRoot = new() { VatReturn = responseReturn };
@@ -148,18 +199,152 @@ public class VatReturnsTests
         };
 
         // Act
-        VatReturn result = await this.vatReturns.MarkAsFiledAsync("101", filedOn, true, hmrcReference);
+        VatReturn result = await this.vatReturns.MarkAsFiledAsync("2024-03-31", filedOn, true, filedReference);
 
         // Assert
         result.ShouldNotBeNull();
-        result.Status.ShouldBe("filed");
-        result.FiledOn.ShouldBe(filedOn);
+        result.FilingStatus.ShouldBe("marked_as_filed");
+        result.FiledAt.ShouldNotBeNull();
         result.FiledOnline.ShouldBe(true);
-        result.HmrcReference.ShouldBe(hmrcReference);
+        result.FiledReference.ShouldBe(filedReference);
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/vat_returns/101/mark_as_filed");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/vat_returns/2024-03-31/mark_as_filed");
+    }
+
+    [TestMethod]
+    public async Task MarkAsUnfiledAsync_WithValidPeriod_UpdatesVatReturnAsUnfiled()
+    {
+        // Arrange
+        VatReturn responseReturn = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/vat_returns/2024-03-31"),
+            PeriodStartsOn = new DateOnly(2024, 1, 1),
+            PeriodEndsOn = new DateOnly(2024, 3, 31),
+            FilingDueOn = new DateOnly(2024, 5, 7),
+            FilingStatus = "unfiled",
+            Payments =
+            [
+                new VatReturnPayment
+                {
+                    Label = "VAT Payment",
+                    DueOn = new DateOnly(2024, 5, 7),
+                    AmountDue = 17000.00m,
+                    Status = "unpaid"
+                }
+            ]
+        };
+
+        VatReturnRoot responseRoot = new() { VatReturn = responseReturn };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        VatReturn result = await this.vatReturns.MarkAsUnfiledAsync("2024-03-31");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.FilingStatus.ShouldBe("unfiled");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/vat_returns/2024-03-31/mark_as_unfiled");
+    }
+
+    [TestMethod]
+    public async Task MarkPaymentAsPaidAsync_WithValidDetails_UpdatesPaymentStatus()
+    {
+        // Arrange
+        VatReturn responseReturn = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/vat_returns/2024-03-31"),
+            PeriodStartsOn = new DateOnly(2024, 1, 1),
+            PeriodEndsOn = new DateOnly(2024, 3, 31),
+            FilingDueOn = new DateOnly(2024, 5, 7),
+            FilingStatus = "filed",
+            Payments =
+            [
+                new VatReturnPayment
+                {
+                    Label = "VAT Payment",
+                    DueOn = new DateOnly(2024, 5, 7),
+                    AmountDue = 17000.00m,
+                    Status = "marked_as_paid"
+                }
+            ]
+        };
+
+        VatReturnRoot responseRoot = new() { VatReturn = responseReturn };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        VatReturn result = await this.vatReturns.MarkPaymentAsPaidAsync("2024-03-31", "2024-05-07");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Payments.ShouldNotBeNull();
+        result.Payments[0].Status.ShouldBe("marked_as_paid");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/vat_returns/2024-03-31/payments/2024-05-07/mark_as_paid");
+    }
+
+    [TestMethod]
+    public async Task MarkPaymentAsUnpaidAsync_WithValidDetails_UpdatesPaymentStatus()
+    {
+        // Arrange
+        VatReturn responseReturn = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/vat_returns/2024-03-31"),
+            PeriodStartsOn = new DateOnly(2024, 1, 1),
+            PeriodEndsOn = new DateOnly(2024, 3, 31),
+            FilingDueOn = new DateOnly(2024, 5, 7),
+            FilingStatus = "filed",
+            Payments =
+            [
+                new VatReturnPayment
+                {
+                    Label = "VAT Payment",
+                    DueOn = new DateOnly(2024, 5, 7),
+                    AmountDue = 17000.00m,
+                    Status = "unpaid"
+                }
+            ]
+        };
+
+        VatReturnRoot responseRoot = new() { VatReturn = responseReturn };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        VatReturn result = await this.vatReturns.MarkPaymentAsUnpaidAsync("2024-03-31", "2024-05-07");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Payments.ShouldNotBeNull();
+        result.Payments[0].Status.ShouldBe("unpaid");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/vat_returns/2024-03-31/payments/2024-05-07/mark_as_unpaid");
     }
 }
