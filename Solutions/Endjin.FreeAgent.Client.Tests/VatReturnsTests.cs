@@ -338,4 +338,141 @@ public class VatReturnsTests
         this.messageHandler.ShouldHaveBeenPutRequest();
         this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/vat_returns/2024-03-31/payments/2024-05-07/mark_as_unpaid");
     }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithRefundScenario_ReturnsVatReturnWithNegativeAmount()
+    {
+        // Arrange - A refund scenario where AmountDue is negative
+        VatReturn vatReturn = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/vat_returns/2024-03-31"),
+            PeriodStartsOn = new DateOnly(2024, 1, 1),
+            PeriodEndsOn = new DateOnly(2024, 3, 31),
+            FilingDueOn = new DateOnly(2024, 5, 7),
+            FilingStatus = "filed",
+            FiledAt = new DateTimeOffset(2024, 4, 15, 10, 30, 0, TimeSpan.Zero),
+            FiledReference = "REF123456",
+            Payments =
+            [
+                new VatReturnPayment
+                {
+                    Label = "VAT Refund",
+                    DueOn = new DateOnly(2024, 5, 7),
+                    AmountDue = -5000.00m,
+                    Status = null // Status is omitted when AmountDue is zero or negative
+                }
+            ]
+        };
+
+        VatReturnRoot responseRoot = new() { VatReturn = vatReturn };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        VatReturn result = await this.vatReturns.GetByIdAsync("2024-03-31");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Payments.ShouldNotBeNull();
+        result.Payments.Count.ShouldBe(1);
+        result.Payments[0].AmountDue.ShouldBe(-5000.00m);
+        result.Payments[0].Status.ShouldBeNull();
+        result.Payments[0].Label.ShouldBe("VAT Refund");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/vat_returns/2024-03-31");
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithNotFound_ThrowsHttpRequestException()
+    {
+        // Arrange
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.NotFound)
+        {
+            Content = new StringContent("{\"error\": \"Not Found\"}", Encoding.UTF8, "application/json")
+        };
+
+        // Act & Assert
+        await Should.ThrowAsync<HttpRequestException>(async () => await this.vatReturns.GetByIdAsync("2099-12-31"));
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/vat_returns/2099-12-31");
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithZeroAmountPayment_ReturnsVatReturnWithNullStatus()
+    {
+        // Arrange - Payment with zero amount (status should be null/omitted)
+        List<VatReturn> returnsList =
+        [
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/vat_returns/2024-03-31"),
+                PeriodStartsOn = new DateOnly(2024, 1, 1),
+                PeriodEndsOn = new DateOnly(2024, 3, 31),
+                FilingDueOn = new DateOnly(2024, 5, 7),
+                FilingStatus = "filed",
+                FiledAt = new DateTimeOffset(2024, 4, 15, 10, 30, 0, TimeSpan.Zero),
+                FiledReference = "REF789012",
+                Payments =
+                [
+                    new VatReturnPayment
+                    {
+                        Label = "VAT Payment",
+                        DueOn = new DateOnly(2024, 5, 7),
+                        AmountDue = 0.00m,
+                        Status = null // Status is omitted when AmountDue is zero
+                    }
+                ]
+            }
+        ];
+
+        VatReturnsRoot responseRoot = new() { VatReturns = returnsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<VatReturn> result = await this.vatReturns.GetAllAsync();
+
+        // Assert
+        result.Count().ShouldBe(1);
+        VatReturn vatReturn = result.First();
+        vatReturn.Payments[0].AmountDue.ShouldBe(0.00m);
+        vatReturn.Payments[0].Status.ShouldBeNull();
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/vat_returns");
+    }
+
+    [TestMethod]
+    public async Task MarkAsFiledAsync_WithNotFound_ThrowsHttpRequestException()
+    {
+        // Arrange
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.NotFound)
+        {
+            Content = new StringContent("{\"error\": \"Not Found\"}", Encoding.UTF8, "application/json")
+        };
+
+        // Act & Assert
+        await Should.ThrowAsync<HttpRequestException>(async () => await this.vatReturns.MarkAsFiledAsync("2099-12-31"));
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/vat_returns/2099-12-31/mark_as_filed");
+    }
 }

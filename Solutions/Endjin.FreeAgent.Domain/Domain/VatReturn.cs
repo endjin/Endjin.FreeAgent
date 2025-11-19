@@ -34,6 +34,7 @@ public record VatReturn
     /// </summary>
     /// <value>
     /// A URI that uniquely identifies this VAT return in the FreeAgent system.
+    /// This is a read-only property set by the API.
     /// </value>
     [JsonPropertyName("url")]
     public required Uri Url { get; init; }
@@ -87,7 +88,7 @@ public record VatReturn
     /// </summary>
     /// <value>
     /// The date and time the return was submitted to HMRC through the MTD service.
-    /// Only populated for returns filed online.
+    /// Only populated for returns filed online. This is a read-only property set by the API.
     /// </value>
     [JsonPropertyName("filed_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -98,7 +99,7 @@ public record VatReturn
     /// </summary>
     /// <value>
     /// The unique form bundle number provided by HMRC upon successful online submission,
-    /// used for tracking and confirmation.
+    /// used for tracking and confirmation. This is a read-only property set by the API.
     /// </value>
     [JsonPropertyName("filed_reference")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
