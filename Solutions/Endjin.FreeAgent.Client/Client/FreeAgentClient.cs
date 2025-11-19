@@ -170,7 +170,6 @@ public class FreeAgentClient : ClientBase
         this.CapitalAssetTypes = new CapitalAssetTypes(this, cache);
         this.CashFlowReports = new CashFlowReports(this, cache);
         this.Categories = new Categories(this, cache);
-        this.Currencies = new Currencies(this, cache);
         this.EmailAddresses = new EmailAddresses(this, cache);
         this.Company = new Company(this, cache);
         this.Contacts = new Contacts(this, cache);
@@ -280,12 +279,6 @@ public class FreeAgentClient : ClientBase
     /// </summary>
     /// <value>The <see cref="Categories"/> service instance.</value>
     public Categories Categories { get; private set; }
-
-    /// <summary>
-    /// Gets the service for accessing currency information.
-    /// </summary>
-    /// <value>The <see cref="Currencies"/> service instance.</value>
-    public Currencies Currencies { get; private set; }
 
     /// <summary>
     /// Gets the service for accessing verified sender email addresses.
