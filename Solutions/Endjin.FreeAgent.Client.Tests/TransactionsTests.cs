@@ -6,6 +6,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 
+using Corvus.Retry.Policies;
 using Endjin.FreeAgent.Domain;
 using Microsoft.Extensions.Logging;
 
@@ -39,6 +40,10 @@ public class TransactionsTests
             this.loggerFactory);
 
         await TestHelper.SetupForTestingAsync(this.freeAgentClient, this.httpClientFactory);
+
+        // Disable retries for tests to speed them up
+        this.freeAgentClient.RetryPolicy = Substitute.For<IRetryPolicy>();
+
         this.transactions = new Transactions(this.freeAgentClient, this.cache);
     }
 

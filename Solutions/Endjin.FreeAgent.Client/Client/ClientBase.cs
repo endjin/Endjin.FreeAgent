@@ -81,6 +81,8 @@ public abstract class ClientBase
     internal string? ClientId;
     internal string? ClientSecret;
     internal string? RefreshToken;
+    internal IRetryStrategy RetryStrategy { get; set; } = new Backoff();
+    internal IRetryPolicy RetryPolicy { get; set; } = new AnyExceptionPolicy();
 
     /// <summary>
     /// Gets or sets a value indicating whether the client has been initialized with HTTP clients and OAuth2 services.
@@ -297,8 +299,8 @@ public abstract class ClientBase
                     return result;
                 },
                 cancellationToken,
-                new Backoff(),
-                new AnyExceptionPolicy()).ConfigureAwait(false);
+                this.RetryStrategy,
+                this.RetryPolicy).ConfigureAwait(false);
 
             string jsonContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             T content = JsonSerializer.Deserialize<T>(jsonContent, SharedJsonOptions.Instance) ?? throw new InvalidOperationException("Failed to deserialize response content.");
