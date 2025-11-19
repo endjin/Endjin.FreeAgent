@@ -2,6 +2,7 @@
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
@@ -85,6 +86,7 @@ public abstract class ClientBase
     /// Gets or sets a value indicating whether the client has been initialized with HTTP clients and OAuth2 services.
     /// </summary>
     /// <value><c>true</c> if the client is initialized and ready to make API calls; otherwise, <c>false</c>.</value>
+    [MemberNotNullWhen(true, nameof(HttpClient), nameof(HttpClientNoAuthHeader), nameof(oauth2Service))]
     public bool IsInitialized { get; set; }
 
     /// <summary>
@@ -119,6 +121,7 @@ public abstract class ClientBase
     /// The initialization state is tracked by the <see cref="IsInitialized"/> property.
     /// </para>
     /// </remarks>
+    [MemberNotNull(nameof(HttpClient), nameof(HttpClientNoAuthHeader), nameof(oauth2Service))]
     public async Task InitializeAndAuthorizeAsync()
     {
         if (!this.IsInitialized)
@@ -144,7 +147,7 @@ public abstract class ClientBase
             InitializeOAuth2Service();
 
             // Use OAuth2Service
-            string accessToken = await oauth2Service!.GetAccessTokenAsync().ConfigureAwait(false);
+            string accessToken = await oauth2Service.GetAccessTokenAsync().ConfigureAwait(false);
 
             // Set authorization for HttpClient after async operation completes
             lock (syncRoot)
@@ -197,8 +200,12 @@ public abstract class ClientBase
     /// client ID, client secret, and refresh token. It also initializes the memory cache
     /// and logger if they haven't been set through dependency injection.
     /// </remarks>
+    [MemberNotNull(nameof(oauth2Service), nameof(memoryCache))]
     private void InitializeOAuth2Service()
     {
+        // Use existing memory cache if available, otherwise create a new one
+        memoryCache ??= new MemoryCache(new MemoryCacheOptions());
+
         if (oauth2Service == null)
         {
             OAuth2Options options = new()
@@ -209,9 +216,6 @@ public abstract class ClientBase
                 TokenEndpoint = new Uri(this.ApiBaseUrl, "/v2/token_endpoint"),
                 AuthorizationEndpoint = new Uri(this.ApiBaseUrl, "/v2/approve_app"),
             };
-
-            // Use existing memory cache if available, otherwise create a new one
-            memoryCache ??= new MemoryCache(new MemoryCacheOptions());
 
             // Create logger for OAuth2Service from factory or use NullLogger if factory not available
             ILogger<OAuth2Service> logger = loggerFactory?.CreateLogger<OAuth2Service>() ?? NullLogger<OAuth2Service>.Instance;
@@ -278,7 +282,7 @@ public abstract class ClientBase
                     {
                         InitializeOAuth2Service();
 
-                        string newAccessToken = await oauth2Service!.RefreshAccessTokenAsync().ConfigureAwait(false);
+                        string newAccessToken = await oauth2Service.RefreshAccessTokenAsync().ConfigureAwait(false);
 
                         lock (syncRoot)
                         {
