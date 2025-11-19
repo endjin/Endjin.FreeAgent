@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
     <!-- Enable MSTest runner for all test projects -->
-    <EnableMSTestRunner Condition="'$(IsTestProject)' == 'true'">true</EnableMSTestRunner>
+    <!-- <EnableMSTestRunner Condition="'$(IsTestProject)' == 'true'">true</EnableMSTestRunner> -->
   </PropertyGroup>
 </Project>
