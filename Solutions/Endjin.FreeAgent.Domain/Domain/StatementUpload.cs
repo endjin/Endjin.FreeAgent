@@ -23,7 +23,7 @@ namespace Endjin.FreeAgent.Domain;
 /// </para>
 /// <para>
 /// Note: The bank_account parameter is passed as a query parameter in the API request, not in the request body.
-/// See <see cref="Client.BankTransactions.UploadStatementAsync"/> for details on how statements are uploaded.
+/// See BankTransactions.UploadStatementAsync in the Client library for details on how statements are uploaded.
 /// </para>
 /// </remarks>
 /// <seealso cref="BankStatementUpload"/>

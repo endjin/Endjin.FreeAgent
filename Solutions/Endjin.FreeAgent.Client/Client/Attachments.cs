@@ -27,8 +27,7 @@ namespace Endjin.FreeAgent.Client;
 /// <strong>Content URL Expiration:</strong> The FreeAgent API provides temporary URLs (<see cref="Attachment.ContentSrc"/>,
 /// <see cref="Attachment.ContentSrcMedium"/>, <see cref="Attachment.ContentSrcSmall"/>) for accessing attachment content
 /// directly. These URLs expire at the time specified in <see cref="Attachment.ExpiresAt"/>. After expiration, you must
-/// call <see cref="GetByIdAsync"/> again to obtain fresh URLs. Alternatively, use <see cref="DownloadAsync"/> which
-/// handles this automatically via the API download endpoint.
+/// call <see cref="GetByIdAsync"/> again to obtain fresh URLs.
 /// </para>
 /// </remarks>
 /// <seealso cref="Attachment"/>

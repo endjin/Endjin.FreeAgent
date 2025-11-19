@@ -33,7 +33,7 @@ using System.Text.Json.Serialization;
 /// API Endpoint (Opening Balances): GET https://api.freeagent.com/v2/accounting/balance_sheet/opening_balances
 /// </para>
 /// <para>
-/// Minimum Access Level: Tax, Accounting & Users
+/// Minimum Access Level: Tax, Accounting &amp; Users
 /// </para>
 /// <para>
 /// API Documentation: https://dev.freeagent.com/docs/balance_sheet

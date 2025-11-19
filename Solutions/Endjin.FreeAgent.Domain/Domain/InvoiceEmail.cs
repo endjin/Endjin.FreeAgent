@@ -48,7 +48,6 @@ namespace Endjin.FreeAgent.Domain;
 /// <seealso cref="CreditNote"/>
 /// <seealso cref="InvoiceEmailWrapper"/>
 /// <seealso cref="CreditNoteEmailWrapper"/>
-/// <seealso cref="EmailAddresses"/>
 public record InvoiceEmail
 {
     /// <summary>
@@ -67,7 +66,7 @@ public record InvoiceEmail
     /// </summary>
     /// <value>
     /// The email address to use as the sender. This must be a verified sender email address from
-    /// the FreeAgent account. Use the <see cref="EmailAddresses"/> service to retrieve the list of
+    /// the FreeAgent account. Use the EmailAddresses service to retrieve the list of
     /// valid sender addresses. The sender's name and email will appear in the From field of the
     /// email sent to customers.
     /// </value>
