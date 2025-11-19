@@ -15,26 +15,25 @@ namespace Endjin.FreeAgent.Domain;
 /// </para>
 /// <para>
 /// Key aspects of Self Assessment returns:
-/// - Filed annually for the tax year (6 April to 5 April)
-/// - Must be filed by 31 October (paper) or 31 January (online) following the tax year end
-/// - Tax must be paid by 31 January following the tax year end
-/// - May include payments on account for the following year
-/// - Covers income tax, National Insurance, Capital Gains Tax, and Student Loan repayments
+/// </para>
+/// <list type="bullet">
+/// <item>Filed annually for the tax year (6 April to 5 April)</item>
+/// <item>Must be filed by 31 October (paper) or 31 January (online) following the tax year end</item>
+/// <item>Tax must be paid by 31 January following the tax year end</item>
+/// <item>May include payments on account for the following year</item>
+/// </list>
+/// <para>
+/// The return tracks payment deadlines and filing status for compliance monitoring.
 /// </para>
 /// <para>
-/// The return tracks various tax components including income tax, National Insurance contributions (Class 2 and Class 4
-/// for self-employed), Capital Gains Tax, and Student Loan repayments, along with payments on account for the next tax year.
+/// API Endpoint: /v2/users/:user_id/self_assessment_returns
 /// </para>
 /// <para>
-/// API Endpoint: /v2/self_assessment_returns
-/// </para>
-/// <para>
-/// Minimum Access Level: Full Access
+/// Minimum Access Level: Tax, Accounting &amp; Users
 /// </para>
 /// </remarks>
-/// <seealso cref="SelfAssessmentReturnFiling"/>
+/// <seealso cref="SelfAssessmentPayment"/>
 /// <seealso cref="User"/>
-/// <seealso cref="Expense"/>
 public record SelfAssessmentReturn
 {
     /// <summary>
@@ -44,16 +43,7 @@ public record SelfAssessmentReturn
     /// A URI that uniquely identifies this Self Assessment return in the FreeAgent system.
     /// </value>
     [JsonPropertyName("url")]
-    public Uri? Url { get; init; }
-
-    /// <summary>
-    /// Gets the URI reference to the user (individual) for whom this Self Assessment return is filed.
-    /// </summary>
-    /// <value>
-    /// The URI of the <see cref="Domain.User"/> who is the taxpayer for this Self Assessment return.
-    /// </value>
-    [JsonPropertyName("user")]
-    public Uri? User { get; init; }
+    public required Uri Url { get; init; }
 
     /// <summary>
     /// Gets the start date of the tax year for this Self Assessment return.
@@ -62,131 +52,72 @@ public record SelfAssessmentReturn
     /// The first date of the UK tax year covered by this return, typically 6 April.
     /// </value>
     [JsonPropertyName("period_starts_on")]
-    public DateOnly? PeriodStartsOn { get; init; }
+    public required DateOnly PeriodStartsOn { get; init; }
 
     /// <summary>
     /// Gets the end date of the tax year for this Self Assessment return.
     /// </summary>
     /// <value>
     /// The last date of the UK tax year covered by this return, typically 5 April.
-    /// This date determines the tax year (e.g., 2023/24).
+    /// This date is used to identify specific returns in API calls.
     /// </value>
     [JsonPropertyName("period_ends_on")]
-    public DateOnly? PeriodEndsOn { get; init; }
+    public required DateOnly PeriodEndsOn { get; init; }
 
     /// <summary>
-    /// Gets the status of this Self Assessment return.
+    /// Gets the collection of payment obligations for this Self Assessment return.
     /// </summary>
     /// <value>
-    /// The current status, such as "Draft", "Filed", "Overdue", or "Paid".
+    /// A list of <see cref="SelfAssessmentPayment"/> objects representing the tax payments due,
+    /// including balancing payments and payments on account. Each payment has its own due date and status.
     /// </value>
-    [JsonPropertyName("status")]
-    public string? Status { get; init; }
+    [JsonPropertyName("payments")]
+    public required List<SelfAssessmentPayment> Payments { get; init; }
 
     /// <summary>
-    /// Gets the amount of Income Tax due for this tax year.
+    /// Gets the deadline date for filing this Self Assessment return with HMRC.
     /// </summary>
     /// <value>
-    /// The calculated Income Tax liability on employment income, self-employment profits, rental income,
-    /// dividends, and other taxable income after personal allowances and reliefs.
+    /// The date by which the SA100 return must be submitted to HMRC to avoid late filing penalties.
+    /// Typically 31 January following the end of the tax year for online submissions.
     /// </value>
-    [JsonPropertyName("income_tax_due")]
-    public decimal? IncomeTaxDue { get; init; }
+    [JsonPropertyName("filing_due_on")]
+    public required DateOnly FilingDueOn { get; init; }
 
     /// <summary>
-    /// Gets the amount of National Insurance contributions due for this tax year.
+    /// Gets the filing status of this Self Assessment return.
     /// </summary>
     /// <value>
-    /// The calculated National Insurance liability including Class 2 (flat rate for self-employed)
-    /// and Class 4 (profit-related for self-employed) contributions.
+    /// The current filing status. Valid values are:
+    /// <list type="bullet">
+    /// <item><c>unfiled</c> - Return has not been submitted</item>
+    /// <item><c>pending</c> - Submission is being processed</item>
+    /// <item><c>rejected</c> - Submission was rejected by HMRC</item>
+    /// <item><c>provisionally_filed</c> - Provisionally filed pending final confirmation</item>
+    /// <item><c>filed</c> - Successfully filed with HMRC online</item>
+    /// <item><c>marked_as_filed</c> - Manually marked as filed (e.g., paper submission)</item>
+    /// </list>
     /// </value>
-    [JsonPropertyName("national_insurance_due")]
-    public decimal? NationalInsuranceDue { get; init; }
+    [JsonPropertyName("filing_status")]
+    public required string FilingStatus { get; init; }
 
     /// <summary>
-    /// Gets the amount of Capital Gains Tax due for this tax year.
+    /// Gets the date and time when this Self Assessment return was filed online with HMRC.
     /// </summary>
     /// <value>
-    /// The tax due on profits from selling assets such as property (excluding main residence),
-    /// shares, business assets, or valuable personal possessions above the annual CGT allowance.
+    /// A <see cref="DateTime"/> representing when the return was submitted to HMRC via online filing.
+    /// This property is only populated for returns filed online through the FreeAgent system.
     /// </value>
-    [JsonPropertyName("capital_gains_tax_due")]
-    public decimal? CapitalGainsTaxDue { get; init; }
+    [JsonPropertyName("filed_at")]
+    public DateTime? FiledAt { get; init; }
 
     /// <summary>
-    /// Gets the amount of Student Loan repayment due for this tax year.
+    /// Gets the IRMark reference returned by HMRC upon successful online filing.
     /// </summary>
     /// <value>
-    /// The calculated Student Loan repayment based on income above the repayment threshold.
-    /// Applies to Plan 1, Plan 2, Plan 4, or Postgraduate Loan holders.
+    /// The unique reference number (IRMark) provided by HMRC as confirmation of successful online submission.
+    /// This property is only populated for returns filed online through the FreeAgent system.
     /// </value>
-    [JsonPropertyName("student_loan_repayment_due")]
-    public decimal? StudentLoanRepaymentDue { get; init; }
-
-    /// <summary>
-    /// Gets the total tax and contributions due for this tax year.
-    /// </summary>
-    /// <value>
-    /// The sum of Income Tax, National Insurance, Capital Gains Tax, and Student Loan repayments
-    /// due for this tax year. This is the total amount owed to HMRC.
-    /// </value>
-    [JsonPropertyName("total_tax_due")]
-    public decimal? TotalTaxDue { get; init; }
-
-    /// <summary>
-    /// Gets the payments on account due for the following tax year.
-    /// </summary>
-    /// <value>
-    /// Advance payments toward next year's tax bill, typically required if the previous year's tax bill
-    /// exceeded £1,000. Paid in two installments (31 January and 31 July).
-    /// </value>
-    [JsonPropertyName("payments_on_account_due")]
-    public decimal? PaymentsOnAccountDue { get; init; }
-
-    /// <summary>
-    /// Gets the date when this Self Assessment return was filed with HMRC.
-    /// </summary>
-    /// <value>
-    /// The date the SA100 return was submitted to HMRC, either electronically or on paper.
-    /// Must be by 31 October (paper) or 31 January (online) following the tax year end.
-    /// </value>
-    [JsonPropertyName("filed_on")]
-    public DateOnly? FiledOn { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether this Self Assessment return was filed online.
-    /// </summary>
-    /// <value>
-    /// <c>true</c> if the return was submitted electronically through HMRC's online services;
-    /// <c>false</c> if it was filed on paper or marked as manually filed.
-    /// </value>
-    [JsonPropertyName("filed_online")]
-    public bool? FiledOnline { get; init; }
-
-    /// <summary>
-    /// Gets the Unique Taxpayer Reference (UTR) number for this individual.
-    /// </summary>
-    /// <value>
-    /// The 10-digit UTR number issued by HMRC to uniquely identify this taxpayer for Self Assessment purposes.
-    /// </value>
-    [JsonPropertyName("utr_number")]
-    public string? UtrNumber { get; init; }
-
-    /// <summary>
-    /// Gets the date and time when this Self Assessment return record was created.
-    /// </summary>
-    /// <value>
-    /// A <see cref="DateTime"/> representing when this return was first created in the FreeAgent system.
-    /// </value>
-    [JsonPropertyName("created_at")]
-    public DateTime? CreatedAt { get; init; }
-
-    /// <summary>
-    /// Gets the date and time when this Self Assessment return record was last updated.
-    /// </summary>
-    /// <value>
-    /// A <see cref="DateTime"/> representing the last modification timestamp for this return.
-    /// </value>
-    [JsonPropertyName("updated_at")]
-    public DateTime? UpdatedAt { get; init; }
+    [JsonPropertyName("filed_reference")]
+    public string? FiledReference { get; init; }
 }
