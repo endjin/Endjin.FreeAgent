@@ -151,6 +151,8 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(TaxTimelineRoot))]
 [JsonSerializable(typeof(TimeslipRoot))]
 [JsonSerializable(typeof(TimeslipsRoot))]
+[JsonSerializable(typeof(TransactionRoot))]
+[JsonSerializable(typeof(TransactionsRoot))]
 [JsonSerializable(typeof(TrialBalanceRoot))]
 [JsonSerializable(typeof(UserRoot))]
 [JsonSerializable(typeof(UsersRoot))]
@@ -263,6 +265,9 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(TaxTimelineItem))]
 [JsonSerializable(typeof(Timeslip))]
 [JsonSerializable(typeof(Timer))]
+[JsonSerializable(typeof(Transaction))]
+[JsonSerializable(typeof(ForeignCurrencyData))]
+[JsonSerializable(typeof(List<Transaction>))]
 [JsonSerializable(typeof(User))]
 [JsonSerializable(typeof(Webhook))]
 public partial class FreeAgentJsonContext : JsonSerializerContext

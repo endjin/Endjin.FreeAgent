@@ -199,6 +199,7 @@ public class FreeAgentClient : ClientBase
         this.StockItems = new StockItems(this, cache);
         this.Tasks = new Tasks(this, cache);
         this.Timeslips = new Timeslips(this, cache);
+        this.Transactions = new Transactions(this, cache);
         this.TrialBalances = new TrialBalances(this, cache);
         this.Users = new Users(this, cache);
         this.VatReturns = new VatReturns(this, cache);
@@ -458,6 +459,12 @@ public class FreeAgentClient : ClientBase
     /// </summary>
     /// <value>The <see cref="Timeslips"/> service instance.</value>
     public Timeslips Timeslips { get; private set; }
+
+    /// <summary>
+    /// Gets the service for accessing accounting transactions.
+    /// </summary>
+    /// <value>The <see cref="Transactions"/> service instance.</value>
+    public Transactions Transactions { get; private set; }
 
     /// <summary>
     /// Gets the service for accessing trial balance reports.
