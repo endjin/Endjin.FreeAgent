@@ -162,6 +162,7 @@ public class FreeAgentClient : ClientBase
         this.Attachments = new Attachments(this, cache);
         this.BalanceSheetReports = new BalanceSheetReports(this, cache);
         this.BankAccounts = new BankAccounts(this, cache);
+        this.BankFeeds = new BankFeeds(this, cache);
         this.BankStatementUploads = new BankStatementUploads(this, cache);
         this.BankTransactions = new BankTransactions(this, cache);
         this.BankTransactionExplanations = new BankTransactionExplanations(this, cache);
@@ -183,6 +184,7 @@ public class FreeAgentClient : ClientBase
         this.FinalAccountsReports = new FinalAccountsReports(this, cache);
         this.HirePurchases = new HirePurchases(this, cache);
         this.Invoices = new Invoices(this, cache);
+        this.InvoiceSettings = new InvoiceSettings(this, cache);
         this.JournalSets = new JournalSets(this);
         this.Mileages = new Mileages(this, cache);
         this.Notes = new Notes(this, cache);
@@ -231,6 +233,12 @@ public class FreeAgentClient : ClientBase
     /// </summary>
     /// <value>The <see cref="BankAccounts"/> service instance.</value>
     public BankAccounts BankAccounts { get; private set; }
+
+    /// <summary>
+    /// Gets the service for accessing bank feeds.
+    /// </summary>
+    /// <value>The <see cref="BankFeeds"/> service instance.</value>
+    public BankFeeds BankFeeds { get; private set; }
 
     /// <summary>
     /// Gets the service for uploading bank statements in OFX, QIF, or CSV format.
@@ -360,6 +368,12 @@ public class FreeAgentClient : ClientBase
     /// </summary>
     /// <value>The <see cref="Invoices"/> service instance.</value>
     public Invoices Invoices { get; private set; }
+
+    /// <summary>
+    /// Gets the service for managing invoice settings and templates.
+    /// </summary>
+    /// <value>The <see cref="InvoiceSettings"/> service instance.</value>
+    public InvoiceSettings InvoiceSettings { get; private set; }
 
     /// <summary>
     /// Gets the service for managing journal sets and manual journal entries.

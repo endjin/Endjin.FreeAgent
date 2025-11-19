@@ -458,8 +458,8 @@ public class JournalSetsTests
         {
             Description = "Opening Balances",
             Url = new Uri("https://api.freeagent.com/v2/journal_sets/opening_balances"),
-            BankAccounts = [new Uri("https://api.freeagent.com/v2/bank_accounts/1")],
-            StockItems = [new Uri("https://api.freeagent.com/v2/stock_items/1")]
+            BankAccounts = [new BankAccountOpeningBalance { Url = new Uri("https://api.freeagent.com/v2/bank_accounts/1") }],
+            StockItems = [new StockItemOpeningBalance { Url = new Uri("https://api.freeagent.com/v2/stock_items/1") }]
         };
 
         JournalSetRoot responseRoot = new() { JournalSet = openingBalances };

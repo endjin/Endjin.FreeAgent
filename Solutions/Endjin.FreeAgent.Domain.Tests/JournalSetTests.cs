@@ -217,8 +217,8 @@ public class JournalSetTests
         {
             DatedOn = new DateOnly(2024, 1, 1),
             Description = "Opening balances",
-            BankAccounts = [new Uri("https://api.freeagent.com/v2/bank_accounts/1")],
-            StockItems = [new Uri("https://api.freeagent.com/v2/stock_items/1")]
+            BankAccounts = [new BankAccountOpeningBalance { Url = new Uri("https://api.freeagent.com/v2/bank_accounts/1") }],
+            StockItems = [new StockItemOpeningBalance { Url = new Uri("https://api.freeagent.com/v2/stock_items/1") }]
         };
 
         // Assert

@@ -106,19 +106,19 @@ public record JournalSet
     /// Gets the bank account data for opening balances.
     /// </summary>
     /// <value>
-    /// An array of bank account URI references. This field is read-only and only present for opening balance journal sets.
+    /// An array of bank account opening balance entries. This field is read-only and only present for opening balance journal sets.
     /// </value>
     [JsonPropertyName("bank_accounts")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ImmutableList<Uri>? BankAccounts { get; init; }
+    public ImmutableList<BankAccountOpeningBalance>? BankAccounts { get; init; }
 
     /// <summary>
     /// Gets the stock item data for opening balances.
     /// </summary>
     /// <value>
-    /// An array of stock item URI references. This field is read-only and only present for opening balance journal sets.
+    /// An array of stock item opening balance entries. This field is read-only and only present for opening balance journal sets.
     /// </value>
     [JsonPropertyName("stock_items")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ImmutableList<Uri>? StockItems { get; init; }
+    public ImmutableList<StockItemOpeningBalance>? StockItems { get; init; }
 }
