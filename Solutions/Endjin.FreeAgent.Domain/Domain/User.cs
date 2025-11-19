@@ -86,6 +86,10 @@ public record User
     /// <see langword="true"/> if the user is hidden (archived); otherwise, <see langword="false"/>.
     /// Hidden users are removed from active lists but their historical data remains accessible.
     /// </value>
+    /// <remarks>
+    /// This property is not officially documented in the FreeAgent API documentation but is returned by the API
+    /// and referenced in the view filter descriptions (e.g., "active_staff" filters for non-hidden staff users).
+    /// </remarks>
     [JsonPropertyName("hidden")]
     public bool? Hidden { get; init; }
 
@@ -98,16 +102,16 @@ public record User
     /// 5 = Bills, 6 = Banking, 7 = Tax/Accounting/Users, 8 = Full Access.
     /// </value>
     [JsonPropertyName("permission_level")]
-    public long? PermissionLevel { get; init; }
+    public int? PermissionLevel { get; init; }
 
     /// <summary>
-    /// Gets the opening mileage value for this user at the company start date.
+    /// Gets the opening mileage value for this user as of the company start date.
     /// </summary>
     /// <value>
-    /// The mileage value at the beginning of the accounting period, used as a baseline for mileage expense calculations.
+    /// The mileage value as of the company start date, used as a baseline for mileage expense calculations.
     /// </value>
     [JsonPropertyName("opening_mileage")]
-    public string? OpeningMileage { get; init; }
+    public decimal? OpeningMileage { get; init; }
 
     /// <summary>
     /// Gets the date and time when this user record was last updated.
@@ -136,6 +140,36 @@ public record User
     [JsonPropertyName("ni_number")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? NiNumber { get; init; }
+
+    /// <summary>
+    /// Gets the user's Unique Tax Reference (UTR).
+    /// </summary>
+    /// <value>
+    /// A 10-digit UK tax reference number used for self-assessment.
+    /// </value>
+    [JsonPropertyName("unique_tax_reference")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? UniqueTaxReference { get; init; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to send an invitation email to the user.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> to send a password setup invitation; otherwise, <see langword="false"/>.
+    /// This is a write-only property used when creating users.
+    /// </value>
+    [JsonPropertyName("send_invitation")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? SendInvitation { get; init; }
+
+    /// <summary>
+    /// Gets the current payroll profile for this user.
+    /// </summary>
+    /// <value>
+    /// The payroll profile data when payroll is active. This property is read-only.
+    /// </value>
+    [JsonPropertyName("current_payroll_profile")]
+    public UserPayrollProfile? CurrentPayrollProfile { get; init; }
 
     /// <summary>
     /// Gets the full name of the user by combining first and last names.

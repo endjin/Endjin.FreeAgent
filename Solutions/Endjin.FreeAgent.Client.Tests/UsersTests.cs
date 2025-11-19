@@ -274,6 +274,412 @@ public class UsersTests
         this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/users");
     }
 
+    [TestMethod]
+    public async Task GetAllUsersAsync_WithViewParameter_IncludesViewInQueryString()
+    {
+        // Arrange
+        ImmutableList<User> usersList = ImmutableList.Create(
+            new User { FirstName = "Staff", LastName = "User", Role = Role.Employee, Hidden = false }
+        );
+
+        UsersRoot responseRoot = new() { Users = usersList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<User> result = await this.users.GetAllUsersAsync("active_staff");
+
+        // Assert
+        result.Count().ShouldBe(1);
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/users?view=active_staff");
+    }
+
+    [TestMethod]
+    public async Task GetCurrentUserAsync_ReturnsCurrentUser()
+    {
+        // Arrange
+        User currentUser = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/users/1"),
+            FirstName = "Current",
+            LastName = "User",
+            Email = "current@example.com",
+            Role = Role.Owner
+        };
+
+        UserRoot responseRoot = new() { User = currentUser };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        User result = await this.users.GetCurrentUserAsync();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.FirstName.ShouldBe("Current");
+        result.LastName.ShouldBe("User");
+        result.Email.ShouldBe("current@example.com");
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/users/me");
+    }
+
+    [TestMethod]
+    public async Task CreateAsync_CreatesNewUser()
+    {
+        // Arrange
+        User newUser = new()
+        {
+            FirstName = "New",
+            LastName = "User",
+            Email = "new@example.com",
+            Role = Role.Employee,
+            SendInvitation = true
+        };
+
+        User createdUser = newUser with
+        {
+            Url = new Uri("https://api.freeagent.com/v2/users/123"),
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        UserRoot responseRoot = new() { User = createdUser };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        User result = await this.users.CreateAsync(newUser);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Url.ShouldNotBeNull();
+        result.FirstName.ShouldBe("New");
+        result.LastName.ShouldBe("User");
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPostRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/users");
+    }
+
+    [TestMethod]
+    public async Task UpdateAsync_UpdatesExistingUser()
+    {
+        // Arrange
+        User updatedUser = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/users/123"),
+            FirstName = "Updated",
+            LastName = "User",
+            Email = "updated@example.com",
+            Role = Role.Director
+        };
+
+        UserRoot responseRoot = new() { User = updatedUser };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        User result = await this.users.UpdateAsync("123", updatedUser);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.FirstName.ShouldBe("Updated");
+        result.Role.ShouldBe(Role.Director);
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/users/123");
+    }
+
+    [TestMethod]
+    public async Task UpdateCurrentUserAsync_UpdatesOwnProfile()
+    {
+        // Arrange
+        User updatedProfile = new()
+        {
+            FirstName = "Updated",
+            LastName = "Profile",
+            Email = "profile@example.com"
+        };
+
+        UserRoot responseRoot = new() { User = updatedProfile };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        User result = await this.users.UpdateCurrentUserAsync(updatedProfile);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.FirstName.ShouldBe("Updated");
+        result.LastName.ShouldBe("Profile");
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/users/me");
+    }
+
+    [TestMethod]
+    public async Task DeleteAsync_DeletesUser()
+    {
+        // Arrange
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK);
+
+        // Act
+        await this.users.DeleteAsync("123");
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenDeleteRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/users/123");
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_ReturnsSpecificUser()
+    {
+        // Arrange
+        User specificUser = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/users/42"),
+            FirstName = "Specific",
+            LastName = "User",
+            Email = "specific@example.com",
+            Role = Role.Employee
+        };
+
+        UserRoot responseRoot = new() { User = specificUser };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        User result = await this.users.GetByIdAsync("42");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.FirstName.ShouldBe("Specific");
+        result.LastName.ShouldBe("User");
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/users/42");
+    }
+
+    [TestMethod]
+    public async Task GetAllUsersAsync_WithAllView_IncludesViewInQueryString()
+    {
+        // Arrange
+        ImmutableList<User> usersList = ImmutableList.Create(
+            new User { FirstName = "Test", LastName = "User", Role = Role.Employee, Hidden = false }
+        );
+
+        UsersRoot responseRoot = new() { Users = usersList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<User> result = await this.users.GetAllUsersAsync("all");
+
+        // Assert
+        result.Count().ShouldBe(1);
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/users?view=all");
+    }
+
+    [TestMethod]
+    public async Task GetAllUsersAsync_WithStaffView_IncludesViewInQueryString()
+    {
+        // Arrange
+        ImmutableList<User> usersList = ImmutableList.Create(
+            new User { FirstName = "Staff", LastName = "User", Role = Role.Employee, Hidden = false }
+        );
+
+        UsersRoot responseRoot = new() { Users = usersList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<User> result = await this.users.GetAllUsersAsync("staff");
+
+        // Assert
+        result.Count().ShouldBe(1);
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/users?view=staff");
+    }
+
+    [TestMethod]
+    public async Task GetAllUsersAsync_WithAdvisorsView_IncludesViewInQueryString()
+    {
+        // Arrange
+        ImmutableList<User> usersList = ImmutableList.Create(
+            new User { FirstName = "Advisor", LastName = "User", Role = Role.Accountant, Hidden = false }
+        );
+
+        UsersRoot responseRoot = new() { Users = usersList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<User> result = await this.users.GetAllUsersAsync("advisors");
+
+        // Assert
+        result.Count().ShouldBe(1);
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/users?view=advisors");
+    }
+
+    [TestMethod]
+    public async Task GetAllUsersAsync_WithActiveAdvisorsView_IncludesViewInQueryString()
+    {
+        // Arrange
+        ImmutableList<User> usersList = ImmutableList.Create(
+            new User { FirstName = "Active", LastName = "Advisor", Role = Role.Accountant, Hidden = false }
+        );
+
+        UsersRoot responseRoot = new() { Users = usersList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<User> result = await this.users.GetAllUsersAsync("active_advisors");
+
+        // Assert
+        result.Count().ShouldBe(1);
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/users?view=active_advisors");
+    }
+
+    [TestMethod]
+    public async Task GetAllUsersAsync_WithNoView_OmitsViewFromQueryString()
+    {
+        // Arrange
+        ImmutableList<User> usersList = ImmutableList.Create(
+            new User { FirstName = "Test", LastName = "User", Role = Role.Employee, Hidden = false }
+        );
+
+        UsersRoot responseRoot = new() { Users = usersList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<User> result = await this.users.GetAllUsersAsync();
+
+        // Assert
+        result.Count().ShouldBe(1);
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/users");
+    }
+
+    [TestMethod]
+    public async Task GetCurrentUserAsync_WithPayrollProfile_DeserializesPayrollData()
+    {
+        // Arrange
+        User currentUser = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/users/1"),
+            FirstName = "Current",
+            LastName = "User",
+            Email = "current@example.com",
+            Role = Role.Employee,
+            CurrentPayrollProfile = new UserPayrollProfile
+            {
+                TotalPayInPreviousEmployment = 25000.50m,
+                TotalTaxInPreviousEmployment = 5000.25m
+            }
+        };
+
+        UserRoot responseRoot = new() { User = currentUser };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        User result = await this.users.GetCurrentUserAsync();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.CurrentPayrollProfile.ShouldNotBeNull();
+        result.CurrentPayrollProfile.TotalPayInPreviousEmployment.ShouldBe(25000.50m);
+        result.CurrentPayrollProfile.TotalTaxInPreviousEmployment.ShouldBe(5000.25m);
+
+        // Assert - Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/users/me");
+    }
+
     [TestCleanup]
     public void Cleanup()
     {

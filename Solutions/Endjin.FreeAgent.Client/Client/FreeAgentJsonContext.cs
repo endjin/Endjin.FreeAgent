@@ -271,6 +271,7 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(ForeignCurrencyData))]
 [JsonSerializable(typeof(List<Transaction>))]
 [JsonSerializable(typeof(User))]
+[JsonSerializable(typeof(UserPayrollProfile))]
 [JsonSerializable(typeof(Webhook))]
 public partial class FreeAgentJsonContext : JsonSerializerContext
 {
