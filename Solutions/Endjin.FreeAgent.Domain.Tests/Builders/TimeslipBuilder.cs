@@ -20,6 +20,8 @@ public class TimeslipBuilder
     private DateTimeOffset updatedAt = new(2024, 6, 15, 12, 0, 0, TimeSpan.Zero);
     private DateTimeOffset createdAt = new(2024, 6, 15, 11, 0, 0, TimeSpan.Zero);
     private User? userEntry;
+    private Uri? billedOnInvoice;
+    private Timer? timer;
 
     public TimeslipBuilder WithUrl(Uri? url)
     {
@@ -78,6 +80,28 @@ public class TimeslipBuilder
         return this;
     }
 
+    public TimeslipBuilder WithBilledOnInvoice(Uri? billedOnInvoice)
+    {
+        this.billedOnInvoice = billedOnInvoice;
+        return this;
+    }
+
+    public TimeslipBuilder WithTimer(Timer? timer)
+    {
+        this.timer = timer;
+        return this;
+    }
+
+    public TimeslipBuilder WithRunningTimer()
+    {
+        this.timer = new Timer
+        {
+            Running = true,
+            StartFrom = DateTimeOffset.UtcNow.AddHours((double)-this.hours)
+        };
+        return this;
+    }
+
     public Timeslip Build() => new()
     {
         Url = url,
@@ -91,6 +115,8 @@ public class TimeslipBuilder
         Comment = comment,
         UpdatedAt = updatedAt,
         CreatedAt = createdAt,
+        BilledOnInvoice = billedOnInvoice,
+        Timer = timer,
         UserEntry = userEntry
     };
 

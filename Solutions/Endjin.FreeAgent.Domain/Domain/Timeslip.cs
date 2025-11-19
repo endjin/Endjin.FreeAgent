@@ -108,7 +108,6 @@ public record Timeslip
     /// </summary>
     /// <value>
     /// The time duration in decimal hours (e.g., 1.5 for 1 hour 30 minutes, 7.5 for a full working day).
-    /// This field is required when creating a timeslip.
     /// </value>
     [JsonPropertyName("hours")]
     public decimal? Hours { get; init; }
@@ -140,6 +139,25 @@ public record Timeslip
     /// </value>
     [JsonPropertyName("created_at")]
     public DateTimeOffset? CreatedAt { get; init; }
+
+    /// <summary>
+    /// Gets the URI reference to the invoice this timeslip was billed on.
+    /// </summary>
+    /// <value>
+    /// The URI of the invoice if this timeslip has been billed; otherwise, <c>null</c>.
+    /// </value>
+    [JsonPropertyName("billed_on_invoice")]
+    public Uri? BilledOnInvoice { get; init; }
+
+    /// <summary>
+    /// Gets the timer information if a timer is currently running on this timeslip.
+    /// </summary>
+    /// <value>
+    /// A <see cref="Domain.Timer"/> object containing timer state if a timer is running; otherwise, <c>null</c>.
+    /// </value>
+    /// <seealso cref="Domain.Timer"/>
+    [JsonPropertyName("timer")]
+    public Timer? Timer { get; init; }
 
     /// <summary>
     /// Gets the <see cref="Domain.User"/> object who recorded this timeslip.
