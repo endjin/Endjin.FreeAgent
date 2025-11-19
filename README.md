@@ -6,7 +6,7 @@ A comprehensive .NET client library for the [FreeAgent](https://www.freeagent.co
 
 ## Overview
 
-Endjin.FreeAgent is a fully-featured .NET client library designed to simplify integration with the FreeAgent accounting platform. Built with .NET 10 and C# 14 preview features, it provides a type-safe, performant, and developer-friendly way to interact with FreeAgent's REST API.
+`Endjin.FreeAgent` is a fully-featured .NET client library designed to simplify integration with the FreeAgent accounting platform. Built with .NET 10 and C# 14 preview features, it provides a type-safe, performant, and developer-friendly way to interact with FreeAgent's REST API.
 
 ## Architecture
 
@@ -100,22 +100,104 @@ IEnumerable<Invoice> invoices = await client.Invoices.GetAllAsync();
 IEnumerable<Contact> contacts = await client.Contacts.GetAllActiveAsync();
 IEnumerable<Project> projects = await client.Projects.GetAllActiveAsync();
 ```
+## Sandbox Environment
 
-### OAuth2 Authentication
+FreeAgent provides a sandbox environment for development and testing. The sandbox allows you to build and test integrations without affecting real production data.
+
+### Getting a Sandbox Account
+
+1. **Create a Sandbox Account**
+   - Visit [https://signup.sandbox.freeagent.com/signup](https://signup.sandbox.freeagent.com/signup)
+   - Create a free temporary FreeAgent account
+   - Complete the email confirmation process
+
+2. **Complete Company Setup**
+   - After signing in, complete all company setup stages
+   - **Important**: Incomplete setup will cause unexpected API errors
+
+3. **Create an App**
+   - Go to [https://dev.freeagent.com/](https://dev.freeagent.com/)
+   - Register your application
+   - Note your OAuth identifier (Client ID) and OAuth secret (Client Secret)
+
+### Sandbox API Endpoints
+
+The sandbox uses different base URLs from production:
+
+| Environment | API Base URL                            | Authorization Endpoint                             |
+|-------------|-----------------------------------------|----------------------------------------------------|
+| Sandbox     | `https://api.sandbox.freeagent.com/v2/` | `https://api.sandbox.freeagent.com/v2/approve_app` |
+| Production  | `https://api.freeagent.com/v2/`         | `https://api.freeagent.com/v2/approve_app`         |
+
+### Configuring the Client for Sandbox
+
+Using the `UseSandbox` property (automatically sets the correct API base URL):
 
 ```csharp
-// Initialize OAuth2 service
-IOAuth2Service oauth2Service = new OAuth2Service(httpClient, options, cache, logger);
+// Configure for sandbox environment
+FreeAgentOptions options = new()
+{
+    ClientId = "your-sandbox-client-id",
+    ClientSecret = "your-sandbox-client-secret",
+    RefreshToken = "your-sandbox-refresh-token",
+    UseSandbox = true
+};
 
-// Get authorization URL
-string authUrl = oauth2Service.GetAuthorizationUrl("https://your-app.com/callback");
-
-// Exchange authorization code for tokens
-OAuth2TokenResponse tokens = await oauth2Service.ExchangeCodeAsync(authorizationCode);
-
-// Refresh access token when needed
-OAuth2TokenResponse refreshedTokens = await oauth2Service.RefreshTokenAsync(refreshToken);
+FreeAgentClient client = new(options, cache, httpClientFactory, loggerFactory);
 ```
+
+Or using the constructor with explicit credentials:
+
+```csharp
+FreeAgentClient client = new(
+    clientId,
+    clientSecret,
+    refreshToken,
+    cache,
+    httpClientFactory,
+    loggerFactory,
+    useSandbox: true);
+```
+
+Or via configuration:
+
+```json
+{
+  "FreeAgent": {
+    "ClientId": "your-sandbox-client-id",
+    "ClientSecret": "your-sandbox-client-secret",
+    "RefreshToken": "your-sandbox-refresh-token",
+    "UseSandbox": true
+  }
+}
+```
+
+> **Note**: The `ApiBaseUrl` property is automatically computed based on `UseSandbox`. You don't need to specify the URL manually.
+
+### Testing Rate Limits
+
+The sandbox supports the same rate limits as production (120 requests/minute, 3600 requests/hour). To test your rate limit handling with artificially lowered limits (5 requests/minute), use the test header:
+
+```bash
+curl -H "X-RateLimit-Test: true" \
+     -H "Authorization: Bearer {token}" \
+     https://api.sandbox.freeagent.com/v2/company
+```
+
+### Sandbox Limitations
+
+- **Trial Duration**: Sandbox accounts have a 30-day free trial (extensions available on request)
+- **No Pre-populated Data**: You must create all test data manually
+- **Periodic Resets**: Sandbox accounts may be periodically reset
+- **No Production Sync**: Sandbox accounts are not linked to production accounts
+
+### Best Practices
+
+- Complete company setup before making API calls
+- Use separate OAuth credentials for sandbox and production
+- Test OAuth2 token refresh flows thoroughly
+- Test error handling and rate limit back-off strategies
+- Don't rely on persistent test data due to potential resets
 
 ## Building from Source
 
@@ -360,10 +442,6 @@ catch (HttpRequestException ex)
     Console.WriteLine($"Network error: {ex.Message}");
 }
 ```
-
-## Roadmap
-
-- [ ] .NET 10 stable release update
 
 ## Support
 
