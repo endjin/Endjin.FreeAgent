@@ -193,30 +193,30 @@ public record BankTransaction
     /// Gets the date and time when this transaction was uploaded.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing when the transaction was imported into FreeAgent,
+    /// A <see cref="DateTimeOffset"/> representing when the transaction was imported into FreeAgent,
     /// or <see langword="null"/> for manually created transactions.
     /// </value>
     [JsonPropertyName("uploaded_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? UploadedAt { get; init; }
+    public DateTimeOffset? UploadedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this transaction record was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the creation timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the creation timestamp in UTC.
     /// </value>
     [JsonPropertyName("created_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this transaction record was last updated.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the last modification timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the last modification timestamp in UTC.
     /// </value>
     [JsonPropertyName("updated_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 }

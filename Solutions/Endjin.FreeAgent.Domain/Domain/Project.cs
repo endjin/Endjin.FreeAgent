@@ -109,7 +109,7 @@ public record Project
     /// to use the contact or global invoice numbering sequence. This field is required when creating a project.
     /// </value>
     [JsonPropertyName("uses_project_invoice_sequence")]
-    public required bool UsesProjectInvoiceSequence { get; init; }
+    public bool? UsesProjectInvoiceSequence { get; init; }
 
     /// <summary>
     /// Gets the currency code for this project.
@@ -130,7 +130,7 @@ public record Project
     /// </value>
     /// <seealso cref="BudgetUnits"/>
     [JsonPropertyName("budget")]
-    public required decimal Budget { get; init; }
+    public decimal? Budget { get; init; }
 
     /// <summary>
     /// Gets the units for the project budget.
@@ -140,8 +140,7 @@ public record Project
     /// </value>
     /// <seealso cref="Budget"/>
     [JsonPropertyName("budget_units")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? BudgetUnits { get; init; }
+    public required string BudgetUnits { get; init; }
 
     /// <summary>
     /// Gets the number of hours considered to constitute a working day for this project.
@@ -204,7 +203,7 @@ public record Project
     /// </value>
     [JsonPropertyName("starts_on")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTimeOffset? StartsOn { get; init; }
+    public DateOnly? StartsOn { get; init; }
 
     /// <summary>
     /// Gets the end date for this project.
@@ -214,7 +213,7 @@ public record Project
     /// </value>
     [JsonPropertyName("ends_on")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTimeOffset? EndsOn { get; init; }
+    public DateOnly? EndsOn { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether unbilled time should be included in profitability calculations.

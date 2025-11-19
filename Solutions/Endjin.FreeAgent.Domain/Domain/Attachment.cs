@@ -90,11 +90,11 @@ public record Attachment
     /// Gets the date and time when this attachment was uploaded.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the upload timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the upload timestamp in UTC.
     /// </value>
     [JsonPropertyName("created_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the URL to access the original full-size file content.
@@ -134,11 +134,11 @@ public record Attachment
     /// Gets the expiration timestamp for the content URLs.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> in UTC indicating when the <see cref="ContentSrc"/>, <see cref="ContentSrcMedium"/>,
+    /// A <see cref="DateTimeOffset"/> in UTC indicating when the <see cref="ContentSrc"/>, <see cref="ContentSrcMedium"/>,
     /// and <see cref="ContentSrcSmall"/> URLs will expire and no longer be accessible. After this time, you must
     /// fetch the attachment metadata again to obtain new temporary URLs.
     /// </value>
     [JsonPropertyName("expires_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? ExpiresAt { get; init; }
+    public DateTimeOffset? ExpiresAt { get; init; }
 }

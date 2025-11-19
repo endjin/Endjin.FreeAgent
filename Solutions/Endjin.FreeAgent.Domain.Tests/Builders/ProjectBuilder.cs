@@ -18,15 +18,15 @@ public class ProjectBuilder
     private string? contractPoReference = "PO-12345";
     private bool usesProjectInvoiceSequence = false;
     private string currency = "GBP";
-    private decimal budget = 10000m;
-    private string? budgetUnits = "Hours";
+    private decimal? budget = 10000m;
+    private string budgetUnits = "Hours";
     private decimal? hoursPerDay = 8m;
     private decimal? normalBillingRate = 100m;
     private string? billingPeriod = "hour";
     private bool? isIr35 = false;
     private bool? isEstimate = false;
-    private DateTimeOffset? startsOn = new DateTimeOffset(2024, 6, 1, 0, 0, 0, TimeSpan.Zero);
-    private DateTimeOffset? endsOn = new DateTimeOffset(2024, 9, 1, 0, 0, 0, TimeSpan.Zero);
+    private DateOnly? startsOn = new DateOnly(2024, 6, 1);
+    private DateOnly? endsOn = new DateOnly(2024, 9, 1);
     private bool? includeUnbilledTimeInProfitability;
     private bool? isDeletable;
     private DateTimeOffset? createdAt = new DateTimeOffset(2024, 5, 25, 0, 0, 0, TimeSpan.Zero);
@@ -61,11 +61,11 @@ public class ProjectBuilder
     public ProjectBuilder AsCompleted()
     {
         this.status = "Completed";
-        this.endsOn = new DateTimeOffset(2024, 5, 31, 0, 0, 0, TimeSpan.Zero);
+        this.endsOn = new DateOnly(2024, 5, 31);
         return this;
     }
 
-    public ProjectBuilder WithBudget(decimal budget, string? budgetUnits = "Hours")
+    public ProjectBuilder WithBudget(decimal? budget, string budgetUnits = "Hours")
     {
         this.budget = budget;
         this.budgetUnits = budgetUnits;
@@ -103,7 +103,7 @@ public class ProjectBuilder
         return this;
     }
 
-    public ProjectBuilder WithDates(DateTimeOffset? startsOn, DateTimeOffset? endsOn)
+    public ProjectBuilder WithDates(DateOnly? startsOn, DateOnly? endsOn)
     {
         this.startsOn = startsOn;
         this.endsOn = endsOn;

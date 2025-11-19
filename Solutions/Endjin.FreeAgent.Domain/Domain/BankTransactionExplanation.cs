@@ -90,6 +90,16 @@ public record BankTransactionExplanation
     public Uri? Category { get; init; }
 
     /// <summary>
+    /// Gets the cheque number for this explanation.
+    /// </summary>
+    /// <value>
+    /// The cheque number if the transaction was made by cheque.
+    /// </value>
+    [JsonPropertyName("cheque_number")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ChequeNumber { get; init; }
+
+    /// <summary>
     /// Gets the gross value of this explanation including tax.
     /// </summary>
     /// <value>
@@ -140,7 +150,7 @@ public record BankTransactionExplanation
     /// </value>
     [JsonPropertyName("attachment")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Uri? Attachment { get; init; }
+    public Attachment? Attachment { get; init; }
 
     /// <summary>
     /// Gets the rebilling method when rebilling this expense to a client.
@@ -162,6 +172,16 @@ public record BankTransactionExplanation
     [JsonPropertyName("rebill_factor")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public decimal? RebillFactor { get; init; }
+
+    /// <summary>
+    /// Gets the receipt reference for this explanation.
+    /// </summary>
+    /// <value>
+    /// An optional reference number for the receipt associated with this explanation.
+    /// </value>
+    [JsonPropertyName("receipt_reference")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ReceiptReference { get; init; }
 
     /// <summary>
     /// Gets the transaction amount in the original foreign currency.
@@ -218,6 +238,17 @@ public record BankTransactionExplanation
     public string? SalesTaxStatus { get; init; }
 
     /// <summary>
+    /// Gets the secondary sales tax status classification for this explanation.
+    /// </summary>
+    /// <value>
+    /// Either "TAXABLE" or "EXEMPT", determining how secondary sales tax is applied.
+    /// Used in jurisdictions with dual tax systems (e.g., Canadian GST/PST).
+    /// </value>
+    [JsonPropertyName("second_sales_tax_status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SecondSalesTaxStatus { get; init; }
+
+    /// <summary>
     /// Gets the EC (European Community) status for VAT purposes.
     /// </summary>
     /// <value>
@@ -228,6 +259,17 @@ public record BankTransactionExplanation
     [JsonPropertyName("ec_status")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? EcStatus { get; init; }
+
+    /// <summary>
+    /// Gets the place of supply for EC VAT MOSS (Mini One Stop Shop) purposes.
+    /// </summary>
+    /// <value>
+    /// The country or jurisdiction code determining where VAT is due for digital services
+    /// sold to EU customers under the MOSS scheme.
+    /// </value>
+    [JsonPropertyName("place_of_supply")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PlaceOfSupply { get; init; }
 
     /// <summary>
     /// Gets the second sales tax rate for universal accounts.
@@ -269,6 +311,26 @@ public record BankTransactionExplanation
     [JsonPropertyName("is_locked")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? IsLocked { get; init; }
+
+    /// <summary>
+    /// Gets the list of attributes that cannot be modified.
+    /// </summary>
+    /// <value>
+    /// A list of property names that are locked and cannot be changed.
+    /// </value>
+    [JsonPropertyName("locked_attributes")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? LockedAttributes { get; init; }
+
+    /// <summary>
+    /// Gets the reason for the explanation being locked.
+    /// </summary>
+    /// <value>
+    /// A description of why the explanation is locked (e.g., "Period locked").
+    /// </value>
+    [JsonPropertyName("locked_reason")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? LockedReason { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether this explanation can be deleted.
@@ -408,6 +470,16 @@ public record BankTransactionExplanation
     public Uri? DisposedAsset { get; init; }
 
     /// <summary>
+    /// Gets the URI reference to the property linked to the explanation.
+    /// </summary>
+    /// <value>
+    /// The URI of the property associated with this explanation.
+    /// </value>
+    [JsonPropertyName("property")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? Property { get; init; }
+
+    /// <summary>
     /// Gets the depreciation period in years for capital assets.
     /// </summary>
     /// <value>
@@ -423,19 +495,19 @@ public record BankTransactionExplanation
     /// Gets the date and time when this explanation was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the creation timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the creation timestamp in UTC.
     /// </value>
     [JsonPropertyName("created_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this explanation was last updated.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the last modification timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the last modification timestamp in UTC.
     /// </value>
     [JsonPropertyName("updated_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 }

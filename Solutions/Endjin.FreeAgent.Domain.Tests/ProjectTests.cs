@@ -93,8 +93,8 @@ public class ProjectTests
     public void Project_WithDateRange_TracksProjectTimeline()
     {
         // Arrange
-        DateTimeOffset startDate = new(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
-        DateTimeOffset endDate = new(2024, 7, 1, 0, 0, 0, TimeSpan.Zero);
+        DateOnly startDate = new(2024, 1, 1);
+        DateOnly endDate = new(2024, 7, 1);
 
         // Act
         Project project = new ProjectBuilder()
@@ -116,7 +116,7 @@ public class ProjectTests
         // Assert
         project.Status.ShouldBe("Completed");
         project.EndsOn.ShouldNotBeNull();
-        project.EndsOn.ShouldBe(new DateTimeOffset(2024, 5, 31, 0, 0, 0, TimeSpan.Zero));
+        project.EndsOn.ShouldBe(new DateOnly(2024, 5, 31));
     }
 
     [TestMethod]
