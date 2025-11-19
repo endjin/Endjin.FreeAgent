@@ -43,54 +43,6 @@ public class StockItemsTests
     }
 
     [TestMethod]
-    public async Task CreateAsync_WithValidItem_ReturnsCreatedItem()
-    {
-        // Arrange
-        StockItem inputItem = new()
-        {
-            Description = "Widget Model A",
-            OpeningQuantity = 100.00m,
-            OpeningBalance = 1000.00m,
-            StockItemType = "Product",
-            CostOfSaleCategory = new Uri("https://api.freeagent.com/v2/categories/100"),
-            StockOnHandCategory = new Uri("https://api.freeagent.com/v2/categories/101")
-        };
-
-        StockItem responseItem = new()
-        {
-            Url = new Uri("https://api.freeagent.com/v2/stock_items/123"),
-            Description = "Widget Model A",
-            OpeningQuantity = 100.00m,
-            OpeningBalance = 1000.00m,
-            StockItemType = "Product",
-            CostOfSaleCategory = new Uri("https://api.freeagent.com/v2/categories/100"),
-            StockOnHandCategory = new Uri("https://api.freeagent.com/v2/categories/101")
-        };
-
-        StockItemRoot responseRoot = new() { StockItem = responseItem };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
-
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
-        };
-
-        // Act
-        StockItem result = await this.stockItems.CreateAsync(inputItem);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Url.ShouldNotBeNull();
-        result.Description.ShouldBe("Widget Model A");
-        result.OpeningQuantity.ShouldBe(100.00m);
-
-        // Mock Verification
-        this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPostRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/stock_items");
-    }
-
-    [TestMethod]
     public async Task GetAllAsync_ReturnsAllItems()
     {
         // Arrange
@@ -100,20 +52,28 @@ public class StockItemsTests
             {
                 Url = new Uri("https://api.freeagent.com/v2/stock_items/1"),
                 Description = "Widget Model A",
-                OpeningQuantity = 100.00m,
-                OpeningBalance = 1000.00m
+                OpeningQuantity = 100,
+                OpeningBalance = 1000.00m,
+                CostOfSaleCategory = new Uri("https://api.freeagent.com/v2/categories/100"),
+                StockOnHand = 95,
+                CreatedAt = new DateTime(2024, 1, 15, 10, 30, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2024, 6, 20, 14, 45, 0, DateTimeKind.Utc)
             },
             new()
             {
                 Url = new Uri("https://api.freeagent.com/v2/stock_items/2"),
                 Description = "Widget Model B",
-                OpeningQuantity = 200.00m,
-                OpeningBalance = 2500.00m
+                OpeningQuantity = 200,
+                OpeningBalance = 2500.00m,
+                CostOfSaleCategory = new Uri("https://api.freeagent.com/v2/categories/101"),
+                StockOnHand = 180,
+                CreatedAt = new DateTime(2024, 2, 10, 9, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2024, 7, 5, 16, 30, 0, DateTimeKind.Utc)
             }
         ];
 
         StockItemsRoot responseRoot = new() { StockItems = itemsList };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.SourceGenOptions);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
         {
@@ -140,13 +100,16 @@ public class StockItemsTests
         {
             Url = new Uri("https://api.freeagent.com/v2/stock_items/456"),
             Description = "Premium Coffee Beans 1kg",
-            OpeningQuantity = 50.00m,
+            OpeningQuantity = 50,
             OpeningBalance = 750.00m,
-            StockItemType = "Product"
+            CostOfSaleCategory = new Uri("https://api.freeagent.com/v2/categories/100"),
+            StockOnHand = 45,
+            CreatedAt = new DateTime(2024, 3, 1, 8, 0, 0, DateTimeKind.Utc),
+            UpdatedAt = new DateTime(2024, 8, 15, 12, 0, 0, DateTimeKind.Utc)
         };
 
         StockItemRoot responseRoot = new() { StockItem = item };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.SourceGenOptions);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
         {
@@ -159,7 +122,7 @@ public class StockItemsTests
         // Assert
         result.ShouldNotBeNull();
         result.Description.ShouldBe("Premium Coffee Beans 1kg");
-        result.OpeningQuantity.ShouldBe(50.00m);
+        result.OpeningQuantity.ShouldBe(50);
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
@@ -168,27 +131,26 @@ public class StockItemsTests
     }
 
     [TestMethod]
-    public async Task UpdateAsync_WithValidItem_ReturnsUpdatedItem()
+    public async Task GetAllAsync_WithSortParameter_PassesSortToApi()
     {
         // Arrange
-        StockItem updatedItem = new()
-        {
-            Description = "Widget Model A - Updated",
-            OpeningQuantity = 150.00m,
-            OpeningBalance = 1500.00m
-        };
+        List<StockItem> itemsList =
+        [
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/stock_items/1"),
+                Description = "Widget A",
+                OpeningQuantity = 100,
+                OpeningBalance = 1000.00m,
+                CostOfSaleCategory = new Uri("https://api.freeagent.com/v2/categories/100"),
+                StockOnHand = 95,
+                CreatedAt = new DateTime(2024, 1, 15, 10, 30, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2024, 6, 20, 14, 45, 0, DateTimeKind.Utc)
+            }
+        ];
 
-        StockItem responseItem = new()
-        {
-            Url = new Uri("https://api.freeagent.com/v2/stock_items/789"),
-            Description = "Widget Model A - Updated",
-            OpeningQuantity = 150.00m,
-            OpeningBalance = 1500.00m,
-            StockItemType = "Product"
-        };
-
-        StockItemRoot responseRoot = new() { StockItem = responseItem };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+        StockItemsRoot responseRoot = new() { StockItems = itemsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.SourceGenOptions);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
         {
@@ -196,31 +158,253 @@ public class StockItemsTests
         };
 
         // Act
-        StockItem result = await this.stockItems.UpdateAsync("789", updatedItem);
+        IEnumerable<StockItem> result = await this.stockItems.GetAllAsync("created_at");
 
         // Assert
-        result.ShouldNotBeNull();
-        result.Description.ShouldBe("Widget Model A - Updated");
-        result.OpeningQuantity.ShouldBe(150.00m);
+        result.Count().ShouldBe(1);
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/stock_items/789");
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/stock_items?sort=created_at");
     }
 
     [TestMethod]
-    public async Task DeleteAsync_WithValidId_DeletesItem()
+    public async Task GetByIdAsync_WithNullId_ThrowsArgumentException()
+    {
+        // Act & Assert
+        await Should.ThrowAsync<ArgumentException>(async () => await this.stockItems.GetByIdAsync(null!));
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithEmptyId_ThrowsArgumentException()
+    {
+        // Act & Assert
+        await Should.ThrowAsync<ArgumentException>(async () => await this.stockItems.GetByIdAsync(string.Empty));
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithWhitespaceId_ThrowsArgumentException()
+    {
+        // Act & Assert
+        await Should.ThrowAsync<ArgumentException>(async () => await this.stockItems.GetByIdAsync("   "));
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WhenItemNotFound_ThrowsInvalidOperationException()
     {
         // Arrange
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.NoContent);
+        StockItemRoot responseRoot = new() { StockItem = null };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.SourceGenOptions);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act & Assert
+        await Should.ThrowAsync<InvalidOperationException>(async () => await this.stockItems.GetByIdAsync("999"));
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_ReturnsItemWithAllFields()
+    {
+        // Arrange
+        DateTime createdAt = new(2024, 3, 1, 8, 0, 0, DateTimeKind.Utc);
+        DateTime updatedAt = new(2024, 8, 15, 12, 0, 0, DateTimeKind.Utc);
+
+        StockItem item = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/stock_items/789"),
+            Description = "Complete Stock Item",
+            OpeningQuantity = 100,
+            OpeningBalance = 5000.00m,
+            CostOfSaleCategory = new Uri("https://api.freeagent.com/v2/categories/200"),
+            StockOnHand = 85,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt
+        };
+
+        StockItemRoot responseRoot = new() { StockItem = item };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.SourceGenOptions);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
 
         // Act
-        await this.stockItems.DeleteAsync("999");
+        StockItem result = await this.stockItems.GetByIdAsync("789");
 
-        // Assert - Mock Verification
+        // Assert
+        result.ShouldNotBeNull();
+        result.Url.ShouldBe(new Uri("https://api.freeagent.com/v2/stock_items/789"));
+        result.Description.ShouldBe("Complete Stock Item");
+        result.OpeningQuantity.ShouldBe(100);
+        result.OpeningBalance.ShouldBe(5000.00m);
+        result.CostOfSaleCategory.ShouldBe(new Uri("https://api.freeagent.com/v2/categories/200"));
+        result.StockOnHand.ShouldBe(85);
+        result.CreatedAt.ShouldBe(createdAt);
+        result.UpdatedAt.ShouldBe(updatedAt);
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithDescendingSortParameter_PassesSortToApi()
+    {
+        // Arrange
+        List<StockItem> itemsList =
+        [
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/stock_items/1"),
+                Description = "Widget A",
+                OpeningQuantity = 100,
+                OpeningBalance = 1000.00m,
+                CostOfSaleCategory = new Uri("https://api.freeagent.com/v2/categories/100"),
+                StockOnHand = 95,
+                CreatedAt = new DateTime(2024, 1, 15, 10, 30, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2024, 6, 20, 14, 45, 0, DateTimeKind.Utc)
+            }
+        ];
+
+        StockItemsRoot responseRoot = new() { StockItems = itemsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.SourceGenOptions);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<StockItem> result = await this.stockItems.GetAllAsync("-created_at");
+
+        // Assert
+        result.Count().ShouldBe(1);
+
+        // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenDeleteRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/stock_items/999");
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/stock_items?sort=-created_at");
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WhenNoItems_ReturnsEmptyCollection()
+    {
+        // Arrange
+        StockItemsRoot responseRoot = new() { StockItems = [] };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.SourceGenOptions);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<StockItem> result = await this.stockItems.GetAllAsync();
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ShouldBeEmpty();
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_CachesResults()
+    {
+        // Arrange
+        List<StockItem> itemsList =
+        [
+            new()
+            {
+                Url = new Uri("https://api.freeagent.com/v2/stock_items/1"),
+                Description = "Widget A",
+                OpeningQuantity = 100,
+                OpeningBalance = 1000.00m,
+                CostOfSaleCategory = new Uri("https://api.freeagent.com/v2/categories/100"),
+                StockOnHand = 95,
+                CreatedAt = new DateTime(2024, 1, 15, 10, 30, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2024, 6, 20, 14, 45, 0, DateTimeKind.Utc)
+            }
+        ];
+
+        StockItemsRoot responseRoot = new() { StockItems = itemsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.SourceGenOptions);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<StockItem> firstResult = await this.stockItems.GetAllAsync();
+        IEnumerable<StockItem> secondResult = await this.stockItems.GetAllAsync();
+
+        // Assert
+        firstResult.Count().ShouldBe(1);
+        secondResult.Count().ShouldBe(1);
+
+        // Mock Verification - API should only be called once due to caching
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_CachesResults()
+    {
+        // Arrange
+        StockItem item = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/stock_items/123"),
+            Description = "Cached Item",
+            OpeningQuantity = 50,
+            OpeningBalance = 500.00m,
+            CostOfSaleCategory = new Uri("https://api.freeagent.com/v2/categories/100"),
+            StockOnHand = 45,
+            CreatedAt = new DateTime(2024, 3, 1, 8, 0, 0, DateTimeKind.Utc),
+            UpdatedAt = new DateTime(2024, 8, 15, 12, 0, 0, DateTimeKind.Utc)
+        };
+
+        StockItemRoot responseRoot = new() { StockItem = item };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.SourceGenOptions);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        StockItem firstResult = await this.stockItems.GetByIdAsync("123");
+        StockItem secondResult = await this.stockItems.GetByIdAsync("123");
+
+        // Assert
+        firstResult.Description.ShouldBe("Cached Item");
+        secondResult.Description.ShouldBe("Cached Item");
+
+        // Mock Verification - API should only be called once due to caching
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WhenApiReturnsError_ThrowsHttpRequestException()
+    {
+        // Arrange
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = new StringContent("Internal Server Error", Encoding.UTF8, "text/plain")
+        };
+
+        // Act & Assert
+        await Should.ThrowAsync<HttpRequestException>(async () => await this.stockItems.GetAllAsync());
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WhenApiReturnsError_ThrowsHttpRequestException()
+    {
+        // Arrange
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = new StringContent("Internal Server Error", Encoding.UTF8, "text/plain")
+        };
+
+        // Act & Assert
+        await Should.ThrowAsync<HttpRequestException>(async () => await this.stockItems.GetByIdAsync("123"));
     }
 }

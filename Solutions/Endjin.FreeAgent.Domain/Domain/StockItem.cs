@@ -29,12 +29,13 @@ namespace Endjin.FreeAgent.Domain;
 /// API Endpoint: /v2/stock_items
 /// </para>
 /// <para>
-/// Minimum Access Level: Standard
+/// Minimum Access Level: Invoices, Estimates and Files
 /// </para>
 /// </remarks>
 /// <seealso cref="Category"/>
 /// <seealso cref="Invoice"/>
 /// <seealso cref="Bill"/>
+[DebuggerDisplay("Description = {" + nameof(Description) + "}")]
 public record StockItem
 {
     /// <summary>
@@ -44,36 +45,34 @@ public record StockItem
     /// A URI that uniquely identifies this stock item in the FreeAgent system.
     /// </value>
     [JsonPropertyName("url")]
-    public Uri? Url { get; init; }
+    public required Uri Url { get; init; }
 
     /// <summary>
     /// Gets the description of this stock item.
     /// </summary>
     /// <value>
-    /// A descriptive name for the stock item, such as "Widget Model A" or "Premium Coffee Beans 1kg".
+    /// A free-text description or code to identify the item when it's added to an invoice or estimate.
     /// </value>
     [JsonPropertyName("description")]
-    public string? Description { get; init; }
+    public required string Description { get; init; }
 
     /// <summary>
-    /// Gets the opening quantity of stock at the start of tracking.
+    /// Gets the opening quantity of stock as of FreeAgent Start Date.
     /// </summary>
     /// <value>
-    /// The initial number of units in stock when this item was first created or at the start
-    /// of the accounting period.
+    /// The number of units in stock as of FreeAgent Start Date.
     /// </value>
     [JsonPropertyName("opening_quantity")]
-    public decimal? OpeningQuantity { get; init; }
+    public required int OpeningQuantity { get; init; }
 
     /// <summary>
-    /// Gets the opening balance (total value) of stock at the start of tracking.
+    /// Gets the opening balance (total value) of stock as of FreeAgent Start Date.
     /// </summary>
     /// <value>
-    /// The initial monetary value of all units in stock, used to establish the starting position
-    /// for stock valuation and cost of sales calculations.
+    /// The value of stock on hand as of FreeAgent Start Date.
     /// </value>
     [JsonPropertyName("opening_balance")]
-    public decimal? OpeningBalance { get; init; }
+    public required decimal OpeningBalance { get; init; }
 
     /// <summary>
     /// Gets the URI reference to the cost of sales accounting category.
@@ -83,43 +82,32 @@ public record StockItem
     /// when this stock item is sold. Typically an expense account that reduces gross profit.
     /// </value>
     [JsonPropertyName("cost_of_sale_category")]
-    public Uri? CostOfSaleCategory { get; init; }
+    public required Uri CostOfSaleCategory { get; init; }
 
     /// <summary>
-    /// Gets the URI reference to the stock on hand accounting category.
+    /// Gets the current quantity of stock on hand.
     /// </summary>
     /// <value>
-    /// The URI of the <see cref="Category"/> in the chart of accounts representing the asset value
-    /// of unsold stock. Typically a current asset account on the balance sheet.
+    /// The current number of units in stock, updated as stock is purchased and sold.
     /// </value>
-    [JsonPropertyName("stock_on_hand_category")]
-    public Uri? StockOnHandCategory { get; init; }
-
-    /// <summary>
-    /// Gets the type classification of this stock item.
-    /// </summary>
-    /// <value>
-    /// The stock item type such as "Product" or "Raw Material", used to categorize different
-    /// types of inventory.
-    /// </value>
-    [JsonPropertyName("stock_item_type")]
-    public string? StockItemType { get; init; }
+    [JsonPropertyName("stock_on_hand")]
+    public required int StockOnHand { get; init; }
 
     /// <summary>
     /// Gets the date and time when this stock item was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing when this stock item was first added to the system.
+    /// A <see cref="DateTime"/> in UTC representing when this stock item was first added to the system.
     /// </value>
     [JsonPropertyName("created_at")]
-    public DateTime? CreatedAt { get; init; }
+    public required DateTime CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this stock item was last updated.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the last time this stock item record was modified.
+    /// A <see cref="DateTime"/> in UTC representing the last time this stock item record was modified.
     /// </value>
     [JsonPropertyName("updated_at")]
-    public DateTime? UpdatedAt { get; init; }
+    public required DateTime UpdatedAt { get; init; }
 }

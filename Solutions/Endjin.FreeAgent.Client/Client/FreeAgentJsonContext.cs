@@ -256,6 +256,7 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(SalesTaxRate))]
 [JsonSerializable(typeof(SalesTaxPeriod))]
 [JsonSerializable(typeof(StockItem))]
+[JsonSerializable(typeof(List<StockItem>))]
 [JsonSerializable(typeof(Task))]
 [JsonSerializable(typeof(TaxTimelineItem))]
 [JsonSerializable(typeof(User))]
