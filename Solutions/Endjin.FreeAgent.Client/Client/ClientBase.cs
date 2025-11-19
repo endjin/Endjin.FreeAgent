@@ -364,15 +364,20 @@ public abstract class ClientBase
 
             List<string[]>? headerLinks = header?.FirstOrDefault()?.Split(',').Select(x => x.Split(';')).ToList();
 
-            if (headerLinks is { Count: >= 2 })
+            if (headerLinks is { Count: > 0 })
             {
                 foreach (string[] headerLink in headerLinks)
                 {
+                    if (headerLink.Length < 2)
+                    {
+                        continue;
+                    }
+
                     string rawLink = headerLink[0].Trim();
                     string rawRel = headerLink[1].Trim();
 
                     string nextPageUrl = rawLink.TrimStart('<').TrimEnd('>');
-                    string rel = rawRel.Replace("rel='", string.Empty).TrimEnd('\'');
+                    string rel = rawRel.Replace("rel=", string.Empty).Trim('\'', '"');
 
                     Link link = new() { Rel = rel, Uri = new Uri(nextPageUrl) };
 
