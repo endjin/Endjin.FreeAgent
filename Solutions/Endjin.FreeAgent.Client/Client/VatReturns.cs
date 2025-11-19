@@ -116,10 +116,7 @@ public class VatReturns
     /// <summary>
     /// Marks a VAT return as filed with HMRC.
     /// </summary>
-    /// <param name="id">The unique identifier of the VAT return to mark as filed.</param>
-    /// <param name="filedOn">The date when the VAT return was filed with HMRC.</param>
-    /// <param name="filedOnline">Indicates whether the return was filed online (true) or by post (false).</param>
-    /// <param name="hmrcReference">Optional HMRC reference number for the filed return.</param>
+    /// <param name="periodEndsOn">The period end date of the VAT return to mark as filed (e.g., "2024-03-31").</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
     /// updated <see cref="VatReturn"/> object reflecting the filed status.
@@ -128,37 +125,25 @@ public class VatReturns
     /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
     /// <remarks>
     /// <para>
-    /// This method calls PUT /v2/vat_returns/{id}/mark_as_filed and invalidates the cache entry for the
+    /// This method calls PUT /v2/vat_returns/{period_ends_on}/mark_as_filed and invalidates the cache entry for the
     /// VAT return. This operation should only be performed after successfully submitting the return to HMRC.
     /// </para>
     /// <para>
     /// Minimum Access Level: Full Access
     /// </para>
     /// </remarks>
-    public async Task<VatReturn> MarkAsFiledAsync(string id, DateOnly filedOn, bool filedOnline, string? hmrcReference = null)
+    public async Task<VatReturn> MarkAsFiledAsync(string periodEndsOn)
     {
-        VatReturnFilingRoot filingData = new()
-        {
-            VatReturn = new VatReturnFiling
-            {
-                FiledOn = filedOn.ToString("yyyy-MM-dd"),
-                FiledOnline = filedOnline,
-                HmrcReference = hmrcReference
-            }
-        };
-
-        using JsonContent content = JsonContent.Create(filingData, options: SharedJsonOptions.SourceGenOptions);
-
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
-            new Uri(this.freeAgentClient.ApiBaseUrl, $"{VatReturnsEndPoint}/{id}/mark_as_filed"),
-            content).ConfigureAwait(false);
+            new Uri(this.freeAgentClient.ApiBaseUrl, $"{VatReturnsEndPoint}/{periodEndsOn}/mark_as_filed"),
+            null).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
         VatReturnRoot? root = await response.Content.ReadFromJsonAsync<VatReturnRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
 
         // Invalidate cache
-        string cacheKey = $"{VatReturnsEndPoint}/{id}";
+        string cacheKey = $"{VatReturnsEndPoint}/{periodEndsOn}";
         this.cache.Remove(cacheKey);
         this.cache.Remove(VatReturnsEndPoint);
 
@@ -214,8 +199,13 @@ public class VatReturns
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
     /// <remarks>
+    /// <para>
     /// This method calls PUT /v2/vat_returns/{period_ends_on}/payments/{payment_date}/mark_as_paid
     /// and invalidates the cache entry for the VAT return.
+    /// </para>
+    /// <para>
+    /// Minimum Access Level: Tax, Accounting &amp; Users
+    /// </para>
     /// </remarks>
     public async Task<VatReturn> MarkPaymentAsPaidAsync(string periodEndsOn, string paymentDate)
     {
@@ -247,8 +237,13 @@ public class VatReturns
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
     /// <remarks>
+    /// <para>
     /// This method calls PUT /v2/vat_returns/{period_ends_on}/payments/{payment_date}/mark_as_unpaid
     /// and invalidates the cache entry for the VAT return.
+    /// </para>
+    /// <para>
+    /// Minimum Access Level: Tax, Accounting &amp; Users
+    /// </para>
     /// </remarks>
     public async Task<VatReturn> MarkPaymentAsUnpaidAsync(string periodEndsOn, string paymentDate)
     {

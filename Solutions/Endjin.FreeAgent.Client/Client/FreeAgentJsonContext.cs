@@ -160,7 +160,6 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(UsersRoot))]
 [JsonSerializable(typeof(VatReturnRoot))]
 [JsonSerializable(typeof(VatReturnsRoot))]
-[JsonSerializable(typeof(VatReturnFilingRoot))]
 [JsonSerializable(typeof(VatReturnPayment))]
 [JsonSerializable(typeof(IList<VatReturnPayment>))]
 [JsonSerializable(typeof(WebhookRoot))]

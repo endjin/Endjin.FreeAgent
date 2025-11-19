@@ -55,7 +55,6 @@ public class VatReturnsTests
                 PeriodEndsOn = new DateOnly(2024, 3, 31),
                 FilingDueOn = new DateOnly(2024, 5, 7),
                 FilingStatus = "unfiled",
-                Box5NetVatDue = 17500.00m,
                 Payments =
                 [
                     new VatReturnPayment
@@ -74,7 +73,8 @@ public class VatReturnsTests
                 PeriodEndsOn = new DateOnly(2023, 12, 31),
                 FilingDueOn = new DateOnly(2024, 2, 7),
                 FilingStatus = "filed",
-                Box5NetVatDue = 12500.00m,
+                FiledAt = new DateTimeOffset(2024, 1, 15, 10, 30, 0, TimeSpan.Zero),
+                FiledReference = "123456789",
                 Payments =
                 [
                     new VatReturnPayment
@@ -101,8 +101,8 @@ public class VatReturnsTests
 
         // Assert
         result.Count().ShouldBe(2);
-        result.First().Box5NetVatDue.ShouldBe(17500.00m);
-        result.Last().Box5NetVatDue.ShouldBe(12500.00m);
+        result.First().FilingStatus.ShouldBe("unfiled");
+        result.Last().FilingStatus.ShouldBe("filed");
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
@@ -121,9 +121,6 @@ public class VatReturnsTests
             PeriodEndsOn = new DateOnly(2024, 3, 31),
             FilingDueOn = new DateOnly(2024, 5, 7),
             FilingStatus = "unfiled",
-            Box1VatDueOnSales = 25000.00m,
-            Box4VatReclaimed = 8000.00m,
-            Box5NetVatDue = 17000.00m,
             Payments =
             [
                 new VatReturnPayment
@@ -150,7 +147,6 @@ public class VatReturnsTests
         // Assert
         result.ShouldNotBeNull();
         result.FilingStatus.ShouldBe("unfiled");
-        result.Box5NetVatDue.ShouldBe(17000.00m);
         result.Payments.ShouldNotBeNull();
         result.Payments.Count.ShouldBe(1);
         result.Payments[0].AmountDue.ShouldBe(17000.00m);
@@ -162,12 +158,9 @@ public class VatReturnsTests
     }
 
     [TestMethod]
-    public async Task MarkAsFiledAsync_WithValidDetails_UpdatesVatReturnAsFiled()
+    public async Task MarkAsFiledAsync_WithValidPeriod_UpdatesVatReturnAsFiled()
     {
         // Arrange
-        DateOnly filedOn = new(2024, 4, 15);
-        string filedReference = "123456789012";
-
         VatReturn responseReturn = new()
         {
             Url = new Uri("https://api.freeagent.com/v2/vat_returns/2024-03-31"),
@@ -175,9 +168,6 @@ public class VatReturnsTests
             PeriodEndsOn = new DateOnly(2024, 3, 31),
             FilingDueOn = new DateOnly(2024, 5, 7),
             FilingStatus = "marked_as_filed",
-            FiledAt = new DateTimeOffset(2024, 4, 15, 10, 30, 0, TimeSpan.Zero),
-            FiledOnline = true,
-            FiledReference = filedReference,
             Payments =
             [
                 new VatReturnPayment
@@ -199,14 +189,11 @@ public class VatReturnsTests
         };
 
         // Act
-        VatReturn result = await this.vatReturns.MarkAsFiledAsync("2024-03-31", filedOn, true, filedReference);
+        VatReturn result = await this.vatReturns.MarkAsFiledAsync("2024-03-31");
 
         // Assert
         result.ShouldNotBeNull();
         result.FilingStatus.ShouldBe("marked_as_filed");
-        result.FiledAt.ShouldNotBeNull();
-        result.FiledOnline.ShouldBe(true);
-        result.FiledReference.ShouldBe(filedReference);
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
@@ -269,6 +256,8 @@ public class VatReturnsTests
             PeriodEndsOn = new DateOnly(2024, 3, 31),
             FilingDueOn = new DateOnly(2024, 5, 7),
             FilingStatus = "filed",
+            FiledAt = new DateTimeOffset(2024, 4, 15, 10, 30, 0, TimeSpan.Zero),
+            FiledReference = "123456789",
             Payments =
             [
                 new VatReturnPayment
@@ -314,6 +303,8 @@ public class VatReturnsTests
             PeriodEndsOn = new DateOnly(2024, 3, 31),
             FilingDueOn = new DateOnly(2024, 5, 7),
             FilingStatus = "filed",
+            FiledAt = new DateTimeOffset(2024, 4, 15, 10, 30, 0, TimeSpan.Zero),
+            FiledReference = "123456789",
             Payments =
             [
                 new VatReturnPayment
