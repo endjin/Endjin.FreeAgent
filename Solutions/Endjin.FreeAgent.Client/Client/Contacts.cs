@@ -255,7 +255,7 @@ public class Contacts
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when no contact with the specified organization name is found.</exception>
     /// <remarks>
-    /// This method retrieves all contacts (using <see cref="GetAllAsync(string, string?, DateTimeOffset?)"/>) and performs a case-insensitive
+    /// This method retrieves all contacts (using <c>GetAllAsync</c>) and performs a case-insensitive
     /// search by organization name. Results are cached for 5 minutes once found.
     /// </remarks>
     public async Task<Contact> GetByOrganisationNameAsync(string organisationName)

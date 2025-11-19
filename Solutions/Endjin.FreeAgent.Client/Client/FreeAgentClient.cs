@@ -27,7 +27,7 @@ namespace Endjin.FreeAgent.Client;
 /// <para>
 /// The client automatically handles OAuth2 authentication, token refresh, and request retries.
 /// It supports both direct instantiation and dependency injection through
-/// <see cref="FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices(Microsoft.Extensions.DependencyInjection.IServiceCollection, Microsoft.Extensions.Configuration.IConfiguration)"/>.
+/// <c>FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices</c>.
 /// </para>
 /// <example>
 /// Using dependency injection:
@@ -92,7 +92,7 @@ public class FreeAgentClient : ClientBase
     /// <exception cref="InvalidOperationException">Thrown when the options are invalid (via <see cref="FreeAgentOptions.Validate"/>).</exception>
     /// <remarks>
     /// This constructor is typically used when the client is resolved from the dependency injection container
-    /// after calling <see cref="FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices(Microsoft.Extensions.DependencyInjection.IServiceCollection, Microsoft.Extensions.Configuration.IConfiguration)"/>.
+    /// after calling <c>FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices</c>.
     /// </remarks>
     public FreeAgentClient(IOptions<FreeAgentOptions> options, IMemoryCache cache, IHttpClientFactory httpClientFactory, ILoggerFactory loggerFactory)
         : this(options?.Value ?? throw new ArgumentNullException(nameof(options)), cache, httpClientFactory, loggerFactory)
