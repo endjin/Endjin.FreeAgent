@@ -32,7 +32,7 @@ public class TimeslipTests
         // Arrange
         User user = new UserBuilder().WithName("John", "Doe");
         Project project = new ProjectBuilder().WithName("Test Project");
-        TaskItem task = new() { Name = "Development" };
+        TaskItem task = new() { Name = "Development", IsBillable = true, Status = "Active" };
 
         // Act
         Timeslip timeslip = new TimeslipBuilder()
