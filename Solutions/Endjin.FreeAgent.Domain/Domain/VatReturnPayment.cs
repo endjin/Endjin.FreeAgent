@@ -64,7 +64,6 @@ public record VatReturnPayment
     /// <list type="bullet">
     /// <item><c>unpaid</c> - Payment has not been made</item>
     /// <item><c>marked_as_paid</c> - Payment has been marked as paid in the system</item>
-    /// <item><c>paid</c> - Reserved for future use</item>
     /// </list>
     /// This property is omitted from the API response when <see cref="AmountDue"/> is zero or negative.
     /// </value>

@@ -204,7 +204,7 @@ public class VatReturns
     /// and invalidates the cache entry for the VAT return.
     /// </para>
     /// <para>
-    /// Minimum Access Level: Tax, Accounting &amp; Users (assumed based on similar VAT return operations)
+    /// Minimum Access Level: Tax, Accounting &amp; Users
     /// </para>
     /// </remarks>
     public async Task<VatReturn> MarkPaymentAsPaidAsync(string periodEndsOn, string paymentDate)
@@ -242,7 +242,7 @@ public class VatReturns
     /// and invalidates the cache entry for the VAT return.
     /// </para>
     /// <para>
-    /// Minimum Access Level: Tax, Accounting &amp; Users (assumed based on similar VAT return operations)
+    /// Minimum Access Level: Tax, Accounting &amp; Users
     /// </para>
     /// </remarks>
     public async Task<VatReturn> MarkPaymentAsUnpaidAsync(string periodEndsOn, string paymentDate)

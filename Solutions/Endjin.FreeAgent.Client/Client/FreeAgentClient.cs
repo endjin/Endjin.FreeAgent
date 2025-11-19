@@ -178,6 +178,7 @@ public class FreeAgentClient : ClientBase
         this.CreditNoteReconciliations = new CreditNoteReconciliations(this, cache);
         this.CreditNotes = new CreditNotes(this, cache);
         this.DepreciationProfiles = new DepreciationProfiles(this, cache);
+        this.EcMossSalesTaxRates = new EcMossSalesTaxRates(this, cache);
         this.Estimates = new Estimates(this, cache);
         this.Expenses = new Expenses(this, cache);
         this.FinalAccountsReports = new FinalAccountsReports(this, cache);
@@ -327,6 +328,12 @@ public class FreeAgentClient : ClientBase
     /// </summary>
     /// <value>The <see cref="DepreciationProfiles"/> service instance.</value>
     public DepreciationProfiles DepreciationProfiles { get; private set; }
+
+    /// <summary>
+    /// Gets the service for accessing EC MOSS (Mini One Stop Shop) sales tax rates for EU member states.
+    /// </summary>
+    /// <value>The <see cref="EcMossSalesTaxRates"/> service instance.</value>
+    public EcMossSalesTaxRates EcMossSalesTaxRates { get; private set; }
 
     /// <summary>
     /// Gets the service for managing estimates (quotes).
