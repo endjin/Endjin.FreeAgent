@@ -545,7 +545,7 @@ public class Projects
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when no project with the specified name is found.</exception>
     /// <remarks>
-    /// This method retrieves all projects (using <see cref="GetAllAsync"/>) and performs a case-insensitive
+    /// This method retrieves all projects (using <see cref="GetAllAsync()"/>) and performs a case-insensitive
     /// search by project name. Results are cached for 5 minutes once found.
     /// </remarks>
     public async Task<Project> GetByNameAsync(string name)

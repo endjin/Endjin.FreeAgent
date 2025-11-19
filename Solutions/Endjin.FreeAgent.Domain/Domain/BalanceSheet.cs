@@ -45,7 +45,7 @@ using System.Text.Json.Serialization;
 /// <seealso cref="LiabilitiesSection"/>
 /// <seealso cref="OwnersEquitySection"/>
 /// <seealso cref="ProfitAndLoss"/>
-/// <seealso cref="TrialBalance"/>
+/// <seealso cref="TrialBalanceSummaryEntry"/>
 public record BalanceSheet
 {
     /// <summary>

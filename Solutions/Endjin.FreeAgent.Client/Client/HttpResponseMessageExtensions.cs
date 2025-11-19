@@ -28,7 +28,7 @@ public static class HttpResponseMessageExtensions
     /// <exception cref="JsonException">Thrown when the JSON is invalid or malformed.</exception>
     /// <remarks>
     /// <para>
-    /// This method uses streaming deserialization via <see cref="HttpContent.ReadFromJsonAsync{T}"/>
+    /// This method uses streaming deserialization via <see cref="HttpContentJsonExtensions.ReadFromJsonAsync{T}(HttpContent, System.Text.Json.Serialization.Metadata.JsonTypeInfo{T}, CancellationToken)"/>
     /// for better memory efficiency, especially with large response payloads. It leverages
     /// source-generated JSON serialization from <see cref="SharedJsonOptions.SourceGenOptions"/>
     /// for improved performance and AOT (Ahead-of-Time) compilation compatibility.

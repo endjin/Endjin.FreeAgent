@@ -16,8 +16,8 @@ namespace Endjin.FreeAgent.Client;
 /// </para>
 /// <para>
 /// The validator is automatically registered when using
-/// <see cref="FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices(IServiceCollection, IConfiguration)"/>
-/// or <see cref="FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices(IServiceCollection, Action{FreeAgentOptions})"/>.
+/// <see cref="FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices(Microsoft.Extensions.DependencyInjection.IServiceCollection, Microsoft.Extensions.Configuration.IConfiguration)"/>
+/// or <see cref="FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices(Microsoft.Extensions.DependencyInjection.IServiceCollection, System.Action{FreeAgentOptions})"/>.
 /// </para>
 /// <para>
 /// Validation checks include:

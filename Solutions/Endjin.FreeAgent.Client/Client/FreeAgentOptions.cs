@@ -18,7 +18,7 @@ namespace Endjin.FreeAgent.Client;
 /// <item><description>Environment variables</description></item>
 /// <item><description>User secrets for development</description></item>
 /// <item><description>Azure Key Vault or other secret providers</description></item>
-/// <item><description>Programmatically via <see cref="FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices(IServiceCollection, Action{FreeAgentOptions})"/></description></item>
+/// <item><description>Programmatically via <see cref="FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices(Microsoft.Extensions.DependencyInjection.IServiceCollection, System.Action{FreeAgentOptions})"/></description></item>
 /// </list>
 /// </para>
 /// <para>
@@ -47,7 +47,7 @@ public class FreeAgentOptions
     /// </summary>
     /// <value>The string "FreeAgent".</value>
     /// <remarks>
-    /// This constant is used by <see cref="FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices(IServiceCollection, IConfiguration)"/>
+    /// This constant is used by <see cref="FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices(Microsoft.Extensions.DependencyInjection.IServiceCollection, Microsoft.Extensions.Configuration.IConfiguration)"/>
     /// to locate the configuration section in appsettings.json.
     /// </remarks>
     public const string SectionName = "FreeAgent";
