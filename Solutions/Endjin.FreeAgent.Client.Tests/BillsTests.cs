@@ -456,10 +456,10 @@ public class BillsTests
             DueOn = new DateOnly(2024, 2, 10),
             Reference = "BILL-001",
             TotalValue = 600.00m,
-            Attachment = new BillAttachment
+            Attachment = new Attachment
             {
                 Data = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-                FileName = "receipt.png",
+                Filename = "receipt.png",
                 ContentType = "image/png",
                 Description = "Receipt for purchase"
             }

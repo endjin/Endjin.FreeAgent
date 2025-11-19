@@ -102,7 +102,7 @@ public record CorporationTaxReturn
     /// The timestamp when the CT600 return was submitted to HMRC. Read-only, set automatically when filed online.
     /// </value>
     [JsonPropertyName("filed_at")]
-    public DateTime? FiledAt { get; init; }
+    public DateTimeOffset? FiledAt { get; init; }
 
     /// <summary>
     /// Gets the reference number for this filed Corporation Tax return.

@@ -151,17 +151,17 @@ public record PriceListItem
     /// Gets the date and time when this price list item was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing when this price list item was first added to the system.
+    /// A <see cref="DateTimeOffset"/> representing when this price list item was first added to the system.
     /// </value>
     [JsonPropertyName("created_at")]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this price list item was last updated.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the last time this price list item record was modified.
+    /// A <see cref="DateTimeOffset"/> representing the last time this price list item record was modified.
     /// </value>
     [JsonPropertyName("updated_at")]
-    public DateTime? UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 }

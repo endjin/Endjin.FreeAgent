@@ -293,46 +293,6 @@ public record BankTransactionExplanation
     public decimal? SecondSalesTaxValue { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether this explanation is marked for review.
-    /// </summary>
-    /// <value>
-    /// <c>true</c> if the explanation requires approval or review; otherwise, <c>false</c>.
-    /// </value>
-    [JsonPropertyName("marked_for_review")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? MarkedForReview { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether this explanation is locked from modification.
-    /// </summary>
-    /// <value>
-    /// <c>true</c> if the explanation cannot be modified; otherwise, <c>false</c>.
-    /// </value>
-    [JsonPropertyName("is_locked")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? IsLocked { get; init; }
-
-    /// <summary>
-    /// Gets the list of attributes that cannot be modified.
-    /// </summary>
-    /// <value>
-    /// A list of property names that are locked and cannot be changed.
-    /// </value>
-    [JsonPropertyName("locked_attributes")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<string>? LockedAttributes { get; init; }
-
-    /// <summary>
-    /// Gets the reason for the explanation being locked.
-    /// </summary>
-    /// <value>
-    /// A description of why the explanation is locked (e.g., "Period locked").
-    /// </value>
-    [JsonPropertyName("locked_reason")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? LockedReason { get; init; }
-
-    /// <summary>
     /// Gets a value indicating whether this explanation can be deleted.
     /// </summary>
     /// <value>

@@ -51,7 +51,7 @@ public class TimeslipsTests
         // Arrange
         Timeslip newTimeslip = new()
         {
-            DatedOn = DateTimeOffset.Parse("2024-01-15"),
+            DatedOn = DateOnly.Parse("2024-01-15"),
             Hours = 7.5m,
             Comment = "Worked on feature implementation",
             User = new Uri("https://api.freeagent.com/v2/users/123"),
@@ -93,7 +93,7 @@ public class TimeslipsTests
         [
             new()
             {
-                DatedOn = DateTimeOffset.Parse("2024-01-15"),
+                DatedOn = DateOnly.Parse("2024-01-15"),
                 Hours = 4m,
                 User = new Uri("https://api.freeagent.com/v2/users/123"),
                 Project = new Uri("https://api.freeagent.com/v2/projects/456"),
@@ -101,7 +101,7 @@ public class TimeslipsTests
             },
             new()
             {
-                DatedOn = DateTimeOffset.Parse("2024-01-16"),
+                DatedOn = DateOnly.Parse("2024-01-16"),
                 Hours = 8m,
                 User = new Uri("https://api.freeagent.com/v2/users/123"),
                 Project = new Uri("https://api.freeagent.com/v2/projects/456"),
@@ -139,7 +139,7 @@ public class TimeslipsTests
         Timeslip expectedTimeslip = new()
         {
             Url = new Uri($"https://api.freeagent.com/v2/timeslips/{timeslipId}"),
-            DatedOn = DateTimeOffset.Parse("2024-01-15"),
+            DatedOn = DateOnly.Parse("2024-01-15"),
             Hours = 7.5m,
             Comment = "Worked on feature implementation",
             User = new Uri("https://api.freeagent.com/v2/users/123"),
@@ -305,7 +305,7 @@ public class TimeslipsTests
         ImmutableList<Timeslip> timeslipsList = ImmutableList.Create(
             new Timeslip
             {
-                DatedOn = DateTimeOffset.Parse("2024-01-15"),
+                DatedOn = DateOnly.Parse("2024-01-15"),
                 Hours = 7.5m,
                 Comment = "Worked on feature implementation",
                 User = new Uri("https://api.freeagent.com/v2/users/123"),
@@ -315,7 +315,7 @@ public class TimeslipsTests
             },
             new Timeslip
             {
-                DatedOn = DateTimeOffset.Parse("2024-01-16"),
+                DatedOn = DateOnly.Parse("2024-01-16"),
                 Hours = 6.0m,
                 Comment = "Code review and testing",
                 User = new Uri("https://api.freeagent.com/v2/users/123"),
@@ -354,7 +354,7 @@ public class TimeslipsTests
         ImmutableList<Timeslip> timeslipsList = ImmutableList.Create(
             new Timeslip
             {
-                DatedOn = DateTimeOffset.Parse("2024-01-10"),
+                DatedOn = DateOnly.Parse("2024-01-10"),
                 Hours = 8m,
                 Comment = "Day 1 work",
                 User = new Uri(userUrl),
@@ -362,7 +362,7 @@ public class TimeslipsTests
             },
             new Timeslip
             {
-                DatedOn = DateTimeOffset.Parse("2024-01-15"),
+                DatedOn = DateOnly.Parse("2024-01-15"),
                 Hours = 7.5m,
                 Comment = "Day 2 work",
                 User = new Uri(userUrl),
@@ -533,7 +533,7 @@ public class TimeslipsTests
         ImmutableList<Timeslip> timeslipsList = ImmutableList.Create(
             new Timeslip
             {
-                DatedOn = DateTimeOffset.Parse("2024-01-15"),
+                DatedOn = DateOnly.Parse("2024-01-15"),
                 Hours = 8m,
                 Project = new Uri(projectUrl)
             }

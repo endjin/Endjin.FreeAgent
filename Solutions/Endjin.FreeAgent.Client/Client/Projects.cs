@@ -611,7 +611,7 @@ public class Projects
                 Project project = projects[i];
 
                 List<TaskItem> tasks = project.Url != null ? [.. (await (freeAgentClient.Tasks?.GetAllByProjectUrlAsync(project.Url) ?? Task.FromResult(Enumerable.Empty<TaskItem>())).ConfigureAwait(false))] : [];
-                List<Timeslip> timeslips = project.Url != null ? [.. (await (freeAgentClient.Timeslips?.GetByProjectUrlAsync(project.Url.ToString()) ?? Task.FromResult(Enumerable.Empty<Timeslip>())).ConfigureAwait(false)).Where(x => x.DatedOn.HasValue && range.Contains(LocalDate.FromDateTime(x.DatedOn.Value.DateTime)))] : [];
+                List<Timeslip> timeslips = project.Url != null ? [.. (await (freeAgentClient.Timeslips?.GetByProjectUrlAsync(project.Url.ToString()) ?? Task.FromResult(Enumerable.Empty<Timeslip>())).ConfigureAwait(false)).Where(x => x.DatedOn.HasValue && range.Contains(LocalDate.FromDateTime(x.DatedOn.Value.ToDateTime(TimeOnly.MinValue))))] : [];
 
                 // Update timeslips with their related entries using immutable pattern
                 timeslips = [.. timeslips.Select(timeslip =>
@@ -634,7 +634,7 @@ public class Projects
                 foreach (Timeslip timeslip in timeslips)
                 {
                     string user = timeslip.UserEntry?.FullName ?? "Unknown";
-                    DateTimeOffset date = timeslip.DatedOn ?? DateTimeOffset.MinValue;
+                    DateTimeOffset date = timeslip.DatedOn.HasValue ? new DateTimeOffset(timeslip.DatedOn.Value.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero) : DateTimeOffset.MinValue;
                     decimal effort = timeslip.Hours ?? 0m;
                     decimal? dayRate = timeslip.TaskEntry?.BillingRate;
                     decimal? hourlyRate = dayRate / 8;

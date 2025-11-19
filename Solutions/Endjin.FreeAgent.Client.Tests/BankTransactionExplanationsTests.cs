@@ -606,9 +606,7 @@ public class BankTransactionExplanationsTests
             SalesTaxValue = 75.00m,
             SalesTaxStatus = "TAXABLE",
             EcStatus = "UK/Non-EC",
-            IsLocked = false,
             IsDeletable = true,
-            MarkedForReview = false,
             IsMoneyOut = true,
             IsMoneyIn = false,
             IsMoneyPaidToUser = false,
@@ -634,9 +632,7 @@ public class BankTransactionExplanationsTests
         result.SalesTaxValue.ShouldBe(75.00m);
         result.SalesTaxStatus.ShouldBe("TAXABLE");
         result.EcStatus.ShouldBe("UK/Non-EC");
-        result.IsLocked.ShouldBe(false);
         result.IsDeletable.ShouldBe(true);
-        result.MarkedForReview.ShouldBe(false);
         result.IsMoneyOut.ShouldBe(true);
         result.IsMoneyIn.ShouldBe(false);
         result.IsMoneyPaidToUser.ShouldBe(false);

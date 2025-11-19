@@ -68,7 +68,7 @@ public class TimeslipTests
             .ForToday();
 
         // Assert
-        timeslip.DatedOn?.Date.ShouldBe(new DateTime(2024, 6, 15));
+        timeslip.DatedOn.ShouldBe(new DateOnly(2024, 6, 15));
     }
 
     [TestMethod]
@@ -79,7 +79,7 @@ public class TimeslipTests
             .ForYesterday();
 
         // Assert
-        timeslip.DatedOn?.Date.ShouldBe(new DateTime(2024, 6, 14));
+        timeslip.DatedOn.ShouldBe(new DateOnly(2024, 6, 14));
     }
 
     [TestMethod]
@@ -120,7 +120,7 @@ public class TimeslipTests
     public void Timeslip_WithSpecificDate_StoresExactDate()
     {
         // Arrange
-        DateTimeOffset specificDate = new(2024, 6, 15, 0, 0, 0, TimeSpan.Zero);
+        DateOnly specificDate = new(2024, 6, 15);
 
         // Act
         Timeslip timeslip = new TimeslipBuilder()
@@ -137,7 +137,7 @@ public class TimeslipTests
         Timeslip timeslip = new()
         {
             Hours = 8m,
-            DatedOn = DateTimeOffset.UtcNow,
+            DatedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             Comment = null,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
@@ -182,7 +182,7 @@ public class TimeslipTests
         {
             CreatedAt = createdDate,
             UpdatedAt = updatedDate,
-            DatedOn = DateTimeOffset.UtcNow,
+            DatedOn = DateOnly.FromDateTime(DateTime.UtcNow),
             Hours = 8m
         };
 

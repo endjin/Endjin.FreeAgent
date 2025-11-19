@@ -92,7 +92,7 @@ public record FinalAccountsReport
     /// The timestamp when the statutory accounts were submitted to Companies House. Read-only, set automatically when filed online.
     /// </value>
     [JsonPropertyName("filed_at")]
-    public DateTime? FiledAt { get; init; }
+    public DateTimeOffset? FiledAt { get; init; }
 
     /// <summary>
     /// Gets the reference number for this filed Final Accounts report.

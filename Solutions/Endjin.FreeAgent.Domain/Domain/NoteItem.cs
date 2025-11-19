@@ -68,17 +68,17 @@ public record NoteItem
     /// Gets the date and time when this note was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the creation timestamp in UTC, or <see langword="null"/> if not provided.
+    /// A <see cref="DateTimeOffset"/> representing the creation timestamp in UTC, or <see langword="null"/> if not provided.
     /// </value>
     [JsonPropertyName("created_at")]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this note was last updated.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the last modification timestamp in UTC, or <see langword="null"/> if not provided.
+    /// A <see cref="DateTimeOffset"/> representing the last modification timestamp in UTC, or <see langword="null"/> if not provided.
     /// </value>
     [JsonPropertyName("updated_at")]
-    public DateTime? UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 }

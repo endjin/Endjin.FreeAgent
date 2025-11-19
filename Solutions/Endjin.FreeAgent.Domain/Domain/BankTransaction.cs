@@ -132,21 +132,6 @@ public record BankTransaction
     public decimal? UnexplainedAmount { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether this transaction has been fully explained.
-    /// </summary>
-    /// <value>
-    /// <see langword="true"/> if the entire transaction amount has been categorized through explanations;
-    /// otherwise, <see langword="false"/>.
-    /// </value>
-    /// <remarks>
-    /// This field is returned by the FreeAgent API but may not be documented in the official API documentation.
-    /// It provides a convenient way to check if a transaction is fully explained without comparing amounts.
-    /// </remarks>
-    [JsonPropertyName("is_explained")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? IsExplained { get; init; }
-
-    /// <summary>
     /// Gets a value indicating whether this transaction was manually entered.
     /// </summary>
     /// <value>
@@ -156,22 +141,6 @@ public record BankTransaction
     [JsonPropertyName("is_manual")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? IsManual { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether this transaction is locked.
-    /// </summary>
-    /// <value>
-    /// <see langword="true"/> if the transaction is locked and cannot be modified or deleted; otherwise,
-    /// <see langword="false"/>. Transactions are typically locked when they belong to finalized accounting periods.
-    /// </value>
-    /// <remarks>
-    /// This field is returned by the FreeAgent API but may not be documented in the official API documentation.
-    /// Locked transactions typically indicate that an accounting period has been finalized and the transaction
-    /// is part of historical records that should not be modified.
-    /// </remarks>
-    [JsonPropertyName("is_locked")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? IsLocked { get; init; }
 
     /// <summary>
     /// Gets the collection of explanations for this transaction.

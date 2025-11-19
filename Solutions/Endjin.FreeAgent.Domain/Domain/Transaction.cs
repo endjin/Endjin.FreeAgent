@@ -58,21 +58,21 @@ public record Transaction
     /// Gets the date and time when this transaction was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> in UTC representing when this transaction was first created in the system.
+    /// A <see cref="DateTimeOffset"/> in UTC representing when this transaction was first created in the system.
     /// </value>
     [JsonPropertyName("created_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this transaction was last updated.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> in UTC representing the last time this transaction record was modified.
+    /// A <see cref="DateTimeOffset"/> in UTC representing the last time this transaction record was modified.
     /// </value>
     [JsonPropertyName("updated_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 
     /// <summary>
     /// Gets the description or source reference for this transaction.

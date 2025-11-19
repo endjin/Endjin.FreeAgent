@@ -367,14 +367,14 @@ public record Bill
     /// Gets the attachment for this bill.
     /// </summary>
     /// <value>
-    /// A <see cref="BillAttachment"/> object containing the attached receipt or invoice document,
+    /// A <see cref="Domain.Attachment"/> object containing the attached receipt or invoice document,
     /// or <see langword="null"/> if no attachment is present.
     /// When reading bills with attachments, this field may contain a reference. When creating
-    /// or updating bills, provide the attachment data as a <see cref="BillAttachment"/> object.
+    /// or updating bills, provide the attachment data as a <see cref="Domain.Attachment"/> object.
     /// </value>
     [JsonPropertyName("attachment")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public BillAttachment? Attachment { get; init; }
+    public Attachment? Attachment { get; init; }
 
     /// <summary>
     /// Gets the Construction Industry Scheme (CIS) deduction band for this bill.
@@ -435,19 +435,19 @@ public record Bill
     /// Gets the date and time when this bill was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the creation timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the creation timestamp in UTC.
     /// </value>
     [JsonPropertyName("created_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this bill was last updated.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the last modification timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the last modification timestamp in UTC.
     /// </value>
     [JsonPropertyName("updated_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 }

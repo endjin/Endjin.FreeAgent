@@ -97,17 +97,17 @@ public record StockItem
     /// Gets the date and time when this stock item was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> in UTC representing when this stock item was first added to the system.
+    /// A <see cref="DateTimeOffset"/> in UTC representing when this stock item was first added to the system.
     /// </value>
     [JsonPropertyName("created_at")]
-    public required DateTime CreatedAt { get; init; }
+    public required DateTimeOffset CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this stock item was last updated.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> in UTC representing the last time this stock item record was modified.
+    /// A <see cref="DateTimeOffset"/> in UTC representing the last time this stock item record was modified.
     /// </value>
     [JsonPropertyName("updated_at")]
-    public required DateTime UpdatedAt { get; init; }
+    public required DateTimeOffset UpdatedAt { get; init; }
 }

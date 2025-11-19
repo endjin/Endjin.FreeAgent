@@ -105,11 +105,11 @@ public record SelfAssessmentReturn
     /// Gets the date and time when this Self Assessment return was filed online with HMRC.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing when the return was submitted to HMRC via online filing.
+    /// A <see cref="DateTimeOffset"/> representing when the return was submitted to HMRC via online filing.
     /// This property is only populated for returns filed online through the FreeAgent system.
     /// </value>
     [JsonPropertyName("filed_at")]
-    public DateTime? FiledAt { get; init; }
+    public DateTimeOffset? FiledAt { get; init; }
 
     /// <summary>
     /// Gets the IRMark reference returned by HMRC upon successful online filing.

@@ -410,7 +410,7 @@ public record Payslip
     /// The timestamp of when the payslip was created in FreeAgent.
     /// </value>
     [JsonPropertyName("created_at")]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this payslip was last updated.
@@ -419,5 +419,5 @@ public record Payslip
     /// The timestamp of the most recent modification to this payslip.
     /// </value>
     [JsonPropertyName("updated_at")]
-    public DateTime? UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 }

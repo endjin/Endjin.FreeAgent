@@ -45,13 +45,13 @@ public record BankFeed
     /// Gets the date and time when this feed was created.
     /// </summary>
     [JsonPropertyName("created_at")]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this feed was last updated.
     /// </summary>
     [JsonPropertyName("updated_at")]
-    public DateTime? UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 
     /// <summary>
     /// Gets the type of the feed. Can be "api" or "open_banking".
@@ -72,5 +72,5 @@ public record BankFeed
     /// Only provided for `api` feed types. This time may be in the past if the SCA has already expired.
     /// </remarks>
     [JsonPropertyName("sca_expires_at")]
-    public DateTime? ScaExpiresAt { get; init; }
+    public DateTimeOffset? ScaExpiresAt { get; init; }
 }

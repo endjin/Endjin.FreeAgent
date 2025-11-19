@@ -129,7 +129,7 @@ public record PayrollPeriod
     /// The timestamp of when the period was created in FreeAgent.
     /// </value>
     [JsonPropertyName("created_at")]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this payroll period record was last updated.
@@ -138,5 +138,5 @@ public record PayrollPeriod
     /// The timestamp of the most recent modification to this period record.
     /// </value>
     [JsonPropertyName("updated_at")]
-    public DateTime? UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 }

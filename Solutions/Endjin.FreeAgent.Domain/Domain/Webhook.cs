@@ -90,17 +90,17 @@ public record Webhook
     /// Gets the date and time when this webhook was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing when this webhook subscription was first set up.
+    /// A <see cref="DateTimeOffset"/> representing when this webhook subscription was first set up.
     /// </value>
     [JsonPropertyName("created_at")]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this webhook was last updated.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the last time this webhook configuration was modified.
+    /// A <see cref="DateTimeOffset"/> representing the last time this webhook configuration was modified.
     /// </value>
     [JsonPropertyName("updated_at")]
-    public DateTime? UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 }

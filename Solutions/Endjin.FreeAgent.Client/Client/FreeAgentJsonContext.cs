@@ -174,7 +174,6 @@ namespace Endjin.FreeAgent.Client;
 [JsonSerializable(typeof(BankTransactionExplanation))]
 [JsonSerializable(typeof(BankTransactionUpload))]
 [JsonSerializable(typeof(Bill))]
-[JsonSerializable(typeof(BillAttachment))]
 [JsonSerializable(typeof(BillItem))]
 [JsonSerializable(typeof(CapitalAsset))]
 [JsonSerializable(typeof(Category))]

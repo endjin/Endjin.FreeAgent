@@ -101,7 +101,7 @@ public record Timeslip
     /// The date of the work in YYYY-MM-DD format. This field is required when creating a timeslip.
     /// </value>
     [JsonPropertyName("dated_on")]
-    public DateTimeOffset? DatedOn { get; init; }
+    public DateOnly? DatedOn { get; init; }
 
     /// <summary>
     /// Gets the number of hours worked.

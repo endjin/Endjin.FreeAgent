@@ -37,6 +37,17 @@ namespace Endjin.FreeAgent.Domain;
 public record Attachment
 {
     /// <summary>
+    /// Gets the base64-encoded binary data of the file.
+    /// </summary>
+    /// <remarks>
+    /// The file contents must be encoded as a base64 string before setting this property.
+    /// Required when creating or updating an attachment inline.
+    /// </remarks>
+    [JsonPropertyName("data")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Data { get; init; }
+
+    /// <summary>
     /// Gets the unique URI identifier for this attachment.
     /// </summary>
     /// <value>
