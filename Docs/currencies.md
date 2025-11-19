@@ -1,0 +1,101 @@
+# Currencies
+
+Currencies are represented using three digit [ISO 4217](http://en.wikipedia.org/wiki/ISO_4217) codes. The following currencies are supported:
+
+- `AED` - United Arab Emirates Dirham
+- `AMD` - Armenian Dram
+- `AOA` - Angolan Kwanza
+- `ARS` - Argentine Peso
+- `AUD` - Australian Dollar
+- `AWG` - Aruban Florin
+- `AZN` - Azerbaijani Manat
+- `BBD` - Barbadian Dollar
+- `BDT` - Bangladeshi Taka
+- `BGN` - Bulgarian Lev
+- `BRL` - Brazil Real
+- `BWP` - Botswana Pula
+- `CAD` - Canadian Dollar
+- `CHF` - Swiss Franc
+- `CLP` - Chilean Peso
+- `CNY` - Chinese Yuan
+- `COP` - Colombian Peso
+- `CRC` - Costa Rican Colones
+- `CUC` - Cuban Convertible Peso
+- `CUP` - Cuban Peso
+- `CZK` - Czech Koruna
+- `DKK` - Danish Kroner
+- `DOP` - Dominican Peso
+- `EGP` - Egyptian Pound
+- `EUR` - Euro
+- `FJD` - Fijian Dollar
+- `GBP` - Pounds Sterling
+- `GEL` - Georgian Lari
+- `GHS` - Ghanaian Cedi
+- `GTQ` - Guatemalan Quetzales
+- `GYD` - Guyanese Dollar
+- `HKD` - Hong Kong Dollar
+- `HNL` - Honduran Lempira
+- `HRK` - Croatian Kuna
+- `HUF` - Hungarian Forint
+- `IDR` - Indonesian Rupiah
+- `ILS` - Israeli Sheckels
+- `INR` - Indian Rupee
+- `ISK` - Icelandic Króna
+- `JMD` - Jamaican Dollar
+- `JPY` - Japanese Yen
+- `KES` - Kenyan Shilling
+- `KRW` - South Korean Won
+- `KWD` - Kuwaiti Dinar
+- `KYD` - Caymanian Dollar
+- `KZT` - Kazakhstani Tenge
+- `LAK` - Lao Kip
+- `LBP` - Lebanese Pound
+- `LKR` - Sri Lankan Rupee
+- `LTL` - Lithuanian Lita
+- `LVL` - Latvian Lats
+- `MAD` - Moroccan Dirham
+- `MDL` - Moldovan Leu
+- `MGA` - Malagasy Ariary
+- `MUR` - Mauritian Rupee
+- `MVR` - Maldivian Rufiyaa
+- `MWK` - Malawian Kwacha
+- `MXN` - Mexican Peso
+- `MYR` - Malaysian Ringgit
+- `MZN` - Mozambican Metical
+- `NAD` - Namibian Dollar
+- `NGN` - Nigerian Naira
+- `NOK` - Norwegian Kroner
+- `NPR` - Nepalese Rupees
+- `NZD` - New Zealand Dollar
+- `OMR` - Omani Rial
+- `PEN` - Peruvian Nuevo Sol
+- `PHP` - Philippine Peso
+- `PKR` - Pakistani Rupee
+- `PLN` - Polish Złoty
+- `QAR` - Qatari Riyal
+- `RON` - Romanian New Leu
+- `RSD` - Serbian Dinar
+- `RUB` - Russian Rouble
+- `RWF` - Rwandan Franc
+- `SAR` - Saudi Riyal
+- `SCR` - Seychelles Rupee
+- `SEK` - Swedish Kronor
+- `SGD` - Singapore Dollar
+- `THB` - Thai Baht
+- `TND` - Tunisian Dinar
+- `TRY` - Turkish Lira
+- `TTD` - Trinidad and Tobago Dollar
+- `TWD` - New Taiwan Dollar
+- `TZS` - Tanzanian Shilling
+- `UAH` - Ukrainian Hryvnia
+- `UGX` - Ugandan Shilling
+- `USD` - US Dollar
+- `UYU` - Uruguayan Peso
+- `VEF` - Venezuelan Bolívar
+- `VND` - Vietnamese đồng
+- `VUV` - Vanuatu Vatu
+- `XAF` - Central African CFA Franc
+- `XCD` - East Carribean Dollar
+- `XOF` - West African CFA Franc
+- `ZAR` - South African Rand
+- `ZMK` - Zambian Kwacha
