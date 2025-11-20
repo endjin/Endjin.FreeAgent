@@ -274,12 +274,12 @@ public class BankTransactionExplanationsTests
     public async Task GetAllAsync_WithUpdatedSinceFilter_ReturnsFilteredExplanations()
     {
         // Arrange
-        DateTime updatedSince = new(2024, 3, 1, 10, 0, 0, DateTimeKind.Utc);
+        DateTimeOffset updatedSince = new(2024, 3, 1, 10, 0, 0, TimeSpan.Zero);
         List<BankTransactionExplanation> explanationsList =
         [
             new()
             {
-                UpdatedAt = new DateTime(2024, 3, 15, 14, 30, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTimeOffset(2024, 3, 15, 14, 30, 0, TimeSpan.Zero),
                 GrossValue = 180.00m,
                 Description = "Recently updated explanation"
             }

@@ -935,7 +935,7 @@ public class ExpensesTests
                 Description = "Recently updated expense",
                 User = new Uri("https://api.freeagent.com/v2/users/1"),
                 Url = new Uri("https://api.freeagent.com/v2/expenses/1"),
-                UpdatedAt = new DateTime(2024, 1, 20, 10, 30, 0)
+                UpdatedAt = new DateTimeOffset(2024, 1, 20, 10, 30, 0, TimeSpan.Zero)
             },
         ];
 
@@ -947,7 +947,7 @@ public class ExpensesTests
             Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
         };
 
-        DateTime updatedSince = new(2024, 1, 19, 0, 0, 0);
+        DateTimeOffset updatedSince = new(2024, 1, 19, 0, 0, 0, TimeSpan.Zero);
 
         // Act
         IEnumerable<Expense> result = await this.expenses.GetAllAsync(updatedSince: updatedSince);

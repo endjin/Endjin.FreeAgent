@@ -334,7 +334,7 @@ public class BillsTests
     public async Task GetAllAsync_WithUpdatedSinceFilter_UsesCorrectDateTimeParameter()
     {
         // Arrange
-        DateTime updatedSince = new(2024, 3, 1, 10, 30, 0, DateTimeKind.Utc);
+        DateTimeOffset updatedSince = new(2024, 3, 1, 10, 30, 0, TimeSpan.Zero);
 
         List<Bill> billsList =
         [

@@ -292,7 +292,7 @@ public class BankTransactionsTests
     {
         // Arrange
         Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/123");
-        DateTime updatedSince = new(2024, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+        DateTimeOffset updatedSince = new(2024, 3, 1, 0, 0, 0, TimeSpan.Zero);
         List<BankTransaction> transactionsList =
         [
             new() { Description = "Recently updated", Amount = 150.00m }
