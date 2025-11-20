@@ -293,22 +293,44 @@ If you don't have a refresh token yet, use interactive login mode:
 ```bash
 cd Solutions/DemoApp
 dotnet run -- --interactive-login
+# or
+dotnet run -- -i
+```
+
+To use the **Sandbox** environment, add the `--sandbox` flag:
+
+```bash
+dotnet run -- --interactive-login --sandbox
+# or
+dotnet run -- -i -s
 ```
 
 This will:
 1. Open your browser to authorize the application with FreeAgent
 2. Automatically receive and display your access and refresh tokens
-3. Test the tokens by fetching your contacts
+3. Launch the interactive demo menu immediately
 
 You only need ClientId and ClientSecret in your appsettings.json for this mode.
 
 ### Standard Mode (Using Existing Refresh Token)
 
-Once you have a refresh token, run the demo app normally:
+Once you have a refresh token configured, run the demo app normally:
 
 ```bash
 cd Solutions/DemoApp
 dotnet run
+```
+
+To run against the **Sandbox** environment in standard mode:
+
+```bash
+dotnet run -- --sandbox
+```
+
+You can also view help for the CLI:
+
+```bash
+dotnet run -- --help
 ```
 
 The demo app demonstrates:
@@ -317,6 +339,7 @@ The demo app demonstrates:
 - Fetching and displaying various resources
 - Creating and updating entities
 - Error handling and retry logic
+- **Rich CLI experience using Spectre.Console**
 
 ### Configuration
 

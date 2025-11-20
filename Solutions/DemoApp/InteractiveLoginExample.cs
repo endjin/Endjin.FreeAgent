@@ -19,21 +19,25 @@ public static class InteractiveLoginExample
     /// <param name="clientId">Your FreeAgent OAuth2 client ID.</param>
     /// <param name="clientSecret">Your FreeAgent OAuth2 client secret.</param>
     /// <param name="logger">Logger instance.</param>
+    /// <param name="useSandbox">Whether to use the sandbox environment.</param>
     /// <returns>The login result containing access and refresh tokens.</returns>
     public static async Task<InteractiveLoginResult> PerformInteractiveLoginAsync(
         string clientId,
         string clientSecret,
-        ILogger logger)
+        ILogger logger,
+        bool useSandbox = false)
     {
-        Console.WriteLine("=== FreeAgent Interactive Login ===\n");
+        Console.WriteLine($"=== FreeAgent Interactive Login ({(useSandbox ? "Sandbox" : "Production")}) ===\n");
+
+        var authBaseUrl = useSandbox ? "https://api.sandbox.freeagent.com" : "https://api.freeagent.com";
 
         // Configure OAuth2 options
         OAuth2Options options = new()
         {
             ClientId = clientId,
             ClientSecret = clientSecret,
-            AuthorizationEndpoint = new Uri("https://api.freeagent.com/v2/approve_app"),
-            TokenEndpoint = new Uri("https://api.freeagent.com/v2/token_endpoint"),
+            AuthorizationEndpoint = new Uri($"{authBaseUrl}/v2/approve_app"),
+            TokenEndpoint = new Uri($"{authBaseUrl}/v2/token_endpoint"),
             UsePkce = true // Enable PKCE for enhanced security
         };
 
