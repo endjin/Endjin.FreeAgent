@@ -101,17 +101,17 @@ public class CreditNoteReconciliations
     /// This method calls GET /v2/credit_note_reconciliations with optional query parameters, handles pagination
     /// automatically, and caches the result for 5 minutes.
     /// </remarks>
-    public async Task<IEnumerable<CreditNoteReconciliation>> GetAllAsync(string? updatedSince = null, string? fromDate = null, string? toDate = null)
+    public async Task<IEnumerable<CreditNoteReconciliation>> GetAllAsync(DateTimeOffset? updatedSince = null, string? fromDate = null, string? toDate = null)
     {
-        string cacheKey = $"{CreditNoteReconciliationsEndPoint}/{updatedSince ?? "all"}/{fromDate ?? "all"}/{toDate ?? "all"}";
+        string cacheKey = $"{CreditNoteReconciliationsEndPoint}/{updatedSince?.ToString("O") ?? "all"}/{fromDate ?? "all"}/{toDate ?? "all"}";
 
         if (!this.cache.TryGetValue(cacheKey, out IEnumerable<CreditNoteReconciliation>? results))
         {
             List<string> queryParams = [];
 
-            if (!string.IsNullOrEmpty(updatedSince))
+            if (updatedSince.HasValue)
             {
-                queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince)}");
+                queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}");
             }
 
             if (!string.IsNullOrEmpty(fromDate))

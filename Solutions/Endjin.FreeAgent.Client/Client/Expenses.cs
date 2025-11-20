@@ -140,7 +140,7 @@ public class Expenses
         string? view = null,
         DateOnly? fromDate = null,
         DateOnly? toDate = null,
-        DateTime? updatedSince = null,
+        DateTimeOffset? updatedSince = null,
         Uri? project = null)
     {
         await this.client.InitializeAndAuthorizeAsync();
@@ -164,7 +164,7 @@ public class Expenses
 
         if (updatedSince.HasValue)
         {
-            queryParams.Add($"updated_since={updatedSince.Value:O}");
+            queryParams.Add($"updated_since={updatedSince.Value.UtcDateTime:O}");
         }
 
         if (project != null)

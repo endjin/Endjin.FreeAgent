@@ -103,7 +103,7 @@ public class BankTransactionExplanations
         Uri? bankTransactionUri = null,
         DateOnly? fromDate = null,
         DateOnly? toDate = null,
-        DateTime? updatedSince = null)
+        DateTimeOffset? updatedSince = null)
     {
         List<string> queryParams = [];
 
@@ -129,7 +129,7 @@ public class BankTransactionExplanations
 
         if (updatedSince.HasValue)
         {
-            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.ToString("o"))}");
+            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.UtcDateTime.ToString("o"))}");
         }
 
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : "";

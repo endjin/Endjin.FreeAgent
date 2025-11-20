@@ -97,7 +97,7 @@ public class Bills
     public async Task<IEnumerable<Bill>> GetAllAsync(
         string view = "all",
         bool nestedBillItems = false,
-        DateTime? updatedSince = null,
+        DateTimeOffset? updatedSince = null,
         DateOnly? fromDate = null,
         DateOnly? toDate = null)
     {
@@ -110,7 +110,7 @@ public class Bills
 
         if (updatedSince.HasValue)
         {
-            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}");
+            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}");
         }
 
         if (fromDate.HasValue)

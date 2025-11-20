@@ -98,7 +98,7 @@ public class CreditNotes
         bool nestedCreditNoteItems = false,
         Uri? contact = null,
         Uri? project = null,
-        DateTime? updatedSince = null,
+        DateTimeOffset? updatedSince = null,
         string? sort = null)
     {
         var queryParams = new List<string> { $"view={view}" };
@@ -120,7 +120,7 @@ public class CreditNotes
 
         if (updatedSince.HasValue)
         {
-            queryParams.Add($"updated_since={updatedSince.Value:yyyy-MM-ddTHH:mm:ssZ}");
+            queryParams.Add($"updated_since={updatedSince.Value.UtcDateTime:yyyy-MM-ddTHH:mm:ssZ}");
         }
 
         if (!string.IsNullOrWhiteSpace(sort))

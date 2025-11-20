@@ -204,7 +204,7 @@ public class CreditNoteReconciliationsTests
 
         // Act
         await this.creditNoteReconciliations.GetAllAsync(
-            updatedSince: "2024-01-01T00:00:00.000Z",
+            updatedSince: new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero),
             fromDate: "2024-01-01",
             toDate: "2024-12-31");
 

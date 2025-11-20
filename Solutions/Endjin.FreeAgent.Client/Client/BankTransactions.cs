@@ -68,7 +68,7 @@ public class BankTransactions
         string view = "all",
         DateOnly? fromDate = null,
         DateOnly? toDate = null,
-        DateTime? updatedSince = null,
+        DateTimeOffset? updatedSince = null,
         bool lastUploadedOnly = false)
     {
         string queryString = $"?view={view}&bank_account={Uri.EscapeDataString(bankAccountUri.ToString())}";
@@ -85,7 +85,7 @@ public class BankTransactions
 
         if (updatedSince.HasValue)
         {
-            queryString += $"&updated_since={Uri.EscapeDataString(updatedSince.Value.ToString("o"))}";
+            queryString += $"&updated_since={Uri.EscapeDataString(updatedSince.Value.UtcDateTime.ToString("o"))}";
         }
 
         if (lastUploadedOnly)

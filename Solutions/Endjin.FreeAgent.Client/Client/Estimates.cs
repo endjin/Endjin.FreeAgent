@@ -62,7 +62,7 @@ public partial class Estimates
     /// This method calls GET /v2/estimates with optional query parameters and handles pagination automatically.
     /// </remarks>
     public async Task<IEnumerable<Estimate>> GetAllAsync(
-        DateTime? updatedSince = null,
+        DateTimeOffset? updatedSince = null,
         bool nestedEstimateItems = false,
         DateOnly? fromDate = null,
         DateOnly? toDate = null)
@@ -71,7 +71,7 @@ public partial class Estimates
 
         if (updatedSince.HasValue)
         {
-            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}");
+            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}");
         }
 
         if (nestedEstimateItems)
@@ -116,7 +116,7 @@ public partial class Estimates
     /// </remarks>
     public async Task<IEnumerable<Estimate>> GetAllByStatusAsync(
         string status,
-        DateTime? updatedSince = null,
+        DateTimeOffset? updatedSince = null,
         bool nestedEstimateItems = false,
         DateOnly? fromDate = null,
         DateOnly? toDate = null)
@@ -125,7 +125,7 @@ public partial class Estimates
 
         if (updatedSince.HasValue)
         {
-            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}");
+            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}");
         }
 
         if (nestedEstimateItems)
@@ -550,7 +550,7 @@ public partial class Estimates
     /// </remarks>
     public async Task<IEnumerable<Estimate>> GetAllByContactAsync(
         Uri contactUri,
-        DateTime? updatedSince = null,
+        DateTimeOffset? updatedSince = null,
         bool nestedEstimateItems = false,
         DateOnly? fromDate = null,
         DateOnly? toDate = null)
@@ -559,7 +559,7 @@ public partial class Estimates
 
         if (updatedSince.HasValue)
         {
-            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}");
+            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}");
         }
 
         if (nestedEstimateItems)
@@ -611,7 +611,7 @@ public partial class Estimates
     /// </remarks>
     public async Task<IEnumerable<Estimate>> GetAllByProjectAsync(
         Uri projectUri,
-        DateTime? updatedSince = null,
+        DateTimeOffset? updatedSince = null,
         bool nestedEstimateItems = false,
         DateOnly? fromDate = null,
         DateOnly? toDate = null)
@@ -620,7 +620,7 @@ public partial class Estimates
 
         if (updatedSince.HasValue)
         {
-            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}");
+            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}");
         }
 
         if (nestedEstimateItems)
@@ -672,7 +672,7 @@ public partial class Estimates
     /// </remarks>
     public async Task<IEnumerable<Estimate>> GetAllByInvoiceAsync(
         Uri invoiceUri,
-        DateTime? updatedSince = null,
+        DateTimeOffset? updatedSince = null,
         bool nestedEstimateItems = false,
         DateOnly? fromDate = null,
         DateOnly? toDate = null)
@@ -681,7 +681,7 @@ public partial class Estimates
 
         if (updatedSince.HasValue)
         {
-            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}");
+            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))}");
         }
 
         if (nestedEstimateItems)
