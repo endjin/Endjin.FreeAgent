@@ -65,9 +65,14 @@ while (true)
             {
                 "Show Company Info",
                 "List Contacts",
+                "List Active Projects",
                 "List Recent Invoices",
+                "List Open Bills",
                 "List Recent Expenses",
                 "List Recent Bank Transactions",
+                "Show Profit & Loss (YTD)",
+                "List Users",
+                "List EC MOSS Tax Rates",
                 "Exit"
             }));
 
@@ -86,14 +91,29 @@ while (true)
             case "List Contacts":
                 await ListContacts(client);
                 break;
+            case "List Active Projects":
+                await ListActiveProjects(client);
+                break;
             case "List Recent Invoices":
                 await ListRecentInvoices(client);
+                break;
+            case "List Open Bills":
+                await ListOpenBills(client);
                 break;
             case "List Recent Expenses":
                 await ListRecentExpenses(client);
                 break;
             case "List Recent Bank Transactions":
                 await ListRecentBankTransactions(client);
+                break;
+            case "Show Profit & Loss (YTD)":
+                await ShowProfitAndLoss(client);
+                break;
+            case "List Users":
+                await ListUsers(client);
+                break;
+            case "List EC MOSS Tax Rates":
+                await ListEcMossTaxRates(client);
                 break;
         }
     }
@@ -159,6 +179,175 @@ static async Task ListContacts(FreeAgentClient client)
             AnsiConsole.Write(new Panel(table)
                 .Header($"Contacts (First {Math.Min(10, contacts.Count())} of {contacts.Count()})")
                 .Border(BoxBorder.Rounded));
+        });
+}
+
+static async Task ListActiveProjects(FreeAgentClient client)
+{
+    await AnsiConsole.Status()
+        .StartAsync("Fetching active projects...", async ctx =>
+        {
+            IEnumerable<Project> projects = await client.Projects.GetAllActiveAsync();
+
+            Table table = new Table();
+            table.AddColumn("Name");
+            table.AddColumn("Contact");
+            table.AddColumn("Status");
+            table.AddColumn("Budget");
+
+            foreach (Project project in projects.Take(10))
+            {
+                table.AddRow(
+                    project.Name ?? "-",
+                    project.ContactEntry?.OrganisationName ?? project.ContactEntry?.FirstName ?? "-",
+                    project.Status ?? "-",
+                    $"{project.Currency} {project.Budget:N0}"
+                );
+            }
+
+            AnsiConsole.Write(new Panel(table)
+                .Header($"Active Projects (First {Math.Min(10, projects.Count())} of {projects.Count()})")
+                .Border(BoxBorder.Rounded));
+        });
+}
+
+static async Task ListOpenBills(FreeAgentClient client)
+{
+    await AnsiConsole.Status()
+        .StartAsync("Fetching open bills...", async ctx =>
+        {
+            IEnumerable<Bill> bills = await client.Bills.GetAllAsync(view: "open");
+
+            Table table = new Table();
+            table.AddColumn("Reference");
+            table.AddColumn("Contact");
+            table.AddColumn("Due Date");
+            table.AddColumn(new TableColumn("Total").RightAligned());
+
+            foreach (Bill bill in bills.Take(10))
+            {
+                // We might need to fetch contact name if not available, but for now let's use the URL or ID if nested is not used
+                // Ideally we would fetch contacts or use a method that expands them, but GetAllAsync(view="open") doesn't support nested contacts directly in the signature I saw?
+                // Actually Bills.GetAllAsync doesn't seem to have a 'nested' param for contacts, only bill items.
+                // So we'll just show the contact URL or ID for now, or try to parse it.
+                string contactId = bill.Contact?.ToString().Split('/').Last() ?? "-";
+
+                table.AddRow(
+                    bill.Reference ?? "-",
+                    $"Contact #{contactId}", 
+                    bill.DueOn?.ToString("yyyy-MM-dd") ?? "-",
+                    $"{bill.TotalValue:N2}"
+                );
+            }
+
+            AnsiConsole.Write(new Panel(table)
+                .Header($"Open Bills (First {Math.Min(10, bills.Count())})")
+                .Border(BoxBorder.Rounded));
+        });
+}
+
+static async Task ShowProfitAndLoss(FreeAgentClient client)
+{
+    await AnsiConsole.Status()
+        .StartAsync("Fetching Profit & Loss...", async ctx =>
+        {
+            var pnl = await client.ProfitAndLossReports.GetCurrentYearToDateAsync();
+
+            Table table = new Table();
+            table.AddColumn("Category");
+            table.AddColumn(new TableColumn("Amount").RightAligned());
+
+            table.AddRow("Income", $"[green]{pnl.Income:N2}[/]");
+            table.AddRow("Expenses", $"[red]{pnl.Expenses:N2}[/]");
+            table.AddRow("Operating Profit", $"[bold]{pnl.OperatingProfit:N2}[/]");
+            
+            if (pnl.Less != null)
+            {
+                foreach (var deduction in pnl.Less)
+                {
+                    table.AddRow(deduction.Title ?? "Deduction", $"[red]{deduction.Total:N2}[/]");
+                }
+            }
+                
+            table.AddRow("Retained Profit", $"[bold green]{pnl.RetainedProfit:N2}[/]");
+
+            AnsiConsole.Write(new Panel(table)
+                .Header("Profit & Loss (Year to Date)")
+                .Border(BoxBorder.Rounded));
+        });
+}
+
+static async Task ListUsers(FreeAgentClient client)
+{
+    await AnsiConsole.Status()
+        .StartAsync("Fetching users...", async ctx =>
+        {
+            IEnumerable<User> users = await client.Users.GetAllUsersAsync();
+
+            Table table = new Table();
+            table.AddColumn("Name");
+            table.AddColumn("Email");
+            table.AddColumn("Role");
+
+            foreach (User user in users)
+            {
+                table.AddRow(
+                    $"{user.FirstName} {user.LastName}",
+                    user.Email ?? "-",
+                    user.Role?.ToString() ?? "-"
+                );
+            }
+
+            AnsiConsole.Write(new Panel(table)
+                .Header($"Users ({users.Count()})")
+                .Border(BoxBorder.Rounded));
+        });
+}
+
+static async Task ListEcMossTaxRates(FreeAgentClient client)
+{
+    string[] countries = new[]
+    {
+        "Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czech Republic",
+        "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary",
+        "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta",
+        "Netherlands", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia",
+        "Spain", "Sweden"
+    };
+
+    string country = AnsiConsole.Prompt(
+        new SelectionPrompt<string>()
+            .Title("Select country:")
+            .PageSize(10)
+            .AddChoices(countries));
+    
+    await AnsiConsole.Status()
+        .StartAsync($"Fetching EC MOSS tax rates for {country}...", async ctx =>
+        {
+            try 
+            {
+                IEnumerable<EcMossSalesTaxRate> rates = await client.EcMossSalesTaxRates.GetAsync(country, DateOnly.FromDateTime(DateTime.Today));
+
+                Table table = new Table();
+                table.AddColumn("Band");
+                table.AddColumn(new TableColumn("Percentage").RightAligned());
+
+                foreach (EcMossSalesTaxRate rate in rates)
+                {
+                    table.AddRow(
+                        rate.Band ?? "-",
+                        $"{rate.Percentage}%"
+                    );
+                }
+
+                AnsiConsole.Write(new Panel(table)
+                    .Header($"EC MOSS Tax Rates for {country}")
+                    .Border(BoxBorder.Rounded));
+            }
+            catch (HttpRequestException ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error fetching tax rates: {ex.Message}[/]");
+            }
         });
 }
 
