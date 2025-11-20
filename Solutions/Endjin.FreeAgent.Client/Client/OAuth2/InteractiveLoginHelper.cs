@@ -2,6 +2,8 @@
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
+using System.Collections.Specialized;
+
 using Duende.IdentityModel;
 using Duende.IdentityModel.Client;
 
@@ -139,7 +141,7 @@ public class InteractiveLoginHelper
             string? query = context.Request.Url?.Query;
             if (!string.IsNullOrEmpty(query))
             {
-                var queryParams = HttpUtility.ParseQueryString(query);
+                NameValueCollection queryParams = HttpUtility.ParseQueryString(query);
                 code = queryParams["code"];
                 error = queryParams["error"];
             }
@@ -197,7 +199,7 @@ public class InteractiveLoginHelper
 
     private string BuildAuthorizationUrl(string redirectUri, string? codeChallenge)
     {
-        var queryParams = new Dictionary<string, string>
+        Dictionary<string, string> queryParams = new()
         {
             { "response_type", "code" },
             { "client_id", options.ClientId },
@@ -215,7 +217,7 @@ public class InteractiveLoginHelper
             queryParams["code_challenge_method"] = "S256";
         }
 
-        var queryString = string.Join("&", queryParams.Select(kvp => 
+        string queryString = string.Join("&", queryParams.Select(kvp => 
             $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}"));
 
         return $"{options.AuthorizationEndpoint}?{queryString}";
@@ -227,7 +229,7 @@ public class InteractiveLoginHelper
         string? codeVerifier,
         CancellationToken cancellationToken)
     {
-        var tokenClient = new TokenClient(httpClient, new TokenClientOptions
+        TokenClient tokenClient = new(httpClient, new TokenClientOptions
         {
             Address = options.TokenEndpoint.ToString(),
             ClientId = options.ClientId,
@@ -243,7 +245,7 @@ public class InteractiveLoginHelper
 
     private static string GenerateCodeChallenge(string codeVerifier)
     {
-        using var sha256 = SHA256.Create();
+        using SHA256 sha256 = SHA256.Create();
         byte[] hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(codeVerifier));
         return Base64Url.Encode(hash);
     }

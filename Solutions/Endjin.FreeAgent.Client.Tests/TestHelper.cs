@@ -12,7 +12,8 @@ internal static class TestHelper
     {
         // Set up a test OAuth2Service
         TestOAuth2Service testOAuth2Service = new("test-token");
-        freeAgentClient.SetOAuth2Service(testOAuth2Service);
+        OAuth2AuthenticationProvider authProvider = new(testOAuth2Service);
+        freeAgentClient.AuthenticationProvider = authProvider;
 
         // Now we can call the real initialization which will use the factory
         await freeAgentClient.InitializeAndAuthorizeAsync();

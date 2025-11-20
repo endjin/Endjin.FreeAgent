@@ -310,7 +310,7 @@ This will:
 2. Automatically receive and display your access and refresh tokens
 3. Launch the interactive demo menu immediately
 
-You only need ClientId and ClientSecret in your appsettings.json for this mode.
+You only need ClientId and ClientSecret in your appsettings.json for this mode, or you can enter them when prompted.
 
 ### Standard Mode (Using Existing Refresh Token)
 

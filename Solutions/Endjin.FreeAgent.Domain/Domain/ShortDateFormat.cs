@@ -58,12 +58,12 @@ public static class ShortDateFormat
     /// <returns>An array containing all valid short date format strings.</returns>
     public static string[] GetValidFormats()
     {
-        return new[]
-        {
+        return
+        [
             AbbreviatedMonth,
             European,
             US,
-            ISO,
-        };
+            ISO
+        ];
     }
 }

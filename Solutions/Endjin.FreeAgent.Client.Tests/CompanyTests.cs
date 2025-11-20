@@ -156,19 +156,19 @@ public class CompanyTests
             CisContractor = false,
             CreatedAt = new DateTime(2020, 1, 1, 10, 0, 0, DateTimeKind.Utc),
             UpdatedAt = new DateTime(2024, 1, 1, 15, 30, 0, DateTimeKind.Utc),
-            SalesTaxRates = new List<decimal>
-            {
+            SalesTaxRates =
+            [
                 20.0m,
                 5.0m,
                 0.0m
-            },
-            AnnualAccountingPeriods = new List<AnnualAccountingPeriod>
-            {
+            ],
+            AnnualAccountingPeriods =
+            [
                 new() { StartsOn = new DateOnly(2020, 1, 1), EndsOn = new DateOnly(2020, 12, 31) },
                 new() { StartsOn = new DateOnly(2021, 1, 1), EndsOn = new DateOnly(2021, 12, 31) },
                 new() { StartsOn = new DateOnly(2022, 1, 1), EndsOn = new DateOnly(2022, 12, 31) }
-            },
-            LockedAttributes = new List<string> { "company_start_date", "company_registration_number" }
+            ],
+            LockedAttributes = ["company_start_date", "company_registration_number"]
         };
 
         CompanyRoot responseRoot = new() { Company = companyDetails };

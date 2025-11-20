@@ -114,7 +114,7 @@ public class Invoices
         string? sort = null,
         bool nestedInvoiceItems = false)
     {
-        List<string> queryParams = new List<string> { $"view={view}" };
+        List<string> queryParams = [$"view={view}"];
 
         if (updatedSince.HasValue)
         {

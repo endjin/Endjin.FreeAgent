@@ -5,7 +5,6 @@
 using DemoApp.Commands;
 using DemoApp.Infrastructure;
 using Endjin.FreeAgent.Client;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -25,7 +24,7 @@ public static class Program
             .AddUserSecrets(typeof(Program).Assembly, optional: true)
             .Build();
 
-        var services = new ServiceCollection();
+        ServiceCollection services = new();
 
         // Register Configuration
         services.AddSingleton<IConfiguration>(configuration);
@@ -33,7 +32,11 @@ public static class Program
         // Add memory cache
         services.AddMemoryCache();
         services.AddHttpClient();
-        services.AddLogging(builder => builder.AddConsole());
+        services.AddLogging(builder => 
+        {
+            builder.AddConsole();
+            builder.SetMinimumLevel(LogLevel.Warning);
+        });
 
         // Add FreeAgent client services with configuration
         // We register this unconditionally. If config is missing, it might throw during resolution,
@@ -50,14 +53,14 @@ public static class Program
             // validation happens at resolution time.
         }
 
-        var registrar = new TypeRegistrar(services);
-        var app = new CommandApp<RunDemoCommand>(registrar);
+        TypeRegistrar registrar = new(services);
+        CommandApp<RunDemoCommand> app = new(registrar);
 
         app.Configure(config =>
         {
             config.SetApplicationName("DemoApp");
-            config.AddExample(new[] { "--interactive-login" });
-            config.AddExample(new[] { "-i" });
+            config.AddExample(["--interactive-login"]);
+            config.AddExample(["-i"]);
         });
 
         return app.Run(args);

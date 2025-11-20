@@ -137,7 +137,7 @@ public static class CategoryValidation
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        List<string> errors = new List<string>();
+        List<string> errors = [];
 
         // Validate nominal code range
         if (!IsValidNominalCodeForGroup(request.NominalCode, request.CategoryGroup))

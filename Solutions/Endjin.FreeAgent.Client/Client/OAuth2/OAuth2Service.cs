@@ -94,40 +94,17 @@ public class OAuth2Service : IOAuth2Service
         }
 
         // Token needs refresh
-        return await RefreshAccessTokenAsync(cancellationToken);
+        return await RefreshAccessTokenAsync(cancellationToken: cancellationToken);
     }
 
-    /// <summary>
-    /// Refreshes the access token using the refresh token.
-    /// </summary>
-    /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains the new access token.</returns>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when the refresh token is not configured or when the token refresh request fails.
-    /// </exception>
-    /// <remarks>
-    /// <para>
-    /// This method uses a semaphore to ensure thread-safe token refresh. Only one refresh
-    /// operation will be in progress at a time. If multiple threads request a refresh simultaneously,
-    /// only the first thread will perform the refresh while others wait, and all will receive
-    /// the refreshed token.
-    /// </para>
-    /// <para>
-    /// The method implements a double-check pattern: after acquiring the semaphore, it checks
-    /// again if the token is still expired in case another thread has already refreshed it.
-    /// </para>
-    /// <para>
-    /// If a new refresh token is provided in the response, it updates the internal options
-    /// to use the new refresh token for subsequent refresh operations.
-    /// </para>
-    /// </remarks>
-    public async Task<string> RefreshAccessTokenAsync(CancellationToken cancellationToken = default)
+    /// <inheritdoc/>
+    public async Task<string> RefreshAccessTokenAsync(string? refreshToken = null, CancellationToken cancellationToken = default)
     {
         await tokenRefreshSemaphore.WaitAsync(cancellationToken);
         try
         {
             // Double-check after acquiring lock
-            if (cache.TryGetValue<TokenInfo>(TokenCacheKey, out TokenInfo? cachedToken) && cachedToken != null)
+            if (refreshToken == null && cache.TryGetValue<TokenInfo>(TokenCacheKey, out TokenInfo? cachedToken) && cachedToken != null)
             {
                 if (cachedToken.ExpiresAt > DateTime.UtcNow.AddSeconds(options.TokenRefreshBufferSeconds))
                 {
@@ -145,8 +122,10 @@ public class OAuth2Service : IOAuth2Service
                 ClientSecret = options.ClientSecret,
             });
 
+            string tokenToUse = refreshToken ?? options.RefreshToken ?? throw new InvalidOperationException("RefreshToken is required for token refresh");
+
             TokenResponse tokenResponse = await tokenClient.RequestRefreshTokenAsync(
-                options.RefreshToken ?? throw new InvalidOperationException("RefreshToken is required for token refresh"),
+                tokenToUse,
                 cancellationToken: cancellationToken);
 
             if (tokenResponse.IsError)

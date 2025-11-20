@@ -97,8 +97,8 @@ public class EstimateSettings
     /// </remarks>
     public async Task<EstimateDefaultAdditionalText> UpdateDefaultAdditionalTextAsync(string text)
     {
-        EstimateDefaultAdditionalText textObject = new EstimateDefaultAdditionalText { Text = text };
-        EstimateDefaultAdditionalTextRoot wrapper = new EstimateDefaultAdditionalTextRoot { Estimate = textObject };
+        EstimateDefaultAdditionalText textObject = new() { Text = text };
+        EstimateDefaultAdditionalTextRoot wrapper = new() { Estimate = textObject };
 
         using JsonContent content = JsonContent.Create(wrapper, options: SharedJsonOptions.SourceGenOptions);
 

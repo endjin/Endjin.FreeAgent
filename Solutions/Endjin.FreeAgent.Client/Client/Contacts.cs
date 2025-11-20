@@ -184,7 +184,7 @@ public class Contacts
         string? sort = null,
         DateTimeOffset? updatedSince = null)
     {
-        List<string> queryParams = new List<string> { $"view={view}" };
+        List<string> queryParams = [$"view={view}"];
 
         if (!string.IsNullOrEmpty(sort))
         {

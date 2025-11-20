@@ -101,7 +101,7 @@ public class Bills
         DateOnly? fromDate = null,
         DateOnly? toDate = null)
     {
-        List<string> queryParams = new List<string> { $"view={view}" };
+        List<string> queryParams = [$"view={view}"];
 
         if (nestedBillItems)
         {

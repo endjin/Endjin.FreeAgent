@@ -24,7 +24,7 @@ public class TestOAuth2Service : IOAuth2Service
         return Task.FromResult(fixedToken);
     }
 
-    public Task<string> RefreshAccessTokenAsync(CancellationToken cancellationToken = default)
+    public Task<string> RefreshAccessTokenAsync(string? refreshToken = null, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(fixedToken);
     }

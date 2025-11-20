@@ -133,7 +133,7 @@ public class CapitalAssetTypes
 
         await this.client.InitializeAndAuthorizeAsync();
 
-        CapitalAssetTypeRoot payload = new CapitalAssetTypeRoot
+        CapitalAssetTypeRoot payload = new()
         {
             CapitalAssetType = new CapitalAssetType { Name = name },
         };
@@ -183,7 +183,7 @@ public class CapitalAssetTypes
 
         await this.client.InitializeAndAuthorizeAsync();
 
-        CapitalAssetTypeRoot payload = new CapitalAssetTypeRoot
+        CapitalAssetTypeRoot payload = new()
         {
             CapitalAssetType = new CapitalAssetType { Name = name },
         };

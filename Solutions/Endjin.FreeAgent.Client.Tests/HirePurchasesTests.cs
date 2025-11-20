@@ -48,7 +48,7 @@ public class HirePurchasesTests
         // Arrange
         List<HirePurchase> hirePurchasesList =
         [
-            new HirePurchase
+            new()
             {
                 Url = new Uri("https://api.freeagent.com/v2/hire_purchases/1"),
                 Description = "Office Equipment Hire Purchase",
@@ -56,7 +56,7 @@ public class HirePurchasesTests
                 LiabilitiesOverOneYearCategory = new Uri("https://api.freeagent.com/v2/categories/793-1"),
                 LiabilitiesUnderOneYearCategory = new Uri("https://api.freeagent.com/v2/categories/792-1")
             },
-            new HirePurchase
+            new()
             {
                 Url = new Uri("https://api.freeagent.com/v2/hire_purchases/2"),
                 Description = "Vehicle Hire Purchase",
@@ -122,7 +122,7 @@ public class HirePurchasesTests
         // Arrange
         List<HirePurchase> hirePurchasesList =
         [
-            new HirePurchase
+            new()
             {
                 Url = new Uri("https://api.freeagent.com/v2/hire_purchases/1"),
                 Description = "Cached Hire Purchase"

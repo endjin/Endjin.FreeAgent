@@ -36,6 +36,7 @@ public interface IOAuth2Service
     /// <summary>
     /// Refreshes the access token using the refresh token.
     /// </summary>
+    /// <param name="refreshToken">Optional refresh token to use. If null, uses the configured refresh token.</param>
     /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the new access token.</returns>
     /// <exception cref="InvalidOperationException">
@@ -46,7 +47,7 @@ public interface IOAuth2Service
     /// Implementations should ensure thread-safe token refresh to prevent multiple
     /// concurrent refresh operations.
     /// </remarks>
-    Task<string> RefreshAccessTokenAsync(CancellationToken cancellationToken = default);
+    Task<string> RefreshAccessTokenAsync(string? refreshToken = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Exchanges an authorization code for access and refresh tokens.

@@ -1,7 +1,5 @@
 using System.ComponentModel;
-using DemoApp.Infrastructure;
 using Endjin.FreeAgent.Client;
-using Endjin.FreeAgent.Client.OAuth2;
 using Endjin.FreeAgent.Domain;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -9,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using Company = Endjin.FreeAgent.Domain.Company;
 
 namespace DemoApp.Commands;
 
@@ -26,107 +23,87 @@ public class RunDemoSettings : CommandSettings
 
 public class RunDemoCommand : AsyncCommand<RunDemoSettings>
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<RunDemoCommand> _logger;
+    private readonly IServiceProvider serviceProvider;
+    private readonly IConfiguration configuration;
+    private readonly ILogger<RunDemoCommand> logger;
 
     public RunDemoCommand(IServiceProvider serviceProvider, IConfiguration configuration, ILogger<RunDemoCommand> logger)
     {
-        _serviceProvider = serviceProvider;
-        _configuration = configuration;
-        _logger = logger;
+        this.serviceProvider = serviceProvider;
+        this.configuration = configuration;
+        this.logger = logger;
     }
 
     public override async Task<int> ExecuteAsync(CommandContext context, RunDemoSettings settings, CancellationToken cancellationToken)
     {
         FreeAgentClient client;
+        FreeAgentOptions options = new();
+
+        // Resolve services once
+        IMemoryCache cache = this.serviceProvider.GetRequiredService<IMemoryCache>();
+        IHttpClientFactory httpClientFactory = this.serviceProvider.GetRequiredService<IHttpClientFactory>();
+        ILoggerFactory loggerFactory = this.serviceProvider.GetRequiredService<ILoggerFactory>();
+
+        // Bind configuration to options
+        this.configuration.GetSection(FreeAgentOptions.SectionName).Bind(options);
+        
+        // Override sandbox setting if specified via CLI
+        if (settings.UseSandbox)
+        {
+            options.UseSandbox = true;
+        }
 
         if (settings.InteractiveLogin)
         {
             // Interactive Login Mode
-            AnsiConsole.MarkupLine($"[yellow]=== FreeAgent Interactive Login Mode ({(settings.UseSandbox ? "Sandbox" : "Production")}) ===[/]\n");
+            AnsiConsole.MarkupLine($"[yellow]=== FreeAgent Interactive Login Mode ({(options.UseSandbox ? "Sandbox" : "Production")}) ===[/]\n");
 
-            string? clientId = _configuration["FreeAgent:ClientId"];
-            string? clientSecret = _configuration["FreeAgent:ClientSecret"];
+            string? clientId = options.ClientId;
+            string? clientSecret = options.ClientSecret;
 
             if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
             {
-                AnsiConsole.MarkupLine("[red]Error: ClientId and ClientSecret must be configured in appsettings.json[/]");
-                AnsiConsole.WriteLine("\nPlease ensure your appsettings.json contains:");
-                AnsiConsole.WriteLine("{");
-                AnsiConsole.WriteLine("  \"FreeAgent\": {");
-                AnsiConsole.WriteLine("    \"ClientId\": \"your-client-id\",");
-                AnsiConsole.WriteLine("    \"ClientSecret\": \"your-client-secret\"");
-                AnsiConsole.WriteLine("  }");
-                AnsiConsole.WriteLine("}");
-                return 1;
+                AnsiConsole.MarkupLine("[yellow]ClientId and/or ClientSecret not found in configuration.[/]");
+                AnsiConsole.MarkupLine("Please enter your FreeAgent App credentials (from https://dev.freeagent.com):");
+                
+                if (string.IsNullOrWhiteSpace(clientId))
+                {
+                    clientId = AnsiConsole.Prompt(
+                        new TextPrompt<string>("Client ID:")
+                            .PromptStyle("green"));
+                }
+
+                if (string.IsNullOrWhiteSpace(clientSecret))
+                {
+                    clientSecret = AnsiConsole.Prompt(
+                        new TextPrompt<string>("Client Secret:")
+                            .Secret()
+                            .PromptStyle("green"));
+                }
             }
 
-            try
-            {
-                InteractiveLoginResult result = await InteractiveLoginExample.PerformInteractiveLoginAsync(
-                    clientId,
-                    clientSecret,
-                    _logger,
-                    settings.UseSandbox);
-
-                var cache = _serviceProvider.GetRequiredService<IMemoryCache>();
-                var httpClientFactory = _serviceProvider.GetRequiredService<IHttpClientFactory>();
-                var loggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>();
-
-                client = new FreeAgentClient(
-                    clientId,
-                    clientSecret,
-                    result.RefreshToken,
-                    cache,
-                    httpClientFactory,
-                    loggerFactory,
-                    settings.UseSandbox);
-            }
-            catch (Exception ex)
-            {
-                AnsiConsole.MarkupLine($"\n[red]❌ Error during interactive login: {ex.Message}[/]");
-                _logger.LogError(ex, "Interactive login failed");
-                return 1;
-            }
+            client = FreeAgentClient.CreateInteractive(
+                clientId!,
+                clientSecret!,
+                options.UseSandbox,
+                cache,
+                httpClientFactory,
+                loggerFactory,
+                options.RefreshToken);
         }
         else
         {
             // Standard Mode
-            AnsiConsole.MarkupLine($"[blue]=== FreeAgent Standard Mode ({(settings.UseSandbox ? "Sandbox" : "Production")}) ===[/]");
+            AnsiConsole.MarkupLine($"[blue]=== FreeAgent Standard Mode ({(options.UseSandbox ? "Sandbox" : "Production")}) ===[/]");
             AnsiConsole.MarkupLine("Tip: Use [green]'--interactive-login'[/] or [green]'-i'[/] to perform interactive OAuth login\n");
 
             try
             {
-                if (settings.UseSandbox)
-                {
-                    string? clientId = _configuration["FreeAgent:ClientId"];
-                    string? clientSecret = _configuration["FreeAgent:ClientSecret"];
-                    string? refreshToken = _configuration["FreeAgent:RefreshToken"];
-
-                    var cache = _serviceProvider.GetRequiredService<IMemoryCache>();
-                    var httpClientFactory = _serviceProvider.GetRequiredService<IHttpClientFactory>();
-                    var loggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>();
-
-                    // We manually construct the client to enforce sandbox mode if requested via CLI
-                    // This overrides whatever might be in appsettings.json regarding UseSandbox
-                    client = new FreeAgentClient(
-                        clientId ?? string.Empty,
-                        clientSecret ?? string.Empty,
-                        refreshToken ?? string.Empty,
-                        cache,
-                        httpClientFactory,
-                        loggerFactory,
-                        useSandbox: true);
-                }
-                else
-                {
-                    client = _serviceProvider.GetRequiredService<FreeAgentClient>();
-                }
+                client = new FreeAgentClient(options, cache, httpClientFactory, loggerFactory);
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine("[red]Failed to resolve FreeAgentClient. Please check your configuration.[/]");
+                AnsiConsole.MarkupLine("[red]Failed to initialize FreeAgentClient. Please check your configuration.[/]");
                 AnsiConsole.WriteException(ex);
                 return 1;
             }
@@ -157,9 +134,8 @@ public class RunDemoCommand : AsyncCommand<RunDemoSettings>
             string choice = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
                     .Title("Select an action:")
-                    .PageSize(10)
-                    .AddChoices(new[]
-                    {
+                    .PageSize(20)
+                    .AddChoices([
                         "Show Company Info",
                         "List Contacts",
                         "List Active Projects",
@@ -171,7 +147,7 @@ public class RunDemoCommand : AsyncCommand<RunDemoSettings>
                         "List Users",
                         "List EC MOSS Tax Rates",
                         "Exit"
-                    }));
+                    ]));
 
             if (choice == "Exit")
             {
@@ -233,9 +209,9 @@ public class RunDemoCommand : AsyncCommand<RunDemoSettings>
         await AnsiConsole.Status()
             .StartAsync("Fetching company info...", async ctx =>
             {
-                Company company = await client.Company.GetAsync();
-                
-                Table table = new Table();
+                Endjin.FreeAgent.Domain.Company company = await client.Company.GetAsync();
+
+                Table table = new();
                 table.AddColumn("Property");
                 table.AddColumn("Value");
 
@@ -258,7 +234,7 @@ public class RunDemoCommand : AsyncCommand<RunDemoSettings>
             {
                 IEnumerable<Contact> contacts = await client.Contacts.GetAllAsync();
 
-                Table table = new Table();
+                Table table = new();
                 table.AddColumn("Organization");
                 table.AddColumn("First Name");
                 table.AddColumn("Last Name");
@@ -289,7 +265,7 @@ public class RunDemoCommand : AsyncCommand<RunDemoSettings>
             {
                 IEnumerable<Project> projects = await client.Projects.GetAllActiveAsync();
 
-                Table table = new Table();
+                Table table = new();
                 table.AddColumn("Name");
                 table.AddColumn("Contact");
                 table.AddColumn("Status");
@@ -318,7 +294,7 @@ public class RunDemoCommand : AsyncCommand<RunDemoSettings>
             {
                 IEnumerable<Bill> bills = await client.Bills.GetAllAsync(view: "open");
 
-                Table table = new Table();
+                Table table = new();
                 table.AddColumn("Reference");
                 table.AddColumn("Contact");
                 table.AddColumn("Due Date");
@@ -330,7 +306,7 @@ public class RunDemoCommand : AsyncCommand<RunDemoSettings>
 
                     table.AddRow(
                         bill.Reference ?? "-",
-                        $"Contact #{contactId}", 
+                        $"Contact #{contactId}",
                         bill.DueOn?.ToString("yyyy-MM-dd") ?? "-",
                         $"{bill.TotalValue:N2}"
                     );
@@ -347,24 +323,24 @@ public class RunDemoCommand : AsyncCommand<RunDemoSettings>
         await AnsiConsole.Status()
             .StartAsync("Fetching Profit & Loss...", async ctx =>
             {
-                var pnl = await client.ProfitAndLossReports.GetCurrentYearToDateAsync();
+                ProfitAndLoss pnl = await client.ProfitAndLossReports.GetCurrentYearToDateAsync();
 
-                Table table = new Table();
+                Table table = new();
                 table.AddColumn("Category");
                 table.AddColumn(new TableColumn("Amount").RightAligned());
 
                 table.AddRow("Income", $"[green]{pnl.Income:N2}[/]");
                 table.AddRow("Expenses", $"[red]{pnl.Expenses:N2}[/]");
                 table.AddRow("Operating Profit", $"[bold]{pnl.OperatingProfit:N2}[/]");
-                
+
                 if (pnl.Less != null)
                 {
-                    foreach (var deduction in pnl.Less)
+                    foreach (ProfitAndLossDeduction deduction in pnl.Less)
                     {
                         table.AddRow(deduction.Title ?? "Deduction", $"[red]{deduction.Total:N2}[/]");
                     }
                 }
-                    
+
                 table.AddRow("Retained Profit", $"[bold green]{pnl.RetainedProfit:N2}[/]");
 
                 AnsiConsole.Write(new Panel(table)
@@ -380,7 +356,7 @@ public class RunDemoCommand : AsyncCommand<RunDemoSettings>
             {
                 IEnumerable<User> users = await client.Users.GetAllUsersAsync();
 
-                Table table = new Table();
+                Table table = new();
                 table.AddColumn("Name");
                 table.AddColumn("Email");
                 table.AddColumn("Role");
@@ -402,29 +378,29 @@ public class RunDemoCommand : AsyncCommand<RunDemoSettings>
 
     private static async Task ListEcMossTaxRates(FreeAgentClient client)
     {
-        string[] countries = new[]
-        {
+        string[] countries =
+        [
             "Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czech Republic",
             "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary",
             "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta",
             "Netherlands", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia",
             "Spain", "Sweden"
-        };
+        ];
 
         string country = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("Select country:")
                 .PageSize(10)
                 .AddChoices(countries));
-        
+
         await AnsiConsole.Status()
             .StartAsync($"Fetching EC MOSS tax rates for {country}...", async ctx =>
             {
-                try 
+                try
                 {
                     IEnumerable<EcMossSalesTaxRate> rates = await client.EcMossSalesTaxRates.GetAsync(country, DateOnly.FromDateTime(DateTime.Today));
 
-                    Table table = new Table();
+                    Table table = new();
                     table.AddColumn("Band");
                     table.AddColumn(new TableColumn("Percentage").RightAligned());
 
@@ -455,7 +431,7 @@ public class RunDemoCommand : AsyncCommand<RunDemoSettings>
                 // Get invoices from the last 6 months
                 IEnumerable<Invoice> invoices = await client.Invoices.GetAllAsync(view: "last_6_months");
 
-                Table table = new Table();
+                Table table = new();
                 table.AddColumn("Reference");
                 table.AddColumn("Date");
                 table.AddColumn("Due Date");
@@ -496,7 +472,7 @@ public class RunDemoCommand : AsyncCommand<RunDemoSettings>
                 DateOnly fromDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(-3));
                 IEnumerable<Expense> expenses = await client.Expenses.GetAllAsync(view: "recent", fromDate: fromDate);
 
-                Table table = new Table();
+                Table table = new();
                 table.AddColumn("Date");
                 table.AddColumn("Category");
                 table.AddColumn("Description");
@@ -540,11 +516,11 @@ public class RunDemoCommand : AsyncCommand<RunDemoSettings>
                 }
 
                 ctx.Status($"Fetching transactions for {primaryAccount.Name}...");
-                
+
                 DateOnly fromDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(-1));
                 IEnumerable<BankTransaction> transactions = await client.BankTransactions.GetAllAsync(primaryAccount.Url, fromDate: fromDate);
 
-                Table table = new Table();
+                Table table = new();
                 table.AddColumn("Date");
                 table.AddColumn("Description");
                 table.AddColumn(new TableColumn("Amount").RightAligned());

@@ -91,7 +91,7 @@ public class FinalAccountsReportsTests
     public async Task GetByPeriodEndDateAsync_WithValidDate_ReturnsReport()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         FinalAccountsReport report = new()
         {
             Url = new Uri("https://api.freeagent.com/v2/final_accounts_reports/2024-03-31"),
@@ -127,7 +127,7 @@ public class FinalAccountsReportsTests
     public async Task MarkAsFiledAsync_MarksReportAsFiled()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         FinalAccountsReport report = new()
         {
             Url = new Uri("https://api.freeagent.com/v2/final_accounts_reports/2024-03-31"),
@@ -164,7 +164,7 @@ public class FinalAccountsReportsTests
     public async Task MarkAsUnfiledAsync_MarksReportAsUnfiled()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         FinalAccountsReport report = new()
         {
             Url = new Uri("https://api.freeagent.com/v2/final_accounts_reports/2024-03-31"),
@@ -290,7 +290,7 @@ public class FinalAccountsReportsTests
     public async Task GetByPeriodEndDateAsync_CachingBehavior_ReturnsFromCacheOnSecondCall()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         FinalAccountsReport report = new()
         {
             Url = new Uri("https://api.freeagent.com/v2/final_accounts_reports/2024-03-31"),
@@ -328,7 +328,7 @@ public class FinalAccountsReportsTests
     public async Task MarkAsFiledAsync_InvalidatesCache()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         string cacheKeySpecific = $"final_accounts_report_2024-03-31";
         string cacheKeyAll = "final_accounts_reports_all";
 
@@ -378,7 +378,7 @@ public class FinalAccountsReportsTests
     public async Task MarkAsUnfiledAsync_InvalidatesCache()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         string cacheKeySpecific = $"final_accounts_report_2024-03-31";
         string cacheKeyAll = "final_accounts_reports_all";
 
@@ -495,7 +495,7 @@ public class FinalAccountsReportsTests
     public async Task GetByPeriodEndDateAsync_WithNotFound_ThrowsHttpRequestException()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.NotFound)
         {
             Content = new StringContent("{\"error\":\"Resource not found\"}", Encoding.UTF8, "application/json")
@@ -524,7 +524,7 @@ public class FinalAccountsReportsTests
     public async Task MarkAsFiledAsync_WithForbidden_ThrowsHttpRequestException()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Forbidden)
         {
             Content = new StringContent("{\"error\":\"Forbidden\"}", Encoding.UTF8, "application/json")
@@ -539,7 +539,7 @@ public class FinalAccountsReportsTests
     public async Task MarkAsUnfiledAsync_WithServerError_ThrowsHttpRequestException()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.InternalServerError)
         {
             Content = new StringContent("{\"error\":\"Internal server error\"}", Encoding.UTF8, "application/json")
@@ -568,7 +568,7 @@ public class FinalAccountsReportsTests
     public async Task GetByPeriodEndDateAsync_WithMissingRequiredFields_ThrowsJsonException()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
 
         // Response missing required fields
         string responseJson = @"{
