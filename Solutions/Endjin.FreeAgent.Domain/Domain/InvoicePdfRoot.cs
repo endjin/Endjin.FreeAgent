@@ -3,7 +3,6 @@
 // </copyright>
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json.Serialization;
 
 namespace Endjin.FreeAgent.Domain;
 

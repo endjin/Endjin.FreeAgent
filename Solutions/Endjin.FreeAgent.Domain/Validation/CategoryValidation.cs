@@ -137,12 +137,12 @@ public static class CategoryValidation
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var errors = new List<string>();
+        List<string> errors = new List<string>();
 
         // Validate nominal code range
         if (!IsValidNominalCodeForGroup(request.NominalCode, request.CategoryGroup))
         {
-            var (min, max) = GetNominalCodeRange(request.CategoryGroup);
+            (int min, int max) = GetNominalCodeRange(request.CategoryGroup);
             errors.Add($"Nominal code {request.NominalCode} is not valid for category group {request.CategoryGroup}. Valid range is {min:D3}-{max:D3}.");
         }
 
@@ -181,7 +181,7 @@ public static class CategoryValidation
     /// <returns>A string describing the valid nominal code range.</returns>
     public static string GetNominalCodeRangeDescription(CategoryGroupType categoryGroup)
     {
-        var (min, max) = GetNominalCodeRange(categoryGroup);
+        (int min, int max) = GetNominalCodeRange(categoryGroup);
         return $"{min:D3}-{max:D3}";
     }
 }

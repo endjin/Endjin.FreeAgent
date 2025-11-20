@@ -3,8 +3,6 @@
 // </copyright>
 
 using System.Net.Http.Json;
-using System.IO;
-using System.Net.Http.Headers;
 
 using Endjin.FreeAgent.Domain;
 

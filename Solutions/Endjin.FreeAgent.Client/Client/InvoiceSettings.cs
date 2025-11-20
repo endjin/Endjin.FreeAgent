@@ -6,8 +6,6 @@ using System.Net.Http.Json;
 
 using Endjin.FreeAgent.Domain;
 
-using Microsoft.Extensions.Caching.Memory;
-
 namespace Endjin.FreeAgent.Client;
 
 /// <summary>
@@ -99,7 +97,7 @@ public class InvoiceSettings
     /// </remarks>
     public async Task<InvoiceDefaultAdditionalText> UpdateDefaultAdditionalTextAsync(string text)
     {
-        var wrapper = new InvoiceDefaultAdditionalTextRoot { DefaultAdditionalText = text };
+        InvoiceDefaultAdditionalTextRoot wrapper = new InvoiceDefaultAdditionalTextRoot { DefaultAdditionalText = text };
 
         using JsonContent content = JsonContent.Create(wrapper, options: SharedJsonOptions.SourceGenOptions);
 

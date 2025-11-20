@@ -64,7 +64,7 @@ public class JournalSets
         string? tag = null,
         DateTimeOffset? updatedSince = null)
     {
-        var queryParams = new List<string>();
+        List<string> queryParams = new List<string>();
 
         if (fromDate.HasValue)
         {

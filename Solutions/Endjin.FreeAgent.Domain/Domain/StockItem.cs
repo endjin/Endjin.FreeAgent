@@ -63,7 +63,7 @@ public record StockItem
     /// The number of units in stock as of FreeAgent Start Date.
     /// </value>
     [JsonPropertyName("opening_quantity")]
-    public required int OpeningQuantity { get; init; }
+    public required decimal OpeningQuantity { get; init; }
 
     /// <summary>
     /// Gets the opening balance (total value) of stock as of FreeAgent Start Date.
@@ -91,7 +91,7 @@ public record StockItem
     /// The current number of units in stock, updated as stock is purchased and sold.
     /// </value>
     [JsonPropertyName("stock_on_hand")]
-    public required int StockOnHand { get; init; }
+    public required decimal StockOnHand { get; init; }
 
     /// <summary>
     /// Gets the date and time when this stock item was created.

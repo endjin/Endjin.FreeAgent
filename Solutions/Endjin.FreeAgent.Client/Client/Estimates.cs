@@ -67,7 +67,7 @@ public partial class Estimates
         DateOnly? fromDate = null,
         DateOnly? toDate = null)
     {
-        var queryParams = new List<string>();
+        List<string> queryParams = new List<string>();
 
         if (updatedSince.HasValue)
         {
@@ -121,7 +121,7 @@ public partial class Estimates
         DateOnly? fromDate = null,
         DateOnly? toDate = null)
     {
-        var queryParams = new List<string> { $"view={status}" };
+        List<string> queryParams = new List<string> { $"view={status}" };
 
         if (updatedSince.HasValue)
         {
@@ -555,7 +555,7 @@ public partial class Estimates
         DateOnly? fromDate = null,
         DateOnly? toDate = null)
     {
-        var queryParams = new List<string> { $"contact={Uri.EscapeDataString(contactUri.ToString())}" };
+        List<string> queryParams = new List<string> { $"contact={Uri.EscapeDataString(contactUri.ToString())}" };
 
         if (updatedSince.HasValue)
         {
@@ -616,7 +616,7 @@ public partial class Estimates
         DateOnly? fromDate = null,
         DateOnly? toDate = null)
     {
-        var queryParams = new List<string> { $"project={Uri.EscapeDataString(projectUri.ToString())}" };
+        List<string> queryParams = new List<string> { $"project={Uri.EscapeDataString(projectUri.ToString())}" };
 
         if (updatedSince.HasValue)
         {
@@ -677,7 +677,7 @@ public partial class Estimates
         DateOnly? fromDate = null,
         DateOnly? toDate = null)
     {
-        var queryParams = new List<string> { $"invoice={Uri.EscapeDataString(invoiceUri.ToString())}" };
+        List<string> queryParams = new List<string> { $"invoice={Uri.EscapeDataString(invoiceUri.ToString())}" };
 
         if (updatedSince.HasValue)
         {

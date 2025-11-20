@@ -6,8 +6,6 @@ using System.Net.Http.Json;
 
 using Endjin.FreeAgent.Domain;
 
-using Microsoft.Extensions.Caching.Memory;
-
 namespace Endjin.FreeAgent.Client;
 
 /// <summary>
@@ -99,8 +97,8 @@ public class EstimateSettings
     /// </remarks>
     public async Task<EstimateDefaultAdditionalText> UpdateDefaultAdditionalTextAsync(string text)
     {
-        var textObject = new EstimateDefaultAdditionalText { Text = text };
-        var wrapper = new EstimateDefaultAdditionalTextRoot { Estimate = textObject };
+        EstimateDefaultAdditionalText textObject = new EstimateDefaultAdditionalText { Text = text };
+        EstimateDefaultAdditionalTextRoot wrapper = new EstimateDefaultAdditionalTextRoot { Estimate = textObject };
 
         using JsonContent content = JsonContent.Create(wrapper, options: SharedJsonOptions.SourceGenOptions);
 

@@ -101,7 +101,7 @@ public class CreditNotes
         DateTimeOffset? updatedSince = null,
         string? sort = null)
     {
-        var queryParams = new List<string> { $"view={view}" };
+        List<string> queryParams = new List<string> { $"view={view}" };
 
         if (nestedCreditNoteItems)
         {

@@ -4,7 +4,6 @@
 
 using System.Net.Http.Json;
 using Endjin.FreeAgent.Domain;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Endjin.FreeAgent.Client;
 

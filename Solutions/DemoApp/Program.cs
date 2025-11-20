@@ -10,6 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Spectre.Console;
 
+using Company = Endjin.FreeAgent.Domain.Company;
+
 // Build configuration
 IConfigurationRoot configuration = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -55,7 +57,7 @@ catch (Exception ex)
 
 while (true)
 {
-    var choice = AnsiConsole.Prompt(
+    string choice = AnsiConsole.Prompt(
         new SelectionPrompt<string>()
             .Title("Select an action:")
             .PageSize(10)
@@ -111,9 +113,9 @@ static async Task ShowCompanyInfo(FreeAgentClient client)
     await AnsiConsole.Status()
         .StartAsync("Fetching company info...", async ctx =>
         {
-            var company = await client.Company.GetAsync();
+            Company company = await client.Company.GetAsync();
             
-            var table = new Table();
+            Table table = new Table();
             table.AddColumn("Property");
             table.AddColumn("Value");
 
@@ -134,16 +136,16 @@ static async Task ListContacts(FreeAgentClient client)
     await AnsiConsole.Status()
         .StartAsync("Fetching contacts...", async ctx =>
         {
-            var contacts = await client.Contacts.GetAllAsync();
+            IEnumerable<Contact> contacts = await client.Contacts.GetAllAsync();
 
-            var table = new Table();
+            Table table = new Table();
             table.AddColumn("Organization");
             table.AddColumn("First Name");
             table.AddColumn("Last Name");
             table.AddColumn("Email");
             table.AddColumn("Status");
 
-            foreach (var contact in contacts.Take(10))
+            foreach (Contact contact in contacts.Take(10))
             {
                 table.AddRow(
                     contact.OrganisationName ?? "-",
@@ -166,18 +168,18 @@ static async Task ListRecentInvoices(FreeAgentClient client)
         .StartAsync("Fetching invoices...", async ctx =>
         {
             // Get invoices from the last 6 months
-            var invoices = await client.Invoices.GetAllAsync(view: "last_6_months");
+            IEnumerable<Invoice> invoices = await client.Invoices.GetAllAsync(view: "last_6_months");
 
-            var table = new Table();
+            Table table = new Table();
             table.AddColumn("Reference");
             table.AddColumn("Date");
             table.AddColumn("Due Date");
             table.AddColumn("Status");
             table.AddColumn(new TableColumn("Total").RightAligned());
 
-            foreach (var invoice in invoices.Take(10))
+            foreach (Invoice invoice in invoices.Take(10))
             {
-                var statusColor = invoice.Status switch
+                string statusColor = invoice.Status switch
                 {
                     "Paid" => "green",
                     "Overdue" => "red",
@@ -206,19 +208,19 @@ static async Task ListRecentExpenses(FreeAgentClient client)
     await AnsiConsole.Status()
         .StartAsync("Fetching expenses...", async ctx =>
         {
-            var fromDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(-3));
-            var expenses = await client.Expenses.GetAllAsync(view: "recent", fromDate: fromDate);
+            DateOnly fromDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(-3));
+            IEnumerable<Expense> expenses = await client.Expenses.GetAllAsync(view: "recent", fromDate: fromDate);
 
-            var table = new Table();
+            Table table = new Table();
             table.AddColumn("Date");
             table.AddColumn("Category");
             table.AddColumn("Description");
             table.AddColumn(new TableColumn("Amount").RightAligned());
 
-            foreach (var expense in expenses.Take(10))
+            foreach (Expense expense in expenses.Take(10))
             {
                 // Extract category name from URL if possible, or just show the URL
-                var category = expense.Category ?? "-";
+                string category = expense.Category ?? "-";
                 if (category.Contains("/categories/"))
                 {
                     category = category.Split('/').Last();
@@ -243,8 +245,8 @@ static async Task ListRecentBankTransactions(FreeAgentClient client)
     await AnsiConsole.Status()
         .StartAsync("Fetching bank accounts...", async ctx =>
         {
-            var accounts = await client.BankAccounts.GetAllAsync();
-            var primaryAccount = accounts.FirstOrDefault();
+            IEnumerable<BankAccount> accounts = await client.BankAccounts.GetAllAsync();
+            BankAccount? primaryAccount = accounts.FirstOrDefault();
 
             if (primaryAccount?.Url == null)
             {
@@ -254,20 +256,20 @@ static async Task ListRecentBankTransactions(FreeAgentClient client)
 
             ctx.Status($"Fetching transactions for {primaryAccount.Name}...");
             
-            var fromDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(-1));
-            var transactions = await client.BankTransactions.GetAllAsync(primaryAccount.Url, fromDate: fromDate);
+            DateOnly fromDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(-1));
+            IEnumerable<BankTransaction> transactions = await client.BankTransactions.GetAllAsync(primaryAccount.Url, fromDate: fromDate);
 
-            var table = new Table();
+            Table table = new Table();
             table.AddColumn("Date");
             table.AddColumn("Description");
             table.AddColumn(new TableColumn("Amount").RightAligned());
             table.AddColumn("Status");
 
-            foreach (var txn in transactions.Take(15))
+            foreach (BankTransaction txn in transactions.Take(15))
             {
-                var amountColor = txn.Amount < 0 ? "red" : "green";
-                var isExplained = txn.UnexplainedAmount == 0;
-                var status = isExplained ? "[green]Explained[/]" : "[yellow]Unexplained[/]";
+                string amountColor = txn.Amount < 0 ? "red" : "green";
+                bool isExplained = txn.UnexplainedAmount == 0;
+                string status = isExplained ? "[green]Explained[/]" : "[yellow]Unexplained[/]";
 
                 table.AddRow(
                     txn.DatedOn?.ToString("yyyy-MM-dd") ?? "-",

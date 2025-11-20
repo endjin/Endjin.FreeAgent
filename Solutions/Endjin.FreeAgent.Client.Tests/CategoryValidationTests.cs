@@ -68,7 +68,7 @@ public class CategoryValidationTests
     public void GetNominalCodeRange_ReturnsCorrectRanges(CategoryGroupType categoryGroup, int expectedMin, int expectedMax)
     {
         // Act
-        var (min, max) = CategoryValidation.GetNominalCodeRange(categoryGroup);
+        (int min, int max) = CategoryValidation.GetNominalCodeRange(categoryGroup);
 
         // Assert
         min.ShouldBe(expectedMin);
@@ -158,7 +158,7 @@ public class CategoryValidationTests
             AutoSalesTaxRateType.StandardRate
         ];
 
-        foreach (var rate in rates)
+        foreach (AutoSalesTaxRateType rate in rates)
         {
             // Valid for income and spending categories
             CategoryValidation.IsValidAutoSalesTaxRateForGroup(rate, CategoryGroupType.Income).ShouldBeTrue();

@@ -1,27 +1,20 @@
-using Endjin.FreeAgent.Converters;
-using Endjin.FreeAgent.Domain;
-using Shouldly;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Endjin.FreeAgent.Converters;
 
 namespace Endjin.FreeAgent.Domain.Tests;
 
 [TestClass]
 public class JsonConverterTests
 {
-    private readonly JsonSerializerOptions options;
-
-    public JsonConverterTests()
+    private readonly JsonSerializerOptions options = new()
     {
-        this.options = new JsonSerializerOptions
-        {
-            Converters = 
-            { 
-                new EcStatusJsonConverter(),
-                new RecurringPatternJsonConverter()
-            }
-        };
-    }
+        Converters = 
+        { 
+            new EcStatusJsonConverter(),
+            new RecurringPatternJsonConverter()
+        }
+    };
 
     [TestMethod]
     public void EcStatusConverter_HandlesEcVatMoss()

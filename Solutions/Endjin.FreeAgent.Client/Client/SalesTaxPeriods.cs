@@ -154,7 +154,7 @@ public class SalesTaxPeriods
 
         await this.client.InitializeAndAuthorizeAsync();
 
-        var payload = new SalesTaxPeriodRoot
+        SalesTaxPeriodRoot payload = new SalesTaxPeriodRoot
         {
             SalesTaxPeriod = period,
         };
@@ -207,7 +207,7 @@ public class SalesTaxPeriods
 
         await this.client.InitializeAndAuthorizeAsync();
 
-        var payload = new SalesTaxPeriodRoot
+        SalesTaxPeriodRoot payload = new SalesTaxPeriodRoot
         {
             SalesTaxPeriod = period,
         };

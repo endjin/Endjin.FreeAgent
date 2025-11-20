@@ -9,7 +9,6 @@ using System.Text.Json;
 
 using Endjin.FreeAgent.Domain;
 using Microsoft.Extensions.Logging;
-using NodaTime;
 
 namespace Endjin.FreeAgent.Client.Tests;
 
