@@ -113,7 +113,7 @@ public class InvoicesTests
         List<Invoice> invoicesList =
         [
             new() { Reference = "INV-001", Status = "Draft", TotalValue = 1000.00m },
-            new() { Reference = "INV-002", Status = "Sent", TotalValue = 2500.00m },
+            new() { Reference = "INV-002", Status = "Open", TotalValue = 2500.00m },
             new() { Reference = "INV-003", Status = "Paid", TotalValue = 5000.00m }
         ];
 
@@ -210,7 +210,7 @@ public class InvoicesTests
         {
             Url = new Uri("https://api.freeagent.com/v2/invoices/456"),
             Reference = "INV-001",
-            Status = "Sent",
+            Status = "Open",
             TotalValue = 1800.00m
         };
 
@@ -228,7 +228,7 @@ public class InvoicesTests
         // Assert
         result.ShouldNotBeNull();
         result.Reference.ShouldBe("INV-001");
-        result.Status.ShouldBe("Sent");
+        result.Status.ShouldBe("Open");
         result.TotalValue.ShouldBe(1800.00m);
 
         // Mock Verification
@@ -300,8 +300,8 @@ public class InvoicesTests
         {
             Url = new Uri("https://api.freeagent.com/v2/invoices/456"),
             Reference = "INV-001",
-            Status = "Sent",
-            SentAt = DateTime.UtcNow
+            Status = "Open",
+            SentAt = DateTimeOffset.UtcNow
         };
 
         InvoiceRoot responseRoot = new() { Invoice = responseInvoice };
@@ -317,54 +317,13 @@ public class InvoicesTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.Status.ShouldBe("Sent");
+        result.Status.ShouldBe("Open");
         result.SentAt.ShouldNotBeNull();
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/mark_as_sent");
-    }
-
-    [TestMethod]
-    public async Task MarkAsPaidAsync_WithValidPaymentDetails_UpdatesInvoiceAsPaid()
-    {
-        // Arrange
-        DateOnly paidOn = new(2024, 2, 1);
-        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/789");
-
-        Invoice responseInvoice = new()
-        {
-            Url = new Uri("https://api.freeagent.com/v2/invoices/456"),
-            Reference = "INV-001",
-            Status = "Paid",
-            PaidOn = paidOn,
-            PaidValue = 1800.00m,
-            DueValue = 0.00m
-        };
-
-        InvoiceRoot responseRoot = new() { Invoice = responseInvoice };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
-
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
-        };
-
-        // Act
-        Invoice result = await this.invoices.MarkAsPaidAsync("456", paidOn, bankAccountUri);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Status.ShouldBe("Paid");
-        result.PaidOn.ShouldBe(paidOn);
-        result.PaidValue.ShouldBe(1800.00m);
-        result.DueValue.ShouldBe(0.00m);
-
-        // Mock Verification
-        this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/mark_as_paid");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/transitions/mark_as_sent");
     }
 
     [TestMethod]
@@ -375,16 +334,15 @@ public class InvoicesTests
         {
             To = "client@example.com",
             Subject = "Invoice INV-001",
-            Body = "Please find attached invoice.",
-            SendPdfAttachment = true
+            Body = "Please find attached invoice."
         };
 
         Invoice responseInvoice = new()
         {
             Url = new Uri("https://api.freeagent.com/v2/invoices/456"),
             Reference = "INV-001",
-            Status = "Sent",
-            SentAt = DateTime.UtcNow
+            Status = "Open",
+            SentAt = DateTimeOffset.UtcNow
         };
 
         InvoiceRoot responseRoot = new() { Invoice = responseInvoice };
@@ -400,12 +358,12 @@ public class InvoicesTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.Status.ShouldBe("Sent");
+        result.Status.ShouldBe("Open");
         result.SentAt.ShouldNotBeNull();
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenPostRequest();
         this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/send_email");
     }
 
@@ -417,7 +375,7 @@ public class InvoicesTests
         {
             Url = new Uri("https://api.freeagent.com/v2/invoices/456"),
             Reference = "INV-001",
-            Status = "Cancelled"
+            Status = "Draft"
         };
 
         InvoiceRoot responseRoot = new() { Invoice = responseInvoice };
@@ -433,12 +391,12 @@ public class InvoicesTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.Status.ShouldBe("Cancelled");
+        result.Status.ShouldBe("Draft");
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/mark_as_cancelled");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/transitions/mark_as_cancelled");
     }
 
     [TestMethod]
@@ -446,10 +404,17 @@ public class InvoicesTests
     {
         // Arrange
         byte[] pdfContent = Encoding.UTF8.GetBytes("PDF_CONTENT_HERE");
+        string base64Content = Convert.ToBase64String(pdfContent);
+
+        InvoicePdfRoot pdfRoot = new()
+        {
+            Pdf = new InvoicePdf { Content = base64Content }
+        };
+        string responseJson = JsonSerializer.Serialize(pdfRoot, SharedJsonOptions.Instance);
 
         this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new ByteArrayContent(pdfContent)
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
         };
 
         // Act
@@ -536,7 +501,7 @@ public class InvoicesTests
         {
             Url = new Uri("https://api.freeagent.com/v2/invoices/456"),
             Reference = "INV-001",
-            Status = "Scheduled"
+            Status = "Scheduled To Email"
         };
 
         InvoiceRoot responseRoot = new() { Invoice = responseInvoice };
@@ -552,12 +517,12 @@ public class InvoicesTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.Status.ShouldBe("Scheduled");
+        result.Status.ShouldBe("Scheduled To Email");
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/mark_as_scheduled");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/transitions/mark_as_scheduled");
     }
 
     [TestMethod]
@@ -589,6 +554,336 @@ public class InvoicesTests
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/mark_as_draft");
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/transitions/mark_as_draft");
+    }
+
+    [TestMethod]
+    public async Task DuplicateAsync_WithValidId_ReturnsDuplicatedInvoice()
+    {
+        // Arrange
+        Invoice responseInvoice = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/invoices/789"),
+            Reference = "INV-002",
+            Status = "Draft",
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/123"),
+            TotalValue = 1500.00m
+        };
+
+        InvoiceRoot responseRoot = new() { Invoice = responseInvoice };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Invoice result = await this.invoices.DuplicateAsync("456");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Status.ShouldBe("Draft");
+        result.TotalValue.ShouldBe(1500.00m);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPostRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/duplicate");
+    }
+
+    [TestMethod]
+    public async Task ConvertToCreditNoteAsync_WithValidId_ConvertsInvoiceToCreditNote()
+    {
+        // Arrange
+        Invoice creditNoteInvoice = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/invoices/456"),
+            Reference = "CN-001",
+            Status = "Draft",
+            TotalValue = -1000.00m
+        };
+
+        InvoiceRoot responseRoot = new() { Invoice = creditNoteInvoice };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Invoice result = await this.invoices.ConvertToCreditNoteAsync("456");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Reference.ShouldBe("CN-001");
+        result.Status.ShouldBe("Draft");
+        result.TotalValue.ShouldBe(-1000.00m);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/transitions/convert_to_credit_note");
+    }
+
+    [TestMethod]
+    public async Task InitiateDirectDebitAsync_WithValidId_InitiatesDirectDebit()
+    {
+        // Arrange
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.NoContent);
+
+        // Act
+        await this.invoices.InitiateDirectDebitAsync("456");
+
+        // Assert - No exception thrown means success
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPostRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/456/direct_debit");
+    }
+
+    [TestMethod]
+    public async Task GetTimelineAsync_ReturnsInvoiceTimelineEntries()
+    {
+        // Arrange
+        List<InvoiceTimelineEntry> timelineEntries =
+        [
+            new()
+            {
+                Reference = "INV-001",
+                Summary = "Invoice created",
+                Description = "Invoice INV-001 was created",
+                DatedOn = new DateOnly(2024, 1, 15),
+                Amount = 1000.00m
+            },
+            new()
+            {
+                Reference = "INV-001",
+                Summary = "Invoice sent",
+                Description = "Invoice INV-001 was sent to customer",
+                DatedOn = new DateOnly(2024, 1, 16),
+                Amount = 1000.00m
+            }
+        ];
+
+        InvoiceTimelineRoot responseRoot = new() { TimelineEntries = timelineEntries };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<InvoiceTimelineEntry> result = await this.invoices.GetTimelineAsync();
+
+        // Assert
+        result.Count().ShouldBe(2);
+        InvoiceTimelineEntry firstEntry = result.First();
+        firstEntry.Reference.ShouldBe("INV-001");
+        firstEntry.Summary.ShouldBe("Invoice created");
+        firstEntry.DatedOn.ShouldBe(new DateOnly(2024, 1, 15));
+        firstEntry.Amount.ShouldBe(1000.00m);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/invoices/timeline");
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithUpdatedSince_IncludesParameterInRequest()
+    {
+        // Arrange
+        List<Invoice> invoicesList =
+        [
+            new() { Reference = "INV-001", Status = "Draft" }
+        ];
+
+        InvoicesRoot responseRoot = new() { Invoices = invoicesList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        DateTimeOffset updatedSince = new(2024, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+        // Act
+        IEnumerable<Invoice> result = await this.invoices.GetAllAsync(updatedSince: updatedSince);
+
+        // Assert
+        result.Count().ShouldBe(1);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.LastRequest?.RequestUri?.Query.ShouldContain("updated_since=");
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithSortParameter_IncludesParameterInRequest()
+    {
+        // Arrange
+        List<Invoice> invoicesList =
+        [
+            new() { Reference = "INV-001", Status = "Draft" }
+        ];
+
+        InvoicesRoot responseRoot = new() { Invoices = invoicesList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<Invoice> result = await this.invoices.GetAllAsync(sort: "-updated_at");
+
+        // Assert
+        result.Count().ShouldBe(1);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.LastRequest?.RequestUri?.Query.ShouldContain("sort=-updated_at");
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithNestedInvoiceItems_IncludesParameterInRequest()
+    {
+        // Arrange
+        List<Invoice> invoicesList =
+        [
+            new()
+            {
+                Reference = "INV-001",
+                Status = "Draft",
+                InvoiceItems =
+                [
+                    new InvoiceItem { Description = "Item 1", Price = 100.00m }
+                ]
+            }
+        ];
+
+        InvoicesRoot responseRoot = new() { Invoices = invoicesList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<Invoice> result = await this.invoices.GetAllAsync(nestedInvoiceItems: true);
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().InvoiceItems.ShouldNotBeNull();
+        result.First().InvoiceItems!.Count.ShouldBe(1);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.LastRequest?.RequestUri?.Query.ShouldContain("nested_invoice_items=true");
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithNotFoundResponse_ThrowsHttpRequestException()
+    {
+        // Arrange
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.NotFound)
+        {
+            Content = new StringContent("{\"error\": \"Invoice not found\"}", Encoding.UTF8, "application/json")
+        };
+
+        // Act & Assert
+        await Should.ThrowAsync<HttpRequestException>(async () => await this.invoices.GetByIdAsync("999"));
+    }
+
+    [TestMethod]
+    public async Task CreateAsync_WithServerError_ThrowsHttpRequestException()
+    {
+        // Arrange
+        Invoice inputInvoice = new()
+        {
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/123"),
+            DatedOn = new DateOnly(2024, 1, 15)
+        };
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = new StringContent("{\"error\": \"Internal server error\"}", Encoding.UTF8, "application/json")
+        };
+
+        // Act & Assert
+        await Should.ThrowAsync<HttpRequestException>(async () => await this.invoices.CreateAsync(inputInvoice));
+    }
+
+    [TestMethod]
+    public async Task UpdateAsync_InvalidatesCache_AfterSuccessfulUpdate()
+    {
+        // Arrange - First, populate cache by getting the invoice
+        Invoice cachedInvoice = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/invoices/456"),
+            Reference = "INV-001",
+            Status = "Draft"
+        };
+
+        InvoiceRoot cachedRoot = new() { Invoice = cachedInvoice };
+        string cachedJson = JsonSerializer.Serialize(cachedRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(cachedJson, Encoding.UTF8, "application/json")
+        };
+
+        await this.invoices.GetByIdAsync("456");
+
+        // Prepare update response
+        Invoice updatedInvoice = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/invoices/456"),
+            Reference = "INV-001-UPDATED",
+            Status = "Draft"
+        };
+
+        InvoiceRoot updatedRoot = new() { Invoice = updatedInvoice };
+        string updatedJson = JsonSerializer.Serialize(updatedRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(updatedJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        Invoice updateInput = new() { Reference = "INV-001-UPDATED" };
+        await this.invoices.UpdateAsync("456", updateInput);
+
+        // Now get again to verify cache was invalidated
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(updatedJson, Encoding.UTF8, "application/json")
+        };
+
+        Invoice result = await this.invoices.GetByIdAsync("456");
+
+        // Assert
+        result.Reference.ShouldBe("INV-001-UPDATED");
+
+        // Mock Verification - Should have 3 calls: initial get, update, get after cache invalidation
+        this.messageHandler.CallCount.ShouldBe(3);
+    }
+
+    [TestCleanup]
+    public void TestCleanup()
+    {
+        this.httpClient?.Dispose();
+        this.messageHandler?.Dispose();
     }
 }

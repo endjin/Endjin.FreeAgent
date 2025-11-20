@@ -51,7 +51,7 @@ public class CreditNotesTests
             Contact = new Uri("https://api.freeagent.com/v2/contacts/123"),
             DatedOn = new DateOnly(2024, 1, 20),
             Reference = "CN-001",
-            Reason = "Items returned"
+            Comments = "Items returned"
         };
 
         CreditNote responseCreditNote = new()
@@ -115,42 +115,6 @@ public class CreditNotesTests
         this.messageHandler.ShouldHaveBeenGetRequest();
     }
 
-    [TestMethod]
-    public async Task MarkAsRefundedAsync_WithValidDetails_UpdatesCreditNoteAsRefunded()
-    {
-        // Arrange
-        DateOnly refundedOn = new(2024, 1, 25);
-        Uri bankAccountUri = new("https://api.freeagent.com/v2/bank_accounts/123");
-
-        CreditNote responseCreditNote = new()
-        {
-            Url = new Uri("https://api.freeagent.com/v2/credit_notes/456"),
-            Reference = "CN-001",
-            Status = "Refunded",
-            RefundedOn = refundedOn
-        };
-
-        CreditNoteRoot responseRoot = new() { CreditNote = responseCreditNote };
-        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
-
-        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
-        };
-
-        // Act
-        CreditNote result = await this.creditNotes.MarkAsRefundedAsync("456", refundedOn, bankAccountUri);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Status.ShouldBe("Refunded");
-        result.RefundedOn.ShouldBe(refundedOn);
-
-        // Mock Verification
-        this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPutRequest();
-        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/credit_notes/456/mark_as_refunded");
-    }
 
     [TestMethod]
     public async Task SendEmailAsync_WithValidEmail_SendsCreditNoteEmail()
@@ -167,8 +131,7 @@ public class CreditNotesTests
         {
             Url = new Uri("https://api.freeagent.com/v2/credit_notes/456"),
             Reference = "CN-001",
-            Status = "Sent",
-            SentAt = DateTime.UtcNow
+            Status = "Sent"
         };
 
         CreditNoteRoot responseRoot = new() { CreditNote = responseCreditNote };
@@ -185,11 +148,10 @@ public class CreditNotesTests
         // Assert
         result.ShouldNotBeNull();
         result.Status.ShouldBe("Sent");
-        result.SentAt.ShouldNotBeNull();
 
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
-        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenPostRequest();
         this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/credit_notes/456/send_email");
     }
 
@@ -206,5 +168,179 @@ public class CreditNotesTests
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenDeleteRequest();
         this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/credit_notes/456");
+    }
+
+    [TestMethod]
+    public async Task GetByIdAsync_WithValidId_ReturnsCreditNote()
+    {
+        // Arrange
+        CreditNote responseCreditNote = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/credit_notes/456"),
+            Reference = "CN-001",
+            Status = "Open",
+            TotalValue = 240.00m
+        };
+
+        CreditNoteRoot responseRoot = new() { CreditNote = responseCreditNote };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        CreditNote result = await this.creditNotes.GetByIdAsync("456");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Reference.ShouldBe("CN-001");
+        result.Status.ShouldBe("Open");
+        result.TotalValue.ShouldBe(240.00m);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/credit_notes/456");
+    }
+
+    [TestMethod]
+    public async Task UpdateAsync_WithValidCreditNote_ReturnsUpdatedCreditNote()
+    {
+        // Arrange
+        CreditNote inputCreditNote = new()
+        {
+            Reference = "CN-001-Updated",
+            Comments = "Updated comments"
+        };
+
+        CreditNote responseCreditNote = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/credit_notes/456"),
+            Reference = "CN-001-Updated",
+            Status = "Draft",
+            Comments = "Updated comments"
+        };
+
+        CreditNoteRoot responseRoot = new() { CreditNote = responseCreditNote };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        CreditNote result = await this.creditNotes.UpdateAsync("456", inputCreditNote);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Reference.ShouldBe("CN-001-Updated");
+        result.Comments.ShouldBe("Updated comments");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/credit_notes/456");
+    }
+
+    [TestMethod]
+    public async Task GetPdfAsync_WithValidId_ReturnsPdfBytes()
+    {
+        // Arrange
+        byte[] pdfContent = [0x25, 0x50, 0x44, 0x46]; // PDF magic bytes
+        string base64Content = Convert.ToBase64String(pdfContent);
+
+        // Create JSON response with base64-encoded PDF
+        string jsonResponse = $$"""
+            {
+                "pdf": {
+                    "content": "{{base64Content}}"
+                }
+            }
+            """;
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(jsonResponse, System.Text.Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        byte[] result = await this.creditNotes.GetPdfAsync("456");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Length.ShouldBe(4);
+        result.ShouldBe(pdfContent);
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/credit_notes/456/pdf");
+    }
+
+    [TestMethod]
+    public async Task MarkAsSentAsync_WithValidId_UpdatesCreditNoteAsSent()
+    {
+        // Arrange
+        CreditNote responseCreditNote = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/credit_notes/456"),
+            Reference = "CN-001",
+            Status = "Open"
+        };
+
+        CreditNoteRoot responseRoot = new() { CreditNote = responseCreditNote };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        CreditNote result = await this.creditNotes.MarkAsSentAsync("456");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Status.ShouldBe("Open");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/credit_notes/456/transitions/mark_as_sent");
+    }
+
+    [TestMethod]
+    public async Task MarkAsDraftAsync_WithValidId_UpdatesCreditNoteAsDraft()
+    {
+        // Arrange
+        CreditNote responseCreditNote = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/credit_notes/456"),
+            Reference = "CN-001",
+            Status = "Draft"
+        };
+
+        CreditNoteRoot responseRoot = new() { CreditNote = responseCreditNote };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        CreditNote result = await this.creditNotes.MarkAsDraftAsync("456");
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Status.ShouldBe("Draft");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPutRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/credit_notes/456/transitions/mark_as_draft");
     }
 }

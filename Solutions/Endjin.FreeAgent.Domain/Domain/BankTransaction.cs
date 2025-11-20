@@ -49,6 +49,17 @@ public record BankTransaction
     public Uri? Url { get; init; }
 
     /// <summary>
+    /// Gets the unique transaction identifier from the banking institution.
+    /// </summary>
+    /// <value>
+    /// The Financial Institution Transaction ID (FITID) used for deduplication.
+    /// Transactions with the same transaction_id are considered duplicates and will not be imported again.
+    /// </value>
+    [JsonPropertyName("transaction_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TransactionId { get; init; }
+
+    /// <summary>
     /// Gets the URI reference to the bank account containing this transaction.
     /// </summary>
     /// <value>
@@ -89,6 +100,17 @@ public record BankTransaction
     public string? FullDescription { get; init; }
 
     /// <summary>
+    /// Gets the count of other transactions with matching descriptions.
+    /// </summary>
+    /// <value>
+    /// The number of transactions in the account that have the same description as this transaction.
+    /// Useful for identifying recurring or similar transactions.
+    /// </value>
+    [JsonPropertyName("matching_transactions_count")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? MatchingTransactionsCount { get; init; }
+
+    /// <summary>
     /// Gets the transaction amount.
     /// </summary>
     /// <value>
@@ -110,17 +132,6 @@ public record BankTransaction
     public decimal? UnexplainedAmount { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether this transaction has been fully explained.
-    /// </summary>
-    /// <value>
-    /// <see langword="true"/> if the entire transaction amount has been categorized through explanations;
-    /// otherwise, <see langword="false"/>.
-    /// </value>
-    [JsonPropertyName("is_explained")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? IsExplained { get; init; }
-
-    /// <summary>
     /// Gets a value indicating whether this transaction was manually entered.
     /// </summary>
     /// <value>
@@ -132,55 +143,49 @@ public record BankTransaction
     public bool? IsManual { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether this transaction is locked.
+    /// Gets the collection of explanations for this transaction.
     /// </summary>
     /// <value>
-    /// <see langword="true"/> if the transaction is locked and cannot be modified or deleted; otherwise,
-    /// <see langword="false"/>. Transactions are typically locked when they belong to finalized accounting periods.
+    /// An array of <see cref="BankTransactionExplanation"/> objects that fully or partially explain this transaction.
+    /// Each explanation links the transaction to invoices, bills, expenses, transfers, or other accounting categories.
     /// </value>
-    [JsonPropertyName("is_locked")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? IsLocked { get; init; }
-
-    /// <summary>
-    /// Gets the URI reference to the explanations for this transaction.
-    /// </summary>
-    /// <value>
-    /// The URI endpoint for accessing the collection of <see cref="BankTransactionExplanation"/> objects
-    /// that categorize this transaction.
-    /// </value>
+    /// <remarks>
+    /// The FreeAgent API returns this as an embedded array of fully-populated explanation objects within the
+    /// transaction response. This allows immediate access to all explanations without requiring additional API calls.
+    /// A transaction may have multiple explanations to split the amount across different categories.
+    /// </remarks>
     [JsonPropertyName("bank_transaction_explanations")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Uri? BankTransactionExplanations { get; init; }
+    public IEnumerable<BankTransactionExplanation>? BankTransactionExplanations { get; init; }
 
     /// <summary>
     /// Gets the date and time when this transaction was uploaded.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing when the transaction was imported into FreeAgent,
+    /// A <see cref="DateTimeOffset"/> representing when the transaction was imported into FreeAgent,
     /// or <see langword="null"/> for manually created transactions.
     /// </value>
     [JsonPropertyName("uploaded_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? UploadedAt { get; init; }
+    public DateTimeOffset? UploadedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this transaction record was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the creation timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the creation timestamp in UTC.
     /// </value>
     [JsonPropertyName("created_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this transaction record was last updated.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the last modification timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the last modification timestamp in UTC.
     /// </value>
     [JsonPropertyName("updated_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 }

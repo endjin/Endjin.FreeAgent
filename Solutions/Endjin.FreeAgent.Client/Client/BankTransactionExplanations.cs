@@ -75,26 +75,64 @@ public class BankTransactionExplanations
     }
 
     /// <summary>
-    /// Retrieves bank transaction explanations from FreeAgent, optionally filtered by bank transaction.
+    /// Retrieves bank transaction explanations from FreeAgent, optionally filtered by various criteria.
     /// </summary>
-    /// <param name="bankTransactionUri">Optional URI of the bank transaction to filter explanations by. If null, all explanations are returned.</param>
+    /// <param name="bankAccountUri">Optional URI of the bank account to filter explanations by. Per API docs, this is a required parameter for the API.</param>
+    /// <param name="bankTransactionUri">Optional URI of the bank transaction to filter explanations by.</param>
+    /// <param name="fromDate">Optional start date to filter explanations by transaction date (inclusive).</param>
+    /// <param name="toDate">Optional end date to filter explanations by transaction date (inclusive).</param>
+    /// <param name="updatedSince">Optional timestamp to retrieve only explanations modified after this date and time. Useful for incremental synchronization.</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
     /// <see cref="BankTransactionExplanation"/> objects matching the specified criteria.
     /// </returns>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <remarks>
-    /// This method calls GET /v2/bank_transaction_explanations?bank_transaction={bankTransactionUri},
+    /// <para>
+    /// This method calls GET /v2/bank_transaction_explanations with optional query parameters,
     /// handles pagination automatically, and caches the result for 5 minutes.
+    /// </para>
+    /// <para>
+    /// According to the FreeAgent API documentation, the bank_account parameter is required when querying
+    /// bank transaction explanations. However, this implementation makes it optional for backward compatibility
+    /// and to support scenarios where the API may not enforce this requirement.
+    /// </para>
     /// </remarks>
-    public async Task<IEnumerable<BankTransactionExplanation>> GetAllAsync(Uri? bankTransactionUri = null)
+    public async Task<IEnumerable<BankTransactionExplanation>> GetAllAsync(
+        Uri? bankAccountUri = null,
+        Uri? bankTransactionUri = null,
+        DateOnly? fromDate = null,
+        DateOnly? toDate = null,
+        DateTimeOffset? updatedSince = null)
     {
-        string queryString = "";
-        if (bankTransactionUri != null)
+        List<string> queryParams = [];
+
+        if (bankAccountUri != null)
         {
-            queryString = $"?bank_transaction={Uri.EscapeDataString(bankTransactionUri.ToString())}";
+            queryParams.Add($"bank_account={Uri.EscapeDataString(bankAccountUri.ToString())}");
         }
 
+        if (bankTransactionUri != null)
+        {
+            queryParams.Add($"bank_transaction={Uri.EscapeDataString(bankTransactionUri.ToString())}");
+        }
+
+        if (fromDate.HasValue)
+        {
+            queryParams.Add($"from_date={fromDate.Value:yyyy-MM-dd}");
+        }
+
+        if (toDate.HasValue)
+        {
+            queryParams.Add($"to_date={toDate.Value:yyyy-MM-dd}");
+        }
+
+        if (updatedSince.HasValue)
+        {
+            queryParams.Add($"updated_since={Uri.EscapeDataString(updatedSince.Value.UtcDateTime.ToString("o"))}");
+        }
+
+        string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : "";
         string cacheKey = $"{BankTransactionExplanationsEndPoint}{queryString}";
 
         if (!this.cache.TryGetValue(cacheKey, out IEnumerable<BankTransactionExplanation>? results))

@@ -26,7 +26,7 @@ namespace Endjin.FreeAgent.Domain;
 /// API Endpoint: /v2/estimates
 /// </para>
 /// <para>
-/// Minimum Access Level: Invoices
+/// Minimum Access Level: Estimates and Invoices
 /// </para>
 /// </remarks>
 /// <seealso cref="Contact"/>
@@ -127,16 +127,16 @@ public record Estimate
     /// Gets the date when the estimate was issued.
     /// </summary>
     /// <value>
-    /// The estimate issue date with timezone information. This field is required when creating an estimate.
+    /// The estimate issue date in YYYY-MM-DD format. This field is required when creating an estimate.
     /// </value>
     [JsonPropertyName("dated_on")]
-    public DateTimeOffset? DatedOn { get; init; }
+    public DateOnly? DatedOn { get; init; }
 
     /// <summary>
     /// Gets the current status of the estimate.
     /// </summary>
     /// <value>
-    /// One of "Draft", "Sent", "Approved", or "Rejected", indicating the current stage of the estimate.
+    /// One of "Draft", "Sent", "Open", "Approved", "Rejected", or "Invoiced", indicating the current stage of the estimate.
     /// </value>
     [JsonPropertyName("status")]
     public string? Status { get; init; }
@@ -210,11 +210,11 @@ public record Estimate
     /// Gets the total sales tax value for this estimate.
     /// </summary>
     /// <value>
-    /// The calculated total VAT/GST amount as a string. The total tax across all line items.
+    /// The calculated total VAT/GST amount. The total tax across all line items.
     /// </value>
     [JsonPropertyName("sales_tax_value")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? SalesTaxValue { get; init; }
+    public decimal? SalesTaxValue { get; init; }
 
     /// <summary>
     /// Gets internal notes or comments about this estimate.
@@ -225,6 +225,50 @@ public record Estimate
     [JsonPropertyName("notes")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Notes { get; init; }
+
+    /// <summary>
+    /// Gets the EC (European Community) VAT status for this estimate.
+    /// </summary>
+    /// <value>
+    /// One of "UK/Non-EC", "EC Goods", "EC Services", "Reverse Charge", or "EC VAT MOSS".
+    /// Used for VAT reporting and compliance within the European Community.
+    /// </value>
+    [JsonPropertyName("ec_status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? EcStatus { get; init; }
+
+    /// <summary>
+    /// Gets the place of supply for EC VAT MOSS (Mini One Stop Shop) purposes.
+    /// </summary>
+    /// <value>
+    /// The country or jurisdiction code determining where VAT is due for digital services
+    /// sold to EU customers under the MOSS scheme.
+    /// </value>
+    [JsonPropertyName("place_of_supply")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PlaceOfSupply { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether sales tax should be included in the total value.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> if the <see cref="TotalValue"/> includes sales tax; otherwise,
+    /// <see langword="false"/> if sales tax is shown separately.
+    /// </value>
+    [JsonPropertyName("include_sales_tax_on_total_value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IncludeSalesTaxOnTotalValue { get; init; }
+
+    /// <summary>
+    /// Gets the override contact name to display on this estimate.
+    /// </summary>
+    /// <value>
+    /// A custom contact name to display instead of the contact's name from their record. Useful for
+    /// addressing estimates to specific individuals within an organization.
+    /// </value>
+    [JsonPropertyName("client_contact_name")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ClientContactName { get; init; }
 
     /// <summary>
     /// Gets the collection of line items that make up this estimate.

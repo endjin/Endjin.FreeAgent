@@ -20,7 +20,7 @@ namespace Endjin.FreeAgent.Domain;
 /// API Endpoint: /v2/tasks
 /// </para>
 /// <para>
-/// Minimum Access Level: Contacts and Projects
+/// Minimum Access Level: Time
 /// </para>
 /// </remarks>
 /// <seealso cref="Project"/>
@@ -36,7 +36,7 @@ public record TaskItem
     /// </value>
     [JsonPropertyName("project")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Project { get; init; }
+    public Uri? Project { get; init; }
 
     /// <summary>
     /// Gets the name of the task.
@@ -48,15 +48,24 @@ public record TaskItem
     public required string Name { get; init; }
 
     /// <summary>
+    /// Gets the currency code for this task's billing rate.
+    /// </summary>
+    /// <value>
+    /// An ISO 4217 currency code such as "USD", "GBP", or "EUR".
+    /// </value>
+    [JsonPropertyName("currency")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Currency { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether time tracked against this task is billable to the client.
     /// </summary>
     /// <value>
     /// <see langword="true"/> if timeslips for this task can be billed to the client; otherwise, <see langword="false"/>
-    /// for non-billable internal tasks.
+    /// for non-billable internal tasks. This field is required.
     /// </value>
     [JsonPropertyName("is_billable")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? IsBillable { get; init; }
+    public required bool IsBillable { get; init; }
 
     /// <summary>
     /// Gets the billing rate for this task.
@@ -64,6 +73,9 @@ public record TaskItem
     /// <value>
     /// The rate charged per unit of time (hour or day) for work on this task.
     /// </value>
+    /// <remarks>
+    /// Requires "Contacts &amp; Projects" access level to view or modify this property.
+    /// </remarks>
     /// <seealso cref="BillingPeriod"/>
     [JsonPropertyName("billing_rate")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -75,6 +87,9 @@ public record TaskItem
     /// <value>
     /// Either "hour" or "day", determining the unit for <see cref="BillingRate"/>.
     /// </value>
+    /// <remarks>
+    /// Requires "Contacts &amp; Projects" access level to view or modify this property.
+    /// </remarks>
     [JsonPropertyName("billing_period")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? BillingPeriod { get; init; }
@@ -83,11 +98,11 @@ public record TaskItem
     /// Gets the status of the task.
     /// </summary>
     /// <value>
-    /// Either "Active" or "Completed". Completed tasks are hidden from active task lists but remain in the system.
+    /// "Active", "Completed", or "Hidden". Completed and Hidden tasks are excluded from active task lists but remain in the system.
+    /// This field is required.
     /// </value>
     [JsonPropertyName("status")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Status { get; init; }
+    public required string Status { get; init; }
 
     /// <summary>
     /// Gets the date and time when this task was created.
@@ -108,6 +123,17 @@ public record TaskItem
     [JsonPropertyName("updated_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DateTimeOffset? UpdatedAt { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether this task can be deleted.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> if the task can be deleted; otherwise, <see langword="false"/>.
+    /// Tasks with associated timeslips typically cannot be deleted.
+    /// </value>
+    [JsonPropertyName("is_deletable")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsDeletable { get; init; }
 
     /// <summary>
     /// Gets the unique URI identifier for this task.

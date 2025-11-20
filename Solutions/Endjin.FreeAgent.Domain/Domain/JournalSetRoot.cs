@@ -4,8 +4,6 @@
 
 namespace Endjin.FreeAgent.Domain;
 
-using System.Text.Json.Serialization;
-
 /// <summary>
 /// Represents the root-level JSON request/response wrapper for a <see cref="Domain.JournalSet"/> resource.
 /// </summary>

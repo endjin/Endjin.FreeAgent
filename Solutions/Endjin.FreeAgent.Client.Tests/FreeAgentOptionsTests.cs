@@ -79,6 +79,43 @@ public class FreeAgentOptionsTests
     }
 
     [TestMethod]
+    public void FreeAgentOptions_WithDefaultUseSandbox_ReturnsProductionApiBaseUrl()
+    {
+        // Arrange
+        FreeAgentOptions options = new FreeAgentOptionsBuilder().Build();
+
+        // Act & Assert
+        options.UseSandbox.ShouldBeFalse();
+        options.ApiBaseUrl.ShouldBe(FreeAgentOptions.ProductionApiBaseUrl);
+    }
+
+    [TestMethod]
+    public void FreeAgentOptions_WithUseSandboxFalse_ReturnsProductionApiBaseUrl()
+    {
+        // Arrange
+        FreeAgentOptions options = new FreeAgentOptionsBuilder()
+            .WithUseSandbox(false)
+            .Build();
+
+        // Act & Assert
+        options.ApiBaseUrl.ShouldBe(FreeAgentOptions.ProductionApiBaseUrl);
+        options.ApiBaseUrl.ToString().ShouldBe("https://api.freeagent.com/");
+    }
+
+    [TestMethod]
+    public void FreeAgentOptions_WithUseSandboxTrue_ReturnsSandboxApiBaseUrl()
+    {
+        // Arrange
+        FreeAgentOptions options = new FreeAgentOptionsBuilder()
+            .WithUseSandbox(true)
+            .Build();
+
+        // Act & Assert
+        options.ApiBaseUrl.ShouldBe(FreeAgentOptions.SandboxApiBaseUrl);
+        options.ApiBaseUrl.ToString().ShouldBe("https://api.sandbox.freeagent.com/");
+    }
+
+    [TestMethod]
     public void FreeAgentOptions_FromConfiguration_BindsCorrectly()
     {
         // Arrange
@@ -102,6 +139,31 @@ public class FreeAgentOptionsTests
         options.ClientSecret.ShouldBe("config_client_secret");
         options.RefreshToken.ShouldBe("config_refresh_token");
         Should.NotThrow(() => options.Validate());
+    }
+
+    [TestMethod]
+    public void FreeAgentOptions_FromConfiguration_BindsUseSandboxProperty()
+    {
+        // Arrange
+        Dictionary<string, string?> inMemorySettings = new()
+        {
+            ["FreeAgent:ClientId"] = "config_client_id",
+            ["FreeAgent:ClientSecret"] = "config_client_secret",
+            ["FreeAgent:RefreshToken"] = "config_refresh_token",
+            ["FreeAgent:UseSandbox"] = "true"
+        };
+
+        IConfigurationRoot configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings)
+            .Build();
+
+        // Act
+        FreeAgentOptions options = new();
+        configuration.GetSection(FreeAgentOptions.SectionName).Bind(options);
+
+        // Assert
+        options.UseSandbox.ShouldBeTrue();
+        options.ApiBaseUrl.ShouldBe(FreeAgentOptions.SandboxApiBaseUrl);
     }
 
     [TestMethod]

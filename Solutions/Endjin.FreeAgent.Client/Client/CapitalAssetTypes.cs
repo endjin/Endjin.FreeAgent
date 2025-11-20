@@ -8,16 +8,20 @@ using Endjin.FreeAgent.Domain;
 namespace Endjin.FreeAgent.Client;
 
 /// <summary>
-/// Provides methods for accessing capital asset types via the FreeAgent API.
+/// Provides methods for managing capital asset types via the FreeAgent API.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This service class provides read-only access to FreeAgent capital asset types, which define
-/// the categories of capital assets (e.g., vehicles, equipment, property). Asset types determine
-/// how assets are classified for accounting and tax purposes.
+/// This service class provides full CRUD access to FreeAgent capital asset types, which define
+/// the categories of fixed assets. FreeAgent provides system default types (Computer Equipment,
+/// Fixtures and Fittings, Motor Vehicles, Other Capital Asset), and users can create custom types.
 /// </para>
 /// <para>
-/// Results are cached for 24 hours as capital asset types rarely change.
+/// System default types cannot be updated or deleted. User-created types can only be updated or
+/// deleted if they do not contain any capital asset items.
+/// </para>
+/// <para>
+/// Results from GetAllAsync are cached for 24 hours as capital asset types rarely change.
 /// </para>
 /// </remarks>
 /// <seealso cref="CapitalAssetType"/>
@@ -72,5 +76,161 @@ public class CapitalAssetTypes
         this.cache.Set(cacheKey, types, TimeSpan.FromHours(24));
 
         return types;
+    }
+
+    /// <summary>
+    /// Retrieves a specific capital asset type by its ID.
+    /// </summary>
+    /// <param name="id">The ID of the capital asset type to retrieve.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// <see cref="CapitalAssetType"/> object.
+    /// </returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is null or whitespace.</exception>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/capital_asset_types/:id.
+    /// </remarks>
+    public async Task<CapitalAssetType> GetByIdAsync(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            throw new ArgumentException("Capital asset type ID cannot be null or whitespace.", nameof(id));
+        }
+
+        await this.client.InitializeAndAuthorizeAsync();
+
+        HttpResponseMessage response = await this.client.HttpClient.GetAsync(
+            new Uri(this.client.ApiBaseUrl, $"/v2/capital_asset_types/{id}"));
+        response.EnsureSuccessStatusCode();
+
+        CapitalAssetTypeRoot? root = await response.Content.ReadFromJsonAsync<CapitalAssetTypeRoot>(
+            SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+
+        return root?.CapitalAssetType ?? throw new InvalidOperationException("Response did not contain a capital asset type.");
+    }
+
+    /// <summary>
+    /// Creates a new capital asset type.
+    /// </summary>
+    /// <param name="name">The name for the new capital asset type.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the created
+    /// <see cref="CapitalAssetType"/> object.
+    /// </returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is null or whitespace.</exception>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls POST /v2/capital_asset_types. The created type will be user-created
+    /// (system_default = false) and can be updated or deleted if it doesn't contain any capital assets.
+    /// </remarks>
+    public async Task<CapitalAssetType> CreateAsync(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Capital asset type name cannot be null or whitespace.", nameof(name));
+        }
+
+        await this.client.InitializeAndAuthorizeAsync();
+
+        CapitalAssetTypeRoot payload = new CapitalAssetTypeRoot
+        {
+            CapitalAssetType = new CapitalAssetType { Name = name },
+        };
+
+        HttpResponseMessage response = await this.client.HttpClient.PostAsJsonAsync(
+            new Uri(this.client.ApiBaseUrl, "/v2/capital_asset_types"),
+            payload,
+            SharedJsonOptions.SourceGenOptions);
+        response.EnsureSuccessStatusCode();
+
+        CapitalAssetTypeRoot? root = await response.Content.ReadFromJsonAsync<CapitalAssetTypeRoot>(
+            SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+
+        // Invalidate cache since we've added a new type
+        this.cache.Remove("capital_asset_types_all");
+
+        return root?.CapitalAssetType ?? throw new InvalidOperationException("Response did not contain a capital asset type.");
+    }
+
+    /// <summary>
+    /// Updates an existing capital asset type.
+    /// </summary>
+    /// <param name="id">The ID of the capital asset type to update.</param>
+    /// <param name="name">The new name for the capital asset type.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the updated
+    /// <see cref="CapitalAssetType"/> object.
+    /// </returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> or <paramref name="name"/> is null or whitespace.</exception>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls PUT /v2/capital_asset_types/:id. Only user-created capital asset types
+    /// (system_default = false) that do not contain any capital asset items can be updated.
+    /// Attempting to update a system default type or a type with assets will result in an error.
+    /// </remarks>
+    public async Task<CapitalAssetType> UpdateAsync(string id, string name)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            throw new ArgumentException("Capital asset type ID cannot be null or whitespace.", nameof(id));
+        }
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Capital asset type name cannot be null or whitespace.", nameof(name));
+        }
+
+        await this.client.InitializeAndAuthorizeAsync();
+
+        CapitalAssetTypeRoot payload = new CapitalAssetTypeRoot
+        {
+            CapitalAssetType = new CapitalAssetType { Name = name },
+        };
+
+        HttpResponseMessage response = await this.client.HttpClient.PutAsJsonAsync(
+            new Uri(this.client.ApiBaseUrl, $"/v2/capital_asset_types/{id}"),
+            payload,
+            SharedJsonOptions.SourceGenOptions);
+        response.EnsureSuccessStatusCode();
+
+        CapitalAssetTypeRoot? root = await response.Content.ReadFromJsonAsync<CapitalAssetTypeRoot>(
+            SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+
+        // Invalidate cache since we've updated a type
+        this.cache.Remove("capital_asset_types_all");
+
+        return root?.CapitalAssetType ?? throw new InvalidOperationException("Response did not contain a capital asset type.");
+    }
+
+    /// <summary>
+    /// Deletes a capital asset type.
+    /// </summary>
+    /// <param name="id">The ID of the capital asset type to delete.</param>
+    /// <returns>
+    /// A <see cref="Task"/> representing the asynchronous operation.
+    /// </returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is null or whitespace.</exception>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls DELETE /v2/capital_asset_types/:id. Only user-created capital asset types
+    /// (system_default = false) that do not contain any capital asset items can be deleted.
+    /// Attempting to delete a system default type or a type with assets will result in an error.
+    /// </remarks>
+    public async Task DeleteAsync(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            throw new ArgumentException("Capital asset type ID cannot be null or whitespace.", nameof(id));
+        }
+
+        await this.client.InitializeAndAuthorizeAsync();
+
+        HttpResponseMessage response = await this.client.HttpClient.DeleteAsync(
+            new Uri(this.client.ApiBaseUrl, $"/v2/capital_asset_types/{id}"));
+        response.EnsureSuccessStatusCode();
+
+        // Invalidate cache since we've deleted a type
+        this.cache.Remove("capital_asset_types_all");
     }
 }

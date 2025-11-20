@@ -27,7 +27,7 @@ namespace Endjin.FreeAgent.Domain;
 /// API Endpoint: /v2/credit_notes
 /// </para>
 /// <para>
-/// Minimum Access Level: Invoices
+/// Minimum Access Level: Estimates and Invoices
 /// </para>
 /// </remarks>
 /// <seealso cref="Invoice"/>
@@ -59,17 +59,6 @@ public record CreditNote
     public Uri? Contact { get; init; }
 
     /// <summary>
-    /// Gets the URI reference to the original invoice being credited.
-    /// </summary>
-    /// <value>
-    /// The URI of the <see cref="Domain.Invoice"/> that this credit note relates to, if applicable.
-    /// Used to track which invoice is being partially or fully refunded.
-    /// </value>
-    [JsonPropertyName("invoice")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Uri? Invoice { get; init; }
-
-    /// <summary>
     /// Gets the URI reference to the associated project.
     /// </summary>
     /// <value>
@@ -79,6 +68,16 @@ public record CreditNote
     [JsonPropertyName("project")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Uri? Project { get; init; }
+
+    /// <summary>
+    /// Gets the URI reference to the property (for UK Unincorporated Landlord entities).
+    /// </summary>
+    /// <value>
+    /// The URI of the property when the company type is UkUnincorporatedLandlord.
+    /// </value>
+    [JsonPropertyName("property")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? Property { get; init; }
 
     /// <summary>
     /// Gets the credit note reference number.
@@ -102,6 +101,27 @@ public record CreditNote
     public DateOnly? DatedOn { get; init; }
 
     /// <summary>
+    /// Gets the due date for the credit note.
+    /// </summary>
+    /// <value>
+    /// The date by which the credit note should be settled.
+    /// </value>
+    [JsonPropertyName("due_on")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateOnly? DueOn { get; init; }
+
+    /// <summary>
+    /// Gets the payment terms in days.
+    /// </summary>
+    /// <value>
+    /// The number of days from the issue date until payment is due. This field is required when creating
+    /// a credit note. Set to 0 for "Due on Receipt".
+    /// </value>
+    [JsonPropertyName("payment_terms_in_days")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? PaymentTermsInDays { get; init; }
+
+    /// <summary>
     /// Gets the date when the credit note was refunded to the customer.
     /// </summary>
     /// <value>
@@ -115,11 +135,22 @@ public record CreditNote
     /// Gets the current status of the credit note.
     /// </summary>
     /// <value>
-    /// One of "Draft", "Sent", or "Refunded", indicating the current processing stage.
+    /// One of "Draft", "Open", "Overdue", "Refunded", or "Written-off", indicating the current processing stage.
     /// </value>
     [JsonPropertyName("status")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Status { get; init; }
+
+    /// <summary>
+    /// Gets the detailed status description of the credit note.
+    /// </summary>
+    /// <value>
+    /// A human-readable description of the current status with due date context (e.g., "Due in 14 days").
+    /// This field is read-only and returned by the API.
+    /// </value>
+    [JsonPropertyName("long_status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? LongStatus { get; init; }
 
     /// <summary>
     /// Gets the currency for this credit note.
@@ -156,22 +187,221 @@ public record CreditNote
     /// </summary>
     /// <value>
     /// The total credit amount including all applicable sales tax/VAT.
-    /// This field is required when creating a credit note.
+    /// This field is read-only and calculated automatically by the API.
     /// </value>
     [JsonPropertyName("total_value")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public decimal? TotalValue { get; init; }
 
     /// <summary>
-    /// Gets the reason or explanation for issuing this credit note.
+    /// Gets the amount of sales tax/VAT on the credit note.
     /// </summary>
     /// <value>
-    /// A text description explaining why the credit note was issued, such as "Returned goods",
-    /// "Invoice correction", or "Customer overpayment".
+    /// The total sales tax amount.
     /// </value>
-    [JsonPropertyName("reason")]
+    [JsonPropertyName("sales_tax_value")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Reason { get; init; }
+    public decimal? SalesTaxValue { get; init; }
+
+    /// <summary>
+    /// Gets the second sales tax amount (for jurisdictions with multiple tax rates).
+    /// </summary>
+    /// <value>
+    /// The secondary sales tax amount, if applicable.
+    /// </value>
+    [JsonPropertyName("second_sales_tax_value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? SecondSalesTaxValue { get; init; }
+
+    /// <summary>
+    /// Gets the total refunded value of the credit note.
+    /// </summary>
+    /// <value>
+    /// The amount that has been refunded.
+    /// </value>
+    [JsonPropertyName("refunded_value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? RefundedValue { get; init; }
+
+    /// <summary>
+    /// Gets the outstanding value due on the credit note.
+    /// </summary>
+    /// <value>
+    /// The amount still owed.
+    /// </value>
+    [JsonPropertyName("due_value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? DueValue { get; init; }
+
+    /// <summary>
+    /// Gets the discount percentage applied to the credit note.
+    /// </summary>
+    /// <value>
+    /// The percentage discount applied.
+    /// </value>
+    [JsonPropertyName("discount_percent")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? DiscountPercent { get; init; }
+
+    /// <summary>
+    /// Gets the CIS rate for Construction Industry Scheme.
+    /// </summary>
+    /// <value>
+    /// The CIS rate identifier, or <see langword="null"/> if not applicable.
+    /// </value>
+    [JsonPropertyName("cis_rate")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CisRate { get; init; }
+
+    /// <summary>
+    /// Gets the CIS deduction rate percentage.
+    /// </summary>
+    /// <value>
+    /// The percentage rate for CIS deductions.
+    /// </value>
+    [JsonPropertyName("cis_deduction_rate")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? CisDeductionRate { get; init; }
+
+    /// <summary>
+    /// Gets the CIS deduction amount.
+    /// </summary>
+    /// <value>
+    /// The amount deducted under CIS.
+    /// </value>
+    [JsonPropertyName("cis_deduction")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? CisDeduction { get; init; }
+
+    /// <summary>
+    /// Gets the CIS deduction suffered amount.
+    /// </summary>
+    /// <value>
+    /// The CIS deduction amount that has been suffered.
+    /// </value>
+    [JsonPropertyName("cis_deduction_suffered")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? CisDeductionSuffered { get; init; }
+
+    /// <summary>
+    /// Gets the comments or additional notes on the credit note.
+    /// </summary>
+    /// <value>
+    /// Free-text comments visible on the credit note.
+    /// </value>
+    [JsonPropertyName("comments")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Comments { get; init; }
+
+    /// <summary>
+    /// Gets the client contact name.
+    /// </summary>
+    /// <value>
+    /// The name of the specific contact person at the client.
+    /// </value>
+    [JsonPropertyName("client_contact_name")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ClientContactName { get; init; }
+
+    /// <summary>
+    /// Gets the payment terms description.
+    /// </summary>
+    /// <value>
+    /// A text description of the payment terms.
+    /// </value>
+    [JsonPropertyName("payment_terms")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PaymentTerms { get; init; }
+
+    /// <summary>
+    /// Gets the purchase order reference.
+    /// </summary>
+    /// <value>
+    /// The client's purchase order reference number.
+    /// </value>
+    [JsonPropertyName("po_reference")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PoReference { get; init; }
+
+    /// <summary>
+    /// Gets the URI of the bank account for remittance advice.
+    /// </summary>
+    /// <value>
+    /// The URI of the <see cref="BankAccount"/> whose details are displayed for remittance advice.
+    /// </value>
+    [JsonPropertyName("bank_account")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? BankAccount { get; init; }
+
+    /// <summary>
+    /// Gets whether to omit the header on the credit note.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> to omit the header; otherwise, <see langword="false"/>.
+    /// </value>
+    [JsonPropertyName("omit_header")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? OmitHeader { get; init; }
+
+    /// <summary>
+    /// Gets whether to show the project name on the credit note.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> to display the project name; otherwise, <see langword="false"/>.
+    /// </value>
+    [JsonPropertyName("show_project_name")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? ShowProjectName { get; init; }
+
+    /// <summary>
+    /// Gets the EC Status for European Community transactions.
+    /// </summary>
+    /// <value>
+    /// The EC status identifier for VAT purposes.
+    /// </value>
+    [JsonPropertyName("ec_status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? EcStatus { get; init; }
+
+    /// <summary>
+    /// Gets the place of supply for tax purposes.
+    /// </summary>
+    /// <value>
+    /// The location where the supply is deemed to take place for tax calculation.
+    /// </value>
+    [JsonPropertyName("place_of_supply")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PlaceOfSupply { get; init; }
+
+    /// <summary>
+    /// Gets whether the credit note involves sales tax.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> if sales tax applies; otherwise, <see langword="false"/>.
+    /// </value>
+    [JsonPropertyName("involves_sales_tax")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? InvolvesSalesTax { get; init; }
+
+    /// <summary>
+    /// Gets whether this is an interim UK VAT credit note.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> if this is an interim VAT credit note; otherwise, <see langword="false"/>.
+    /// </value>
+    [JsonPropertyName("is_interim_uk_vat")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsInterimUkVat { get; init; }
+
+    /// <summary>
+    /// Gets the date when the credit note was written off.
+    /// </summary>
+    /// <value>
+    /// The write-off date, or <see langword="null"/> if not written off.
+    /// </value>
+    [JsonPropertyName("written_off_date")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateOnly? WrittenOffDate { get; init; }
 
     /// <summary>
     /// Gets the collection of line items that make up this credit note.
@@ -187,30 +417,19 @@ public record CreditNote
     /// Gets the date and time when this credit note was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the creation timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the creation timestamp in UTC.
     /// </value>
     [JsonPropertyName("created_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this credit note was last updated.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the last modification timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the last modification timestamp in UTC.
     /// </value>
     [JsonPropertyName("updated_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? UpdatedAt { get; init; }
-
-    /// <summary>
-    /// Gets the date and time when this credit note was sent to the customer.
-    /// </summary>
-    /// <value>
-    /// A <see cref="DateTime"/> representing when the credit note was emailed or marked as sent,
-    /// or <see langword="null"/> if still in draft status.
-    /// </value>
-    [JsonPropertyName("sent_at")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? SentAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 }

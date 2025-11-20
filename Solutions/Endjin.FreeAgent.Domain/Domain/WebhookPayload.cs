@@ -89,5 +89,5 @@ public record WebhookPayload
     /// </list>
     /// </value>
     [JsonPropertyName("timestamp")]
-    public DateTime? Timestamp { get; init; }
+    public DateTimeOffset? Timestamp { get; init; }
 }

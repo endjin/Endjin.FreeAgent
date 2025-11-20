@@ -62,17 +62,17 @@ public record OpeningBalance
     /// Gets the date and time when this opening balance was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing when the opening balance was first entered into the system.
+    /// A <see cref="DateTimeOffset"/> representing when the opening balance was first entered into the system.
     /// </value>
     [JsonPropertyName("created_at")]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this opening balance was last updated.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the last time the opening balance was modified.
+    /// A <see cref="DateTimeOffset"/> representing the last time the opening balance was modified.
     /// </value>
     [JsonPropertyName("updated_at")]
-    public DateTime? UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 }

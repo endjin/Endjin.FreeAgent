@@ -4,144 +4,166 @@
 
 namespace Endjin.FreeAgent.Domain;
 
+using System.Text.Json.Serialization;
+
 /// <summary>
 /// Represents a balance sheet financial report for a company in the FreeAgent accounting system.
 /// </summary>
 /// <remarks>
 /// <para>
 /// A balance sheet provides a snapshot of a company's financial position at a specific point in time,
-/// showing what the company owns (assets), what it owes (liabilities), and the residual equity (capital and reserves).
+/// showing what the company owns (assets), what it owes (liabilities), and the residual equity.
 /// It follows the fundamental accounting equation: Assets = Liabilities + Equity.
 /// </para>
 /// <para>
 /// The balance sheet is structured into main sections:
-/// - Fixed Assets: Long-term assets like property, equipment, and intangible assets
+/// - Capital Assets: Long-term assets like property, equipment (with net book value after depreciation)
 /// - Current Assets: Short-term assets like cash, inventory, and receivables
 /// - Current Liabilities: Short-term obligations due within one year
-/// - Capital and Reserves: Owner's equity and retained earnings
+/// - Owners' Equity: Owner's capital and retained earnings
 /// </para>
 /// <para>
-/// Each section contains both summary totals and detailed entries broken down by accounting category.
-/// This allows for high-level analysis as well as detailed investigation of specific accounts.
+/// All monetary values are returned as integers rounded to the nearest whole number.
+/// The total owners' equity should always equal the inverse of total assets in a balanced sheet.
 /// </para>
 /// <para>
-/// API Endpoint: /v2/accounting/balance_sheet
+/// API Endpoint: GET https://api.freeagent.com/v2/accounting/balance_sheet
 /// </para>
 /// <para>
-/// Minimum Access Level: Accounting Plus
+/// API Endpoint (Opening Balances): GET https://api.freeagent.com/v2/accounting/balance_sheet/opening_balances
+/// </para>
+/// <para>
+/// Minimum Access Level: Tax, Accounting &amp; Users
+/// </para>
+/// <para>
+/// API Documentation: https://dev.freeagent.com/docs/balance_sheet
 /// </para>
 /// </remarks>
-/// <seealso cref="BalanceSheetEntry"/>
+/// <seealso cref="BalanceSheetAccount"/>
+/// <seealso cref="CapitalAssetsSection"/>
+/// <seealso cref="AssetsSection"/>
+/// <seealso cref="LiabilitiesSection"/>
+/// <seealso cref="OwnersEquitySection"/>
 /// <seealso cref="ProfitAndLoss"/>
-/// <seealso cref="TrialBalance"/>
+/// <seealso cref="TrialBalanceSummaryEntry"/>
 public record BalanceSheet
 {
     /// <summary>
-    /// Gets the date for which this balance sheet is prepared.
+    /// Gets the start date of the accounting period.
     /// </summary>
     /// <value>
-    /// The balance sheet date, representing the point in time at which the financial position is reported.
+    /// The date when the current accounting period began.
     /// </value>
-    [JsonPropertyName("dated_on")]
-    public DateOnly? DatedOn { get; init; }
+    /// <remarks>
+    /// This field is not present in opening balances responses.
+    /// </remarks>
+    [JsonPropertyName("accounting_period_start_date")]
+    public DateOnly? AccountingPeriodStartDate { get; init; }
 
     /// <summary>
-    /// Gets the total value of fixed (non-current) assets.
+    /// Gets the date through which balance sheet values are calculated.
     /// </summary>
     /// <value>
-    /// The sum of all long-term assets such as property, equipment, vehicles, and intangible assets.
-    /// These are assets expected to provide economic benefit for more than one year.
+    /// The "as at" date representing the point in time at which the financial position is reported.
     /// </value>
-    [JsonPropertyName("fixed_assets")]
-    public decimal? FixedAssets { get; init; }
+    /// <remarks>
+    /// This field is not present in opening balances responses.
+    /// </remarks>
+    [JsonPropertyName("as_at_date")]
+    public DateOnly? AsAtDate { get; init; }
 
     /// <summary>
-    /// Gets the total value of current assets.
+    /// Gets the ISO currency code of the company's native currency.
     /// </summary>
     /// <value>
-    /// The sum of all short-term assets such as cash, bank balances, accounts receivable, and inventory.
-    /// These are assets expected to be converted to cash or used within one year.
+    /// Three-letter ISO 4217 currency code (e.g., "GBP", "USD", "EUR").
     /// </value>
+    [JsonPropertyName("currency")]
+    public string? Currency { get; init; }
+
+    /// <summary>
+    /// Gets the capital assets (fixed assets) section of the balance sheet.
+    /// </summary>
+    /// <value>
+    /// An object containing the detailed accounts and net book value for capital assets.
+    /// </value>
+    /// <remarks>
+    /// Capital assets are long-term assets used in business operations.
+    /// The net book value represents original cost minus accumulated depreciation.
+    /// </remarks>
+    [JsonPropertyName("capital_assets")]
+    public CapitalAssetsSection? CapitalAssets { get; init; }
+
+    /// <summary>
+    /// Gets the current assets section of the balance sheet.
+    /// </summary>
+    /// <value>
+    /// An object containing the detailed accounts for current assets.
+    /// </value>
+    /// <remarks>
+    /// Current assets are short-term assets expected to be converted to cash
+    /// or used within one year.
+    /// </remarks>
     [JsonPropertyName("current_assets")]
-    public decimal? CurrentAssets { get; init; }
+    public AssetsSection? CurrentAssets { get; init; }
 
     /// <summary>
-    /// Gets the total value of current liabilities.
+    /// Gets the current liabilities section of the balance sheet.
     /// </summary>
     /// <value>
-    /// The sum of all short-term obligations such as accounts payable, accrued expenses, and short-term loans.
-    /// These are liabilities due for payment within one year.
+    /// An object containing the detailed accounts for current liabilities.
     /// </value>
+    /// <remarks>
+    /// Current liabilities are short-term obligations due within one year.
+    /// Negative values indicate amounts owed by the business.
+    /// </remarks>
     [JsonPropertyName("current_liabilities")]
-    public decimal? CurrentLiabilities { get; init; }
+    public LiabilitiesSection? CurrentLiabilities { get; init; }
 
     /// <summary>
     /// Gets the net current assets (working capital).
     /// </summary>
     /// <value>
-    /// The difference between current assets and current liabilities (Current Assets - Current Liabilities).
+    /// The combined total of current assets and current liabilities, rounded to the nearest integer.
+    /// </value>
+    /// <remarks>
     /// This represents the company's short-term liquidity position and ability to meet immediate obligations.
-    /// </value>
+    /// Calculated as: Current Assets + Current Liabilities (where liabilities are typically negative).
+    /// </remarks>
     [JsonPropertyName("net_current_assets")]
-    public decimal? NetCurrentAssets { get; init; }
+    public int? NetCurrentAssets { get; init; }
 
     /// <summary>
-    /// Gets the total assets less current liabilities.
+    /// Gets the sum of all asset categories.
     /// </summary>
     /// <value>
-    /// The sum of fixed assets and net current assets (Fixed Assets + Net Current Assets).
-    /// This represents the total long-term investment in the business.
+    /// The total of all assets (capital assets + current assets), rounded to the nearest integer.
     /// </value>
-    [JsonPropertyName("total_assets_less_current_liabilities")]
-    public decimal? TotalAssetsLessCurrentLiabilities { get; init; }
+    [JsonPropertyName("total_assets")]
+    public int? TotalAssets { get; init; }
 
     /// <summary>
-    /// Gets the total capital and reserves (equity).
+    /// Gets the owners' equity section of the balance sheet.
     /// </summary>
     /// <value>
-    /// The owner's equity in the business, including share capital, retained earnings, and reserves.
-    /// This equals Total Assets Less Current Liabilities and represents the net worth of the company.
+    /// An object containing the detailed equity accounts and retained profit.
     /// </value>
-    [JsonPropertyName("capital_and_reserves")]
-    public decimal? CapitalAndReserves { get; init; }
+    /// <remarks>
+    /// Owners' equity represents the residual interest in the assets after deducting liabilities.
+    /// According to the accounting equation: Assets = Liabilities + Equity
+    /// </remarks>
+    [JsonPropertyName("owners_equity")]
+    public OwnersEquitySection? OwnersEquity { get; init; }
 
     /// <summary>
-    /// Gets the detailed breakdown of fixed assets by category.
+    /// Gets the total owners' equity.
     /// </summary>
     /// <value>
-    /// A list of <see cref="BalanceSheetEntry"/> objects showing individual fixed asset categories
-    /// with their nominal codes and values.
+    /// The total equity in the business, rounded to the nearest integer.
     /// </value>
-    [JsonPropertyName("fixed_asset_entries")]
-    public List<BalanceSheetEntry>? FixedAssetEntries { get; init; }
-
-    /// <summary>
-    /// Gets the detailed breakdown of current assets by category.
-    /// </summary>
-    /// <value>
-    /// A list of <see cref="BalanceSheetEntry"/> objects showing individual current asset categories
-    /// such as bank accounts, debtors, and stock with their values.
-    /// </value>
-    [JsonPropertyName("current_asset_entries")]
-    public List<BalanceSheetEntry>? CurrentAssetEntries { get; init; }
-
-    /// <summary>
-    /// Gets the detailed breakdown of current liabilities by category.
-    /// </summary>
-    /// <value>
-    /// A list of <see cref="BalanceSheetEntry"/> objects showing individual current liability categories
-    /// such as creditors, VAT, and accrued expenses with their values.
-    /// </value>
-    [JsonPropertyName("current_liability_entries")]
-    public List<BalanceSheetEntry>? CurrentLiabilityEntries { get; init; }
-
-    /// <summary>
-    /// Gets the detailed breakdown of capital and reserves by category.
-    /// </summary>
-    /// <value>
-    /// A list of <see cref="BalanceSheetEntry"/> objects showing equity components such as
-    /// share capital, retained earnings, and other reserves.
-    /// </value>
-    [JsonPropertyName("capital_and_reserve_entries")]
-    public List<BalanceSheetEntry>? CapitalAndReserveEntries { get; init; }
+    /// <remarks>
+    /// This should always be the inverse of total assets in a balanced sheet.
+    /// </remarks>
+    [JsonPropertyName("total_owners_equity")]
+    public int? TotalOwnersEquity { get; init; }
 }

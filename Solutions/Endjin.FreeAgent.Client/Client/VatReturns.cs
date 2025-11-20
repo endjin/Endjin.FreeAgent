@@ -53,8 +53,13 @@ public class VatReturns
     /// </returns>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <remarks>
+    /// <para>
     /// This method calls GET /v2/vat_returns, handles pagination automatically, and caches the
     /// result for 5 minutes. Returns include both filed and unfiled VAT periods.
+    /// </para>
+    /// <para>
+    /// Minimum Access Level: Tax, Accounting &amp; Users
+    /// </para>
     /// </remarks>
     public async Task<IEnumerable<VatReturn>> GetAllAsync()
     {
@@ -72,9 +77,9 @@ public class VatReturns
     }
 
     /// <summary>
-    /// Retrieves a specific VAT return by its ID from FreeAgent.
+    /// Retrieves a specific VAT return by its period end date from FreeAgent.
     /// </summary>
-    /// <param name="id">The unique identifier of the VAT return.</param>
+    /// <param name="id">The period end date of the VAT return (e.g., "2024-03-31").</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
     /// <see cref="VatReturn"/> object with all VAT return details.
@@ -82,7 +87,12 @@ public class VatReturns
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the VAT return is not found or cannot be deserialized.</exception>
     /// <remarks>
-    /// This method calls GET /v2/vat_returns/{id} and caches the result for 5 minutes.
+    /// <para>
+    /// This method calls GET /v2/vat_returns/{period_ends_on} and caches the result for 5 minutes.
+    /// </para>
+    /// <para>
+    /// Minimum Access Level: Tax, Accounting &amp; Users
+    /// </para>
     /// </remarks>
     public async Task<VatReturn> GetByIdAsync(string id)
     {
@@ -106,10 +116,7 @@ public class VatReturns
     /// <summary>
     /// Marks a VAT return as filed with HMRC.
     /// </summary>
-    /// <param name="id">The unique identifier of the VAT return to mark as filed.</param>
-    /// <param name="filedOn">The date when the VAT return was filed with HMRC.</param>
-    /// <param name="filedOnline">Indicates whether the return was filed online (true) or by post (false).</param>
-    /// <param name="hmrcReference">Optional HMRC reference number for the filed return.</param>
+    /// <param name="periodEndsOn">The period end date of the VAT return to mark as filed (e.g., "2024-03-31").</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
     /// updated <see cref="VatReturn"/> object reflecting the filed status.
@@ -117,34 +124,141 @@ public class VatReturns
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
     /// <remarks>
-    /// This method calls PUT /v2/vat_returns/{id}/mark_as_filed and invalidates the cache entry for the
+    /// <para>
+    /// This method calls PUT /v2/vat_returns/{period_ends_on}/mark_as_filed and invalidates the cache entry for the
     /// VAT return. This operation should only be performed after successfully submitting the return to HMRC.
+    /// </para>
+    /// <para>
+    /// Minimum Access Level: Full Access
+    /// </para>
     /// </remarks>
-    public async Task<VatReturn> MarkAsFiledAsync(string id, DateOnly filedOn, bool filedOnline, string? hmrcReference = null)
+    public async Task<VatReturn> MarkAsFiledAsync(string periodEndsOn)
     {
-        VatReturnFilingRoot filingData = new()
-        {
-            VatReturn = new VatReturnFiling
-            {
-                FiledOn = filedOn.ToString("yyyy-MM-dd"),
-                FiledOnline = filedOnline,
-                HmrcReference = hmrcReference
-            }
-        };
-
-        using JsonContent content = JsonContent.Create(filingData, options: SharedJsonOptions.SourceGenOptions);
-
         HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
-            new Uri(this.freeAgentClient.ApiBaseUrl, $"{VatReturnsEndPoint}/{id}/mark_as_filed"),
-            content).ConfigureAwait(false);
+            new Uri(this.freeAgentClient.ApiBaseUrl, $"{VatReturnsEndPoint}/{periodEndsOn}/mark_as_filed"),
+            null).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
         VatReturnRoot? root = await response.Content.ReadFromJsonAsync<VatReturnRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
 
         // Invalidate cache
-        string cacheKey = $"{VatReturnsEndPoint}/{id}";
+        string cacheKey = $"{VatReturnsEndPoint}/{periodEndsOn}";
         this.cache.Remove(cacheKey);
+        this.cache.Remove(VatReturnsEndPoint);
+
+        return root?.VatReturn ?? throw new InvalidOperationException("Failed to deserialize VAT return response.");
+    }
+
+    /// <summary>
+    /// Marks a VAT return as unfiled with HMRC.
+    /// </summary>
+    /// <param name="periodEndsOn">The period end date of the VAT return to mark as unfiled (e.g., "2024-03-31").</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="VatReturn"/> object reflecting the unfiled status.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// <para>
+    /// This method calls PUT /v2/vat_returns/{period_ends_on}/mark_as_unfiled and invalidates the cache entry for the
+    /// VAT return. Use this operation to reverse a previously filed status.
+    /// </para>
+    /// <para>
+    /// Minimum Access Level: Full Access
+    /// </para>
+    /// </remarks>
+    public async Task<VatReturn> MarkAsUnfiledAsync(string periodEndsOn)
+    {
+        HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
+            new Uri(this.freeAgentClient.ApiBaseUrl, $"{VatReturnsEndPoint}/{periodEndsOn}/mark_as_unfiled"),
+            null).ConfigureAwait(false);
+
+        response.EnsureSuccessStatusCode();
+
+        VatReturnRoot? root = await response.Content.ReadFromJsonAsync<VatReturnRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+
+        // Invalidate cache
+        string cacheKey = $"{VatReturnsEndPoint}/{periodEndsOn}";
+        this.cache.Remove(cacheKey);
+        this.cache.Remove(VatReturnsEndPoint);
+
+        return root?.VatReturn ?? throw new InvalidOperationException("Failed to deserialize VAT return response.");
+    }
+
+    /// <summary>
+    /// Marks a VAT return payment as paid.
+    /// </summary>
+    /// <param name="periodEndsOn">The period end date of the VAT return (e.g., "2024-03-31").</param>
+    /// <param name="paymentDate">The payment due date to mark as paid (e.g., "2024-05-07").</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="VatReturn"/> object reflecting the payment status.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// <para>
+    /// This method calls PUT /v2/vat_returns/{period_ends_on}/payments/{payment_date}/mark_as_paid
+    /// and invalidates the cache entry for the VAT return.
+    /// </para>
+    /// <para>
+    /// Minimum Access Level: Tax, Accounting &amp; Users
+    /// </para>
+    /// </remarks>
+    public async Task<VatReturn> MarkPaymentAsPaidAsync(string periodEndsOn, string paymentDate)
+    {
+        HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
+            new Uri(this.freeAgentClient.ApiBaseUrl, $"{VatReturnsEndPoint}/{periodEndsOn}/payments/{paymentDate}/mark_as_paid"),
+            null).ConfigureAwait(false);
+
+        response.EnsureSuccessStatusCode();
+
+        VatReturnRoot? root = await response.Content.ReadFromJsonAsync<VatReturnRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+
+        // Invalidate cache
+        string cacheKey = $"{VatReturnsEndPoint}/{periodEndsOn}";
+        this.cache.Remove(cacheKey);
+        this.cache.Remove(VatReturnsEndPoint);
+
+        return root?.VatReturn ?? throw new InvalidOperationException("Failed to deserialize VAT return response.");
+    }
+
+    /// <summary>
+    /// Marks a VAT return payment as unpaid.
+    /// </summary>
+    /// <param name="periodEndsOn">The period end date of the VAT return (e.g., "2024-03-31").</param>
+    /// <param name="paymentDate">The payment due date to mark as unpaid (e.g., "2024-05-07").</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
+    /// updated <see cref="VatReturn"/> object reflecting the payment status.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
+    /// <remarks>
+    /// <para>
+    /// This method calls PUT /v2/vat_returns/{period_ends_on}/payments/{payment_date}/mark_as_unpaid
+    /// and invalidates the cache entry for the VAT return.
+    /// </para>
+    /// <para>
+    /// Minimum Access Level: Tax, Accounting &amp; Users
+    /// </para>
+    /// </remarks>
+    public async Task<VatReturn> MarkPaymentAsUnpaidAsync(string periodEndsOn, string paymentDate)
+    {
+        HttpResponseMessage response = await this.freeAgentClient.HttpClient.PutAsync(
+            new Uri(this.freeAgentClient.ApiBaseUrl, $"{VatReturnsEndPoint}/{periodEndsOn}/payments/{paymentDate}/mark_as_unpaid"),
+            null).ConfigureAwait(false);
+
+        response.EnsureSuccessStatusCode();
+
+        VatReturnRoot? root = await response.Content.ReadFromJsonAsync<VatReturnRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+
+        // Invalidate cache
+        string cacheKey = $"{VatReturnsEndPoint}/{periodEndsOn}";
+        this.cache.Remove(cacheKey);
+        this.cache.Remove(VatReturnsEndPoint);
 
         return root?.VatReturn ?? throw new InvalidOperationException("Failed to deserialize VAT return response.");
     }

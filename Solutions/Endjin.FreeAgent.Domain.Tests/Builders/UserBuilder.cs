@@ -14,11 +14,14 @@ public class UserBuilder
     private string? email = "jane.smith@example.com";
     private Role role = Role.Employee;
     private bool hidden = false;
-    private long permissionLevel = 5;
-    private string? openingMileage = "0";
+    private int permissionLevel = 5;
+    private decimal? openingMileage = 0;
     private DateTimeOffset updatedAt = new(2024, 6, 15, 0, 0, 0, TimeSpan.Zero);
     private DateTimeOffset createdAt = new(2024, 3, 17, 0, 0, 0, TimeSpan.Zero);
     private string? niNumber;
+    private string? uniqueTaxReference;
+    private bool? sendInvitation;
+    private UserPayrollProfile? currentPayrollProfile;
 
     public UserBuilder WithUrl(Uri? url)
     {
@@ -48,7 +51,7 @@ public class UserBuilder
     public UserBuilder AsOwner()
     {
         this.role = Role.Owner;
-        this.permissionLevel = 10;
+        this.permissionLevel = 8; // Full Access (valid range is 0-8)
         return this;
     }
 
@@ -72,7 +75,7 @@ public class UserBuilder
         return this;
     }
 
-    public UserBuilder WithPermissionLevel(long level)
+    public UserBuilder WithPermissionLevel(int level)
     {
         this.permissionLevel = level;
         return this;
@@ -81,6 +84,24 @@ public class UserBuilder
     public UserBuilder WithNiNumber(string? niNumber)
     {
         this.niNumber = niNumber;
+        return this;
+    }
+
+    public UserBuilder WithUniqueTaxReference(string? uniqueTaxReference)
+    {
+        this.uniqueTaxReference = uniqueTaxReference;
+        return this;
+    }
+
+    public UserBuilder WithSendInvitation(bool? sendInvitation)
+    {
+        this.sendInvitation = sendInvitation;
+        return this;
+    }
+
+    public UserBuilder WithCurrentPayrollProfile(UserPayrollProfile? currentPayrollProfile)
+    {
+        this.currentPayrollProfile = currentPayrollProfile;
         return this;
     }
 
@@ -96,7 +117,10 @@ public class UserBuilder
         OpeningMileage = openingMileage,
         UpdatedAt = updatedAt,
         CreatedAt = createdAt,
-        NiNumber = niNumber
+        NiNumber = niNumber,
+        UniqueTaxReference = uniqueTaxReference,
+        SendInvitation = sendInvitation,
+        CurrentPayrollProfile = currentPayrollProfile
     };
 
     public static implicit operator User(UserBuilder builder) => builder.Build();

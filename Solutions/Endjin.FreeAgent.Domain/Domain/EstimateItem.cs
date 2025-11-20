@@ -39,10 +39,20 @@ public record EstimateItem
     public Uri? Url { get; init; }
 
     /// <summary>
+    /// Gets the URI reference to the parent estimate for this item.
+    /// </summary>
+    /// <value>
+    /// The URI of the <see cref="Estimate"/> that contains this line item.
+    /// Required when creating a new estimate item via POST /v2/estimate_items.
+    /// </value>
+    [JsonPropertyName("estimate")]
+    public Uri? Estimate { get; init; }
+
+    /// <summary>
     /// Gets the display order position of this item within the estimate.
     /// </summary>
     /// <value>
-    /// A zero-based index determining the order in which items appear on the estimate.
+    /// An integer value starting at 1 that determines the order in which items appear on the estimate.
     /// Lower numbers appear first.
     /// </value>
     [JsonPropertyName("position")]
@@ -52,7 +62,8 @@ public record EstimateItem
     /// Gets the unit type for this item's quantity measurement.
     /// </summary>
     /// <value>
-    /// One of "Hours", "Days", "Weeks", "Months", "Years", "Products", "Services", or other unit identifiers
+    /// One of "Hours", "Days", "Weeks", "Months", "Years", "Products", "Services", "Training", "Expenses",
+    /// "Comments", "Bills", "Discount", "Credit", "-no unit-", or other unit identifiers
     /// that describe how <see cref="Quantity"/> should be interpreted and displayed.
     /// </value>
     [JsonPropertyName("item_type")]
@@ -100,11 +111,53 @@ public record EstimateItem
     /// Gets the sales tax rate applied to this item.
     /// </summary>
     /// <value>
-    /// The VAT/GST rate as a decimal (e.g., 0.20 for 20% tax). Used to calculate <see cref="SalesTaxValue"/>.
+    /// The VAT/GST rate as a percentage (e.g., 20.0 for 20% tax). Used to calculate <see cref="SalesTaxValue"/>.
     /// </value>
     [JsonPropertyName("sales_tax_rate")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public decimal? SalesTaxRate { get; init; }
+
+    /// <summary>
+    /// Gets the sales tax status classification for this item.
+    /// </summary>
+    /// <value>
+    /// One of "TAXABLE" or "EXEMPT", determining whether sales tax is applied to this item.
+    /// </value>
+    [JsonPropertyName("sales_tax_status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SalesTaxStatus { get; init; }
+
+    /// <summary>
+    /// Gets the secondary sales tax rate for jurisdictions with dual tax systems.
+    /// </summary>
+    /// <value>
+    /// An additional tax rate (e.g., PST in Canadian provinces with GST/PST) applied on top of
+    /// the primary <see cref="SalesTaxRate"/> for universal accounts.
+    /// </value>
+    [JsonPropertyName("second_sales_tax_rate")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? SecondSalesTaxRate { get; init; }
+
+    /// <summary>
+    /// Gets the secondary sales tax status classification for this item.
+    /// </summary>
+    /// <value>
+    /// The tax status for the secondary tax rate, determining whether the second tax is applied.
+    /// </value>
+    [JsonPropertyName("second_sales_tax_status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SecondSalesTaxStatus { get; init; }
+
+    /// <summary>
+    /// Gets the calculated secondary sales tax amount for this item.
+    /// </summary>
+    /// <value>
+    /// The total secondary tax amount calculated by applying <see cref="SecondSalesTaxRate"/>
+    /// to the line item subtotal for dual-tax jurisdictions.
+    /// </value>
+    [JsonPropertyName("second_sales_tax_value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? SecondSalesTaxValue { get; init; }
 
     /// <summary>
     /// Gets the URI reference to the accounting category for this item.

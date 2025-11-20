@@ -5,10 +5,11 @@
 namespace Endjin.FreeAgent.Domain;
 
 /// <summary>
-/// Represents the root-level JSON response wrapper for a collection of <see cref="Domain.PayrollProfile"/> resources.
+/// Represents the root-level JSON response wrapper for a collection of <see cref="PayrollProfile"/> resources.
 /// </summary>
 /// <remarks>
-/// This wrapper type is used for JSON deserialization of FreeAgent API responses that return multiple payroll profile records.
+/// This wrapper type is used for JSON deserialization of FreeAgent API responses that return payroll profiles.
+/// The API returns profiles wrapped in a "profiles" property.
 /// </remarks>
 /// <seealso cref="PayrollProfile"/>
 public record PayrollProfilesRoot
@@ -17,9 +18,8 @@ public record PayrollProfilesRoot
     /// Gets the collection of payroll profiles from the API response.
     /// </summary>
     /// <value>
-    /// A list of <see cref="Domain.PayrollProfile"/> objects returned by the API.
-    /// Defaults to an empty collection if no profiles are present.
+    /// An immutable list of <see cref="PayrollProfile"/> objects returned by the API.
     /// </value>
-    [JsonPropertyName("payroll_profiles")]
-    public List<PayrollProfile> PayrollProfiles { get; init; } = [];
+    [JsonPropertyName("profiles")]
+    public ImmutableList<PayrollProfile> Profiles { get; init; } = [];
 }

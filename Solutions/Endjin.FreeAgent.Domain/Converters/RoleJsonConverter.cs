@@ -103,16 +103,16 @@ public class RoleJsonConverter : JsonConverter<Role?>
             return;
         }
 
-        // Convert enum to snake_case for API compatibility
+        // Convert enum to Title Case for API compatibility
         string stringValue = value switch
         {
-            Role.Owner => "owner",
-            Role.Director => "director",
-            Role.Partner => "partner",
-            Role.CompanySecretary => "company_secretary",
-            Role.Employee => "employee",
-            Role.Shareholder => "shareholder",
-            Role.Accountant => "accountant",
+            Role.Owner => "Owner",
+            Role.Director => "Director",
+            Role.Partner => "Partner",
+            Role.CompanySecretary => "Company Secretary",
+            Role.Employee => "Employee",
+            Role.Shareholder => "Shareholder",
+            Role.Accountant => "Accountant",
             _ => throw new JsonException($"Unknown Role value: {value}")
         };
 

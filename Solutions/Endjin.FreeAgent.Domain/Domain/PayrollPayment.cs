@@ -5,189 +5,60 @@
 namespace Endjin.FreeAgent.Domain;
 
 /// <summary>
-/// Represents a payroll payment record in the FreeAgent payroll system.
+/// Represents a payroll payment due to HMRC in the FreeAgent RTI (Real Time Information) payroll system.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Payroll payments record when employees are paid, tracking gross pay, deductions (tax, NI, pension, student loans),
-/// and net pay. Each payment is associated with a specific employee and payment date, providing a complete audit
-/// trail of payroll transactions.
+/// Payroll payments represent the amounts due to HMRC for PAYE tax, National Insurance contributions,
+/// and other payroll-related liabilities. These payments are typically due monthly or quarterly
+/// depending on the company's PAYE scheme.
 /// </para>
 /// <para>
-/// While <see cref="Payslip"/> represents the detailed breakdown of a pay period (showing all earnings components
-/// and statutory deductions), PayrollPayment represents the actual monetary transaction when the employee is paid.
-/// A payslip might cover earnings from April 1-30, while the payment records the money transfer on May 5th.
-/// </para>
-/// <para>
-/// UK payroll components tracked:
+/// Payment status values:
 /// <list type="bullet">
-/// <item><b>Gross Pay</b> - Total earnings before deductions</item>
-/// <item><b>Income Tax</b> - PAYE tax deducted based on tax code</item>
-/// <item><b>Employee NI</b> - Employee's National Insurance (Class 1)</item>
-/// <item><b>Employer NI</b> - Employer's National Insurance contribution (additional cost)</item>
-/// <item><b>Employee Pension</b> - Employee's pension contribution (reduces net pay)</item>
-/// <item><b>Employer Pension</b> - Employer's pension contribution (additional cost)</item>
-/// <item><b>Student Loan</b> - Student loan repayments deducted at source</item>
-/// <item><b>Net Pay</b> - Amount actually paid to employee (take-home pay)</item>
-/// <item><b>Total Cost</b> - Complete employment cost (gross + employer NI + employer pension)</item>
+/// <item><b>unpaid</b> - Payment has not yet been made to HMRC</item>
+/// <item><b>marked_as_paid</b> - Payment has been marked as paid in FreeAgent</item>
 /// </list>
 /// </para>
 /// <para>
-/// Payroll payments are used for:
-/// <list type="bullet">
-/// <item>Recording when employees are paid</item>
-/// <item>Tracking payroll cash flow and timing</item>
-/// <item>Reconciling bank transactions with employee payments</item>
-/// <item>Preparing HMRC submissions (RTI - Real Time Information)</item>
-/// <item>Calculating total employment costs</item>
-/// <item>Year-end payroll reporting (P60s)</item>
-/// </list>
+/// Note: The "paid" status is reserved for future use when FreeAgent can confirm actual payment to HMRC.
 /// </para>
 /// <para>
-/// API Access: Accessible via GET/POST /v2/payroll_payments
-/// Minimum Access Level: Payroll admin access
+/// API Access: Read-only via GET /v2/payroll/:year. Can be marked as paid/unpaid via PUT endpoints.
+/// Minimum Access Level: Tax and Limited Accounting. Only available for UK companies.
 /// </para>
 /// </remarks>
+/// <seealso cref="PayrollPeriod"/>
 /// <seealso cref="Payslip"/>
-/// <seealso cref="PayrollProfile"/>
-/// <seealso cref="User"/>
 public record PayrollPayment
 {
     /// <summary>
-    /// Gets the API URL for this payroll payment resource.
+    /// Gets the date when this payment is due to HMRC.
     /// </summary>
     /// <value>
-    /// The unique API endpoint URL for accessing this specific payroll payment record.
+    /// The payment due date in YYYY-MM-DD format. PAYE payments are typically due by the 22nd of each month
+    /// (or 19th if paying by post).
     /// </value>
-    [JsonPropertyName("url")]
-    public Uri? Url { get; init; }
+    [JsonPropertyName("due_on")]
+    public DateOnly? DueOn { get; init; }
 
     /// <summary>
-    /// Gets the API URL of the employee (user) receiving this payment.
+    /// Gets the amount due to HMRC.
     /// </summary>
     /// <value>
-    /// A reference URL to the <see cref="User"/> resource representing the employee being paid.
+    /// The total amount due for this payment, including PAYE tax, National Insurance, student loan
+    /// repayments, and any other deductions that must be remitted to HMRC.
     /// </value>
-    [JsonPropertyName("user")]
-    public Uri? User { get; init; }
+    [JsonPropertyName("amount_due")]
+    public decimal? AmountDue { get; init; }
 
     /// <summary>
-    /// Gets the date when the payment was made to the employee.
+    /// Gets the payment status.
     /// </summary>
     /// <value>
-    /// The payment date, typically the pay date specified in the employment contract (e.g., last working day
-    /// of the month, 25th of each month). This is when money is transferred to the employee's bank account.
+    /// The current status of the payment: "unpaid" or "marked_as_paid".
+    /// This field may be omitted if no payments are due.
     /// </value>
-    [JsonPropertyName("dated_on")]
-    public DateOnly? DatedOn { get; init; }
-
-    /// <summary>
-    /// Gets the gross pay amount before any deductions.
-    /// </summary>
-    /// <value>
-    /// The total earnings for the pay period before tax, NI, pension, or student loan deductions.
-    /// This is the contractual salary amount or sum of all pay components.
-    /// </value>
-    [JsonPropertyName("gross_pay")]
-    public decimal? GrossPay { get; init; }
-
-    /// <summary>
-    /// Gets the income tax (PAYE) deducted from gross pay.
-    /// </summary>
-    /// <value>
-    /// The PAYE income tax amount withheld and paid to HMRC, calculated based on the employee's tax code
-    /// and cumulative earnings for the tax year.
-    /// </value>
-    [JsonPropertyName("income_tax")]
-    public decimal? IncomeTax { get; init; }
-
-    /// <summary>
-    /// Gets the employee's National Insurance contribution deducted from gross pay.
-    /// </summary>
-    /// <value>
-    /// The employee's Class 1 NIC deduction, calculated based on earnings and NI category letter.
-    /// This reduces the employee's net pay.
-    /// </value>
-    [JsonPropertyName("employee_ni")]
-    public decimal? EmployeeNi { get; init; }
-
-    /// <summary>
-    /// Gets the employer's National Insurance contribution.
-    /// </summary>
-    /// <value>
-    /// The employer's Class 1 NIC contribution paid on top of gross salary. This is an employer cost,
-    /// not deducted from the employee's pay, and increases the total cost of employment.
-    /// </value>
-    [JsonPropertyName("employer_ni")]
-    public decimal? EmployerNi { get; init; }
-
-    /// <summary>
-    /// Gets the employee's pension contribution deducted from gross pay.
-    /// </summary>
-    /// <value>
-    /// The employee's pension contribution (typically 5% of qualifying earnings for auto-enrolment minimum).
-    /// This is deducted from pay and reduces net pay.
-    /// </value>
-    [JsonPropertyName("employee_pension")]
-    public decimal? EmployeePension { get; init; }
-
-    /// <summary>
-    /// Gets the employer's pension contribution.
-    /// </summary>
-    /// <value>
-    /// The employer's pension contribution (typically 3% of qualifying earnings for auto-enrolment minimum).
-    /// This is an employer cost paid on top of salary, not deducted from the employee's pay.
-    /// </value>
-    [JsonPropertyName("employer_pension")]
-    public decimal? EmployerPension { get; init; }
-
-    /// <summary>
-    /// Gets the student loan repayment deducted from gross pay.
-    /// </summary>
-    /// <value>
-    /// The student loan repayment amount deducted based on the employee's loan plan type and salary threshold.
-    /// Only applies if the employee has a student loan and earnings exceed the threshold. This reduces net pay.
-    /// </value>
-    [JsonPropertyName("student_loan")]
-    public decimal? StudentLoan { get; init; }
-
-    /// <summary>
-    /// Gets the net pay amount paid to the employee.
-    /// </summary>
-    /// <value>
-    /// The take-home pay after all deductions. Calculated as:
-    /// Gross Pay - Income Tax - Employee NI - Employee Pension - Student Loan.
-    /// This is the amount actually transferred to the employee's bank account.
-    /// </value>
-    [JsonPropertyName("net_pay")]
-    public decimal? NetPay { get; init; }
-
-    /// <summary>
-    /// Gets the total cost of employment for this payment.
-    /// </summary>
-    /// <value>
-    /// The complete employment cost to the business. Calculated as:
-    /// Gross Pay + Employer NI + Employer Pension.
-    /// This represents the true cost of employing the person for this pay period.
-    /// </value>
-    [JsonPropertyName("total_cost")]
-    public decimal? TotalCost { get; init; }
-
-    /// <summary>
-    /// Gets the date and time when this payroll payment record was created.
-    /// </summary>
-    /// <value>
-    /// The timestamp of when the payment was recorded in FreeAgent.
-    /// </value>
-    [JsonPropertyName("created_at")]
-    public DateTime? CreatedAt { get; init; }
-
-    /// <summary>
-    /// Gets the date and time when this payroll payment record was last updated.
-    /// </summary>
-    /// <value>
-    /// The timestamp of the most recent modification to this payment record.
-    /// </value>
-    [JsonPropertyName("updated_at")]
-    public DateTime? UpdatedAt { get; init; }
+    [JsonPropertyName("status")]
+    public string? Status { get; init; }
 }

@@ -14,12 +14,14 @@ public class TimeslipBuilder
     private Project? projectEntry;
     private Uri? task = new("https://api.freeagent.com/v2/tasks/1");
     private TaskItem? taskEntry;
-    private DateTimeOffset datedOn = new(2024, 6, 15, 0, 0, 0, TimeSpan.Zero);
+    private DateOnly datedOn = new(2024, 6, 15);
     private decimal hours = 8m;
     private string? comment = "Working on feature implementation";
     private DateTimeOffset updatedAt = new(2024, 6, 15, 12, 0, 0, TimeSpan.Zero);
     private DateTimeOffset createdAt = new(2024, 6, 15, 11, 0, 0, TimeSpan.Zero);
     private User? userEntry;
+    private Uri? billedOnInvoice;
+    private Timer? timer;
 
     public TimeslipBuilder WithUrl(Uri? url)
     {
@@ -60,7 +62,7 @@ public class TimeslipBuilder
         return this;
     }
 
-    public TimeslipBuilder OnDate(DateTimeOffset date)
+    public TimeslipBuilder OnDate(DateOnly date)
     {
         this.datedOn = date;
         return this;
@@ -68,13 +70,35 @@ public class TimeslipBuilder
 
     public TimeslipBuilder ForToday()
     {
-        this.datedOn = new DateTimeOffset(2024, 6, 15, 0, 0, 0, TimeSpan.Zero);
+        this.datedOn = new DateOnly(2024, 6, 15);
         return this;
     }
 
     public TimeslipBuilder ForYesterday()
     {
-        this.datedOn = new DateTimeOffset(2024, 6, 14, 0, 0, 0, TimeSpan.Zero);
+        this.datedOn = new DateOnly(2024, 6, 14);
+        return this;
+    }
+
+    public TimeslipBuilder WithBilledOnInvoice(Uri? billedOnInvoice)
+    {
+        this.billedOnInvoice = billedOnInvoice;
+        return this;
+    }
+
+    public TimeslipBuilder WithTimer(Timer? timer)
+    {
+        this.timer = timer;
+        return this;
+    }
+
+    public TimeslipBuilder WithRunningTimer()
+    {
+        this.timer = new Timer
+        {
+            Running = true,
+            StartFrom = DateTimeOffset.UtcNow.AddHours((double)-this.hours)
+        };
         return this;
     }
 
@@ -91,6 +115,8 @@ public class TimeslipBuilder
         Comment = comment,
         UpdatedAt = updatedAt,
         CreatedAt = createdAt,
+        BilledOnInvoice = billedOnInvoice,
+        Timer = timer,
         UserEntry = userEntry
     };
 

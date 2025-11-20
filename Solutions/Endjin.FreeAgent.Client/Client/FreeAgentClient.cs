@@ -27,7 +27,7 @@ namespace Endjin.FreeAgent.Client;
 /// <para>
 /// The client automatically handles OAuth2 authentication, token refresh, and request retries.
 /// It supports both direct instantiation and dependency injection through
-/// <see cref="FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices"/>.
+/// <c>FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices</c>.
 /// </para>
 /// <example>
 /// Using dependency injection:
@@ -76,6 +76,7 @@ public class FreeAgentClient : ClientBase
         this.ClientId = options.ClientId;
         this.ClientSecret = options.ClientSecret;
         this.RefreshToken = options.RefreshToken;
+        this.ApiBaseUrl = options.ApiBaseUrl;
 
         this.InitializeServices(cache, httpClientFactory, loggerFactory);
     }
@@ -91,7 +92,7 @@ public class FreeAgentClient : ClientBase
     /// <exception cref="InvalidOperationException">Thrown when the options are invalid (via <see cref="FreeAgentOptions.Validate"/>).</exception>
     /// <remarks>
     /// This constructor is typically used when the client is resolved from the dependency injection container
-    /// after calling <see cref="FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices"/>.
+    /// after calling <c>FreeAgentClientServiceCollectionExtensions.AddFreeAgentClientServices</c>.
     /// </remarks>
     public FreeAgentClient(IOptions<FreeAgentOptions> options, IMemoryCache cache, IHttpClientFactory httpClientFactory, ILoggerFactory loggerFactory)
         : this(options?.Value ?? throw new ArgumentNullException(nameof(options)), cache, httpClientFactory, loggerFactory)
@@ -107,13 +108,14 @@ public class FreeAgentClient : ClientBase
     /// <param name="cache">The memory cache instance for caching tokens and API responses.</param>
     /// <param name="httpClientFactory">The HTTP client factory for creating managed HTTP clients.</param>
     /// <param name="loggerFactory">The logger factory for creating loggers.</param>
+    /// <param name="useSandbox">Whether to use the FreeAgent sandbox environment. Defaults to <c>false</c> (production).</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="clientId"/>, <paramref name="clientSecret"/>, or <paramref name="refreshToken"/> is null or whitespace.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="cache"/>, <paramref name="httpClientFactory"/>, or <paramref name="loggerFactory"/> is null.</exception>
     /// <remarks>
     /// This constructor is useful for direct instantiation when not using dependency injection,
     /// or when credentials need to be provided programmatically rather than through configuration.
     /// </remarks>
-    public FreeAgentClient(string clientId, string clientSecret, string refreshToken, IMemoryCache cache, IHttpClientFactory httpClientFactory, ILoggerFactory loggerFactory)
+    public FreeAgentClient(string clientId, string clientSecret, string refreshToken, IMemoryCache cache, IHttpClientFactory httpClientFactory, ILoggerFactory loggerFactory, bool useSandbox = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(clientId);
         ArgumentException.ThrowIfNullOrWhiteSpace(clientSecret);
@@ -125,6 +127,7 @@ public class FreeAgentClient : ClientBase
         this.ClientId = clientId;
         this.ClientSecret = clientSecret;
         this.RefreshToken = refreshToken;
+        this.ApiBaseUrl = useSandbox ? FreeAgentOptions.SandboxApiBaseUrl : FreeAgentOptions.ProductionApiBaseUrl;
 
         this.InitializeServices(cache, httpClientFactory, loggerFactory);
     }
@@ -159,6 +162,7 @@ public class FreeAgentClient : ClientBase
         this.Attachments = new Attachments(this, cache);
         this.BalanceSheetReports = new BalanceSheetReports(this, cache);
         this.BankAccounts = new BankAccounts(this, cache);
+        this.BankFeeds = new BankFeeds(this, cache);
         this.BankStatementUploads = new BankStatementUploads(this, cache);
         this.BankTransactions = new BankTransactions(this, cache);
         this.BankTransactionExplanations = new BankTransactionExplanations(this, cache);
@@ -167,30 +171,37 @@ public class FreeAgentClient : ClientBase
         this.CapitalAssetTypes = new CapitalAssetTypes(this, cache);
         this.CashFlowReports = new CashFlowReports(this, cache);
         this.Categories = new Categories(this, cache);
-        this.Currencies = new Currencies(this, cache);
+        this.EmailAddresses = new EmailAddresses(this, cache);
         this.Company = new Company(this, cache);
         this.Contacts = new Contacts(this, cache);
         this.CorporationTaxReturns = new CorporationTaxReturns(this, cache);
+        this.CreditNoteReconciliations = new CreditNoteReconciliations(this, cache);
         this.CreditNotes = new CreditNotes(this, cache);
         this.DepreciationProfiles = new DepreciationProfiles(this, cache);
+        this.EcMossSalesTaxRates = new EcMossSalesTaxRates(this, cache);
         this.Estimates = new Estimates(this, cache);
-        this.Expenses = new Expenses(this);
+        this.Expenses = new Expenses(this, cache);
+        this.FinalAccountsReports = new FinalAccountsReports(this, cache);
+        this.HirePurchases = new HirePurchases(this, cache);
         this.Invoices = new Invoices(this, cache);
+        this.InvoiceSettings = new InvoiceSettings(this, cache);
         this.JournalSets = new JournalSets(this);
         this.Mileages = new Mileages(this, cache);
         this.Notes = new Notes(this, cache);
         this.OpeningBalances = new OpeningBalances(this, cache);
         this.Payroll = new Payroll(this, cache);
-        this.PayrollProfiles = new PayrollProfiles(this, cache);
-        this.Payslips = new Payslips(this, cache);
+        this.PriceListItems = new PriceListItems(this, cache);
         this.ProfitAndLossReports = new ProfitAndLossReports(this, cache);
         this.Projects = new Projects(this, cache);
+        this.Properties = new Properties(this, cache);
         this.RecurringInvoices = new RecurringInvoices(this, cache);
         this.SalesTaxRates = new SalesTaxRates(this, cache);
+        this.SalesTaxPeriods = new SalesTaxPeriods(this);
         this.SelfAssessmentReturns = new SelfAssessmentReturns(this, cache);
         this.StockItems = new StockItems(this, cache);
         this.Tasks = new Tasks(this, cache);
         this.Timeslips = new Timeslips(this, cache);
+        this.Transactions = new Transactions(this, cache);
         this.TrialBalances = new TrialBalances(this, cache);
         this.Users = new Users(this, cache);
         this.VatReturns = new VatReturns(this, cache);
@@ -222,6 +233,12 @@ public class FreeAgentClient : ClientBase
     /// </summary>
     /// <value>The <see cref="BankAccounts"/> service instance.</value>
     public BankAccounts BankAccounts { get; private set; }
+
+    /// <summary>
+    /// Gets the service for accessing bank feeds.
+    /// </summary>
+    /// <value>The <see cref="BankFeeds"/> service instance.</value>
+    public BankFeeds BankFeeds { get; private set; }
 
     /// <summary>
     /// Gets the service for uploading bank statements in OFX, QIF, or CSV format.
@@ -272,10 +289,10 @@ public class FreeAgentClient : ClientBase
     public Categories Categories { get; private set; }
 
     /// <summary>
-    /// Gets the service for accessing currency information.
+    /// Gets the service for accessing verified sender email addresses.
     /// </summary>
-    /// <value>The <see cref="Currencies"/> service instance.</value>
-    public Currencies Currencies { get; private set; }
+    /// <value>The <see cref="EmailAddresses"/> service instance.</value>
+    public EmailAddresses EmailAddresses { get; private set; }
 
     /// <summary>
     /// Gets the service for accessing company information.
@@ -296,6 +313,12 @@ public class FreeAgentClient : ClientBase
     public CorporationTaxReturns CorporationTaxReturns { get; private set; }
 
     /// <summary>
+    /// Gets the service for managing credit note reconciliations.
+    /// </summary>
+    /// <value>The <see cref="CreditNoteReconciliations"/> service instance.</value>
+    public CreditNoteReconciliations CreditNoteReconciliations { get; private set; }
+
+    /// <summary>
     /// Gets the service for managing credit notes.
     /// </summary>
     /// <value>The <see cref="CreditNotes"/> service instance.</value>
@@ -306,6 +329,12 @@ public class FreeAgentClient : ClientBase
     /// </summary>
     /// <value>The <see cref="DepreciationProfiles"/> service instance.</value>
     public DepreciationProfiles DepreciationProfiles { get; private set; }
+
+    /// <summary>
+    /// Gets the service for accessing EC MOSS (Mini One Stop Shop) sales tax rates for EU member states.
+    /// </summary>
+    /// <value>The <see cref="EcMossSalesTaxRates"/> service instance.</value>
+    public EcMossSalesTaxRates EcMossSalesTaxRates { get; private set; }
 
     /// <summary>
     /// Gets the service for managing estimates (quotes).
@@ -320,10 +349,31 @@ public class FreeAgentClient : ClientBase
     public Expenses Expenses { get; private set; }
 
     /// <summary>
+    /// Gets the service for managing Final Accounts reports (statutory accounts).
+    /// </summary>
+    /// <value>The <see cref="FinalAccountsReports"/> service instance.</value>
+    public FinalAccountsReports FinalAccountsReports { get; private set; }
+
+    /// <summary>
+    /// Gets the service for accessing hire purchase records.
+    /// </summary>
+    /// <value>The <see cref="HirePurchases"/> service instance.</value>
+    /// <remarks>
+    /// This endpoint is only available for UK companies.
+    /// </remarks>
+    public HirePurchases HirePurchases { get; private set; }
+
+    /// <summary>
     /// Gets the service for managing invoices (sales invoices).
     /// </summary>
     /// <value>The <see cref="Invoices"/> service instance.</value>
     public Invoices Invoices { get; private set; }
+
+    /// <summary>
+    /// Gets the service for managing invoice settings and templates.
+    /// </summary>
+    /// <value>The <see cref="InvoiceSettings"/> service instance.</value>
+    public InvoiceSettings InvoiceSettings { get; private set; }
 
     /// <summary>
     /// Gets the service for managing journal sets and manual journal entries.
@@ -350,22 +400,16 @@ public class FreeAgentClient : ClientBase
     public OpeningBalances OpeningBalances { get; private set; }
 
     /// <summary>
-    /// Gets the service for managing payroll payments.
+    /// Gets the service for accessing UK RTI payroll data.
     /// </summary>
     /// <value>The <see cref="Payroll"/> service instance.</value>
     public Payroll Payroll { get; private set; }
 
     /// <summary>
-    /// Gets the service for managing payroll profiles.
+    /// Gets the service for managing price list items.
     /// </summary>
-    /// <value>The <see cref="PayrollProfiles"/> service instance.</value>
-    public PayrollProfiles PayrollProfiles { get; private set; }
-
-    /// <summary>
-    /// Gets the service for managing employee payslips.
-    /// </summary>
-    /// <value>The <see cref="Payslips"/> service instance.</value>
-    public Payslips Payslips { get; private set; }
+    /// <value>The <see cref="PriceListItems"/> service instance.</value>
+    public PriceListItems PriceListItems { get; private set; }
 
     /// <summary>
     /// Gets the service for accessing profit and loss reports.
@@ -380,6 +424,15 @@ public class FreeAgentClient : ClientBase
     public Projects Projects { get; private set; }
 
     /// <summary>
+    /// Gets the service for managing properties for UK unincorporated landlords.
+    /// </summary>
+    /// <value>The <see cref="Properties"/> service instance.</value>
+    /// <remarks>
+    /// This endpoint is only available for companies of type <c>UkUnincorporatedLandlord</c>.
+    /// </remarks>
+    public Properties Properties { get; private set; }
+
+    /// <summary>
     /// Gets the service for managing recurring invoices.
     /// </summary>
     /// <value>The <see cref="RecurringInvoices"/> service instance.</value>
@@ -390,6 +443,12 @@ public class FreeAgentClient : ClientBase
     /// </summary>
     /// <value>The <see cref="SalesTaxRates"/> service instance.</value>
     public SalesTaxRates SalesTaxRates { get; private set; }
+
+    /// <summary>
+    /// Gets the service for managing sales tax periods.
+    /// </summary>
+    /// <value>The <see cref="SalesTaxPeriods"/> service instance.</value>
+    public SalesTaxPeriods SalesTaxPeriods { get; private set; }
 
     /// <summary>
     /// Gets the service for managing self assessment tax returns.
@@ -414,6 +473,12 @@ public class FreeAgentClient : ClientBase
     /// </summary>
     /// <value>The <see cref="Timeslips"/> service instance.</value>
     public Timeslips Timeslips { get; private set; }
+
+    /// <summary>
+    /// Gets the service for accessing accounting transactions.
+    /// </summary>
+    /// <value>The <see cref="Transactions"/> service instance.</value>
+    public Transactions Transactions { get; private set; }
 
     /// <summary>
     /// Gets the service for accessing trial balance reports.

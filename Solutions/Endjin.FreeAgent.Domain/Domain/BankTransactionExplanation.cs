@@ -90,6 +90,16 @@ public record BankTransactionExplanation
     public Uri? Category { get; init; }
 
     /// <summary>
+    /// Gets the cheque number for this explanation.
+    /// </summary>
+    /// <value>
+    /// The cheque number if the transaction was made by cheque.
+    /// </value>
+    [JsonPropertyName("cheque_number")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ChequeNumber { get; init; }
+
+    /// <summary>
     /// Gets the gross value of this explanation including tax.
     /// </summary>
     /// <value>
@@ -140,7 +150,7 @@ public record BankTransactionExplanation
     /// </value>
     [JsonPropertyName("attachment")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Uri? Attachment { get; init; }
+    public Attachment? Attachment { get; init; }
 
     /// <summary>
     /// Gets the rebilling method when rebilling this expense to a client.
@@ -162,6 +172,16 @@ public record BankTransactionExplanation
     [JsonPropertyName("rebill_factor")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public decimal? RebillFactor { get; init; }
+
+    /// <summary>
+    /// Gets the receipt reference for this explanation.
+    /// </summary>
+    /// <value>
+    /// An optional reference number for the receipt associated with this explanation.
+    /// </value>
+    [JsonPropertyName("receipt_reference")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ReceiptReference { get; init; }
 
     /// <summary>
     /// Gets the transaction amount in the original foreign currency.
@@ -187,55 +207,267 @@ public record BankTransactionExplanation
     public string? Currency { get; init; }
 
     /// <summary>
-    /// Gets the URI reference to the linked invoice for automatic payment reconciliation.
+    /// Gets the type of this bank transaction explanation.
+    /// </summary>
+    /// <value>
+    /// A read-only string indicating the explanation type such as "Payment", "Invoice Receipt",
+    /// "Bill Payment", "Bank Transfer", etc. This field is set by the system.
+    /// </value>
+    [JsonPropertyName("type")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Type { get; init; }
+
+    /// <summary>
+    /// Gets the calculated sales tax value based on the gross value and tax rate.
+    /// </summary>
+    /// <value>
+    /// The automatically calculated tax amount. This is a read-only field computed by the system.
+    /// </value>
+    [JsonPropertyName("sales_tax_value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? SalesTaxValue { get; init; }
+
+    /// <summary>
+    /// Gets the sales tax status for this explanation.
+    /// </summary>
+    /// <value>
+    /// One of "TAXABLE", "EXEMPT", or "OUT_OF_SCOPE" indicating the tax treatment.
+    /// </value>
+    [JsonPropertyName("sales_tax_status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SalesTaxStatus { get; init; }
+
+    /// <summary>
+    /// Gets the secondary sales tax status classification for this explanation.
+    /// </summary>
+    /// <value>
+    /// Either "TAXABLE" or "EXEMPT", determining how secondary sales tax is applied.
+    /// Used in jurisdictions with dual tax systems (e.g., Canadian GST/PST).
+    /// </value>
+    [JsonPropertyName("second_sales_tax_status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SecondSalesTaxStatus { get; init; }
+
+    /// <summary>
+    /// Gets the EC (European Community) status for VAT purposes.
+    /// </summary>
+    /// <value>
+    /// VAT classification such as "UK/Non-EC", "EC Goods", "EC Services", "Reverse Charge", or "EC VAT MOSS".
+    /// Note: EC Goods/Services are invalid for transactions dated 1/1/2021+ in Great Britain (non-Northern Ireland).
+    /// Reverse Charge is only valid for transactions dated 1/1/2021 or later.
+    /// </value>
+    [JsonPropertyName("ec_status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? EcStatus { get; init; }
+
+    /// <summary>
+    /// Gets the place of supply for EC VAT MOSS (Mini One Stop Shop) purposes.
+    /// </summary>
+    /// <value>
+    /// The country or jurisdiction code determining where VAT is due for digital services
+    /// sold to EU customers under the MOSS scheme.
+    /// </value>
+    [JsonPropertyName("place_of_supply")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PlaceOfSupply { get; init; }
+
+    /// <summary>
+    /// Gets the second sales tax rate for universal accounts.
+    /// </summary>
+    /// <value>
+    /// An additional tax rate as a decimal for jurisdictions requiring multiple tax calculations.
+    /// Only applicable to universal accounts.
+    /// </value>
+    [JsonPropertyName("second_sales_tax_rate")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? SecondSalesTaxRate { get; init; }
+
+    /// <summary>
+    /// Gets the second sales tax value for universal accounts.
+    /// </summary>
+    /// <value>
+    /// The calculated amount for the second tax rate. Only applicable to universal accounts.
+    /// </value>
+    [JsonPropertyName("second_sales_tax_value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? SecondSalesTaxValue { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether this explanation can be deleted.
+    /// </summary>
+    /// <value>
+    /// <c>true</c> if the explanation can be deleted; otherwise, <c>false</c>.
+    /// </value>
+    [JsonPropertyName("is_deletable")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsDeletable { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether this is an incoming money transaction.
+    /// </summary>
+    /// <value>
+    /// <c>true</c> if money is coming into the account; otherwise, <c>false</c>.
+    /// </value>
+    [JsonPropertyName("is_money_in")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsMoneyIn { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether this is an outgoing money transaction.
+    /// </summary>
+    /// <value>
+    /// <c>true</c> if money is going out of the account; otherwise, <c>false</c>.
+    /// </value>
+    [JsonPropertyName("is_money_out")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsMoneyOut { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether this is a payment to a user.
+    /// </summary>
+    /// <value>
+    /// <c>true</c> if this represents a payment to a user; otherwise, <c>false</c>.
+    /// </value>
+    [JsonPropertyName("is_money_paid_to_user")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsMoneyPaidToUser { get; init; }
+
+    /// <summary>
+    /// Gets the URI reference to the project for payment or refund rebilling.
+    /// </summary>
+    /// <value>
+    /// The URI of the <see cref="Domain.Project"/> to which this expense should be rebilled.
+    /// Used with <see cref="RebillType"/> and <see cref="RebillFactor"/>.
+    /// </value>
+    [JsonPropertyName("project")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? Project { get; init; }
+
+    /// <summary>
+    /// Gets the URI reference to the paid invoice for Invoice Receipt or Credit Note Refund explanations.
     /// </summary>
     /// <value>
     /// The URI of the <see cref="Domain.Invoice"/> that this transaction payment relates to.
-    /// Used to automatically mark invoices as paid.
+    /// Used for Invoice Receipt and Credit Note Refund explanation types.
     /// </value>
-    [JsonPropertyName("linked_invoice")]
+    [JsonPropertyName("paid_invoice")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Uri? LinkedInvoice { get; init; }
+    public Uri? PaidInvoice { get; init; }
 
     /// <summary>
-    /// Gets the URI reference to the linked credit note for automatic refund reconciliation.
-    /// </summary>
-    /// <value>
-    /// The URI of the <see cref="Domain.CreditNote"/> that this transaction refund relates to.
-    /// Used to automatically mark credit notes as refunded.
-    /// </value>
-    [JsonPropertyName("linked_credit_note")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Uri? LinkedCreditNote { get; init; }
-
-    /// <summary>
-    /// Gets the URI reference to the linked bill for automatic payment reconciliation.
+    /// Gets the URI reference to the paid bill for Bill Payment or Bill Refund explanations.
     /// </summary>
     /// <value>
     /// The URI of the <see cref="Domain.Bill"/> that this transaction payment relates to.
-    /// Used to automatically mark bills as paid.
+    /// Used for Bill Payment and Bill Refund explanation types.
     /// </value>
-    [JsonPropertyName("linked_bill")]
+    [JsonPropertyName("paid_bill")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Uri? LinkedBill { get; init; }
+    public Uri? PaidBill { get; init; }
+
+    /// <summary>
+    /// Gets the URI reference to the user receiving payment.
+    /// </summary>
+    /// <value>
+    /// The URI of the user being paid. For smart user payments, specify this field without
+    /// <see cref="Category"/> to have the system automatically determine the appropriate category.
+    /// </value>
+    [JsonPropertyName("paid_user")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? PaidUser { get; init; }
+
+    /// <summary>
+    /// Gets the URI reference to the target or source bank account for bank transfer explanations.
+    /// </summary>
+    /// <value>
+    /// The URI of the <see cref="Domain.BankAccount"/> that is the target (for outgoing transfers) or
+    /// source (for incoming transfers) of the bank transfer. Used for Bank Transfer explanation types.
+    /// </value>
+    [JsonPropertyName("transfer_bank_account")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? TransferBankAccount { get; init; }
+
+    /// <summary>
+    /// Gets the URI reference to the stock item for stock transaction explanations.
+    /// </summary>
+    /// <value>
+    /// The URI of the stock item being purchased or sold. Used for stock-related explanations.
+    /// </value>
+    [JsonPropertyName("stock_item")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? StockItem { get; init; }
+
+    /// <summary>
+    /// Gets the quantity change for stock transaction explanations.
+    /// </summary>
+    /// <value>
+    /// An integer indicating the change in stock quantity (positive for purchases, negative for sales).
+    /// Used with <see cref="StockItem"/>.
+    /// </value>
+    [JsonPropertyName("stock_altering_quantity")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? StockAlteringQuantity { get; init; }
+
+    /// <summary>
+    /// Gets the URI reference to the capital asset (read-only).
+    /// </summary>
+    /// <value>
+    /// The URI of the capital asset associated with this explanation. This is a read-only field
+    /// set by the system for capital asset transactions.
+    /// </value>
+    [JsonPropertyName("capital_asset")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? CapitalAsset { get; init; }
+
+    /// <summary>
+    /// Gets the URI reference to the asset being disposed.
+    /// </summary>
+    /// <value>
+    /// The URI of the capital asset being disposed. Required when creating an asset disposal explanation.
+    /// </value>
+    [JsonPropertyName("disposed_asset")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? DisposedAsset { get; init; }
+
+    /// <summary>
+    /// Gets the URI reference to the property linked to the explanation.
+    /// </summary>
+    /// <value>
+    /// The URI of the property associated with this explanation.
+    /// </value>
+    [JsonPropertyName("property")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? Property { get; init; }
+
+    /// <summary>
+    /// Gets the depreciation period in years for capital assets.
+    /// </summary>
+    /// <value>
+    /// The number of years over which the asset should be depreciated.
+    /// Note: This field is deprecated in the FreeAgent API.
+    /// </value>
+    [JsonPropertyName("asset_life_years")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [Obsolete("This field is deprecated in the FreeAgent API.")]
+    public int? AssetLifeYears { get; init; }
 
     /// <summary>
     /// Gets the date and time when this explanation was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the creation timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the creation timestamp in UTC.
     /// </value>
     [JsonPropertyName("created_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this explanation was last updated.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the last modification timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the last modification timestamp in UTC.
     /// </value>
     [JsonPropertyName("updated_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public DateTime? UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 }

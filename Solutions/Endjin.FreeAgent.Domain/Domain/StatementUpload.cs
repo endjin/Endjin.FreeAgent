@@ -21,21 +21,16 @@ namespace Endjin.FreeAgent.Domain;
 /// This automation significantly reduces manual data entry and helps maintain accurate, up-to-date bank
 /// records for financial reporting and reconciliation.
 /// </para>
+/// <para>
+/// Note: The bank_account parameter is passed as a query parameter in the API request, not in the request body.
+/// See BankTransactions.UploadStatementAsync in the Client library for details on how statements are uploaded.
+/// </para>
 /// </remarks>
 /// <seealso cref="BankStatementUpload"/>
 /// <seealso cref="BankTransaction"/>
 /// <seealso cref="BankAccount"/>
 public record StatementUpload
 {
-    /// <summary>
-    /// Gets the API URL or identifier of the bank account for the statement upload.
-    /// </summary>
-    /// <value>
-    /// A reference to the bank account where transactions from this statement should be imported.
-    /// </value>
-    [JsonPropertyName("bank_account")]
-    public string? BankAccount { get; init; }
-
     /// <summary>
     /// Gets the bank statement file content encoded as a Base64 string.
     /// </summary>

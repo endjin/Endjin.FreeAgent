@@ -3,8 +3,6 @@
 // </copyright>
 
 using System.Net.Http.Json;
-using System.IO;
-using System.Net.Http.Headers;
 
 using Endjin.FreeAgent.Domain;
 
@@ -22,6 +20,12 @@ namespace Endjin.FreeAgent.Client;
 /// <para>
 /// Attachment metadata is cached for 5 minutes to improve performance. Cache entries are invalidated
 /// automatically when attachments are deleted. File content itself is not cached.
+/// </para>
+/// <para>
+/// <strong>Content URL Expiration:</strong> The FreeAgent API provides temporary URLs (<see cref="Attachment.ContentSrc"/>,
+/// <see cref="Attachment.ContentSrcMedium"/>, <see cref="Attachment.ContentSrcSmall"/>) for accessing attachment content
+/// directly. These URLs expire at the time specified in <see cref="Attachment.ExpiresAt"/>. After expiration, you must
+/// call <see cref="GetByIdAsync"/> again to obtain fresh URLs.
 /// </para>
 /// </remarks>
 /// <seealso cref="Attachment"/>
@@ -48,73 +52,6 @@ public class Attachments
     }
 
     /// <summary>
-    /// Uploads a file attachment to FreeAgent from a byte array.
-    /// </summary>
-    /// <param name="fileData">The file content as a byte array.</param>
-    /// <param name="fileName">The name of the file being uploaded.</param>
-    /// <param name="contentType">The MIME type of the file (e.g., "application/pdf", "image/jpeg").</param>
-    /// <param name="description">Optional description for the attachment.</param>
-    /// <returns>
-    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// created <see cref="Attachment"/> object with server-assigned values.
-    /// </returns>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
-    /// <remarks>
-    /// This method calls POST /v2/attachments using multipart/form-data encoding. The uploaded attachment
-    /// can then be linked to other FreeAgent entities.
-    /// </remarks>
-    public async Task<Attachment> UploadAsync(byte[] fileData, string fileName, string contentType, string? description = null)
-    {
-        using MultipartFormDataContent content = [];
-
-        ByteArrayContent fileContent = new(fileData);
-        fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
-        content.Add(fileContent, "attachment[file]", fileName);
-
-        if (!string.IsNullOrEmpty(description))
-        {
-            content.Add(new StringContent(description), "attachment[description]");
-        }
-
-        HttpResponseMessage response = await this.freeAgentClient.HttpClient.PostAsync(
-            new Uri(this.freeAgentClient.ApiBaseUrl, AttachmentsEndPoint),
-            content).ConfigureAwait(false);
-
-        response.EnsureSuccessStatusCode();
-
-        AttachmentRoot? root = await response.Content.ReadFromJsonAsync<AttachmentRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
-
-        return root?.Attachment ?? throw new InvalidOperationException("Failed to deserialize attachment response.");
-    }
-
-    /// <summary>
-    /// Uploads a file attachment to FreeAgent from a stream.
-    /// </summary>
-    /// <param name="fileStream">The stream containing the file content.</param>
-    /// <param name="fileName">The name of the file being uploaded.</param>
-    /// <param name="contentType">The MIME type of the file (e.g., "application/pdf", "image/jpeg").</param>
-    /// <param name="description">Optional description for the attachment.</param>
-    /// <returns>
-    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// created <see cref="Attachment"/> object with server-assigned values.
-    /// </returns>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
-    /// <remarks>
-    /// This method reads the entire stream into memory before uploading. For large files, consider using
-    /// the byte array overload directly if you already have the data in memory. Calls POST /v2/attachments.
-    /// </remarks>
-    public async Task<Attachment> UploadAsync(Stream fileStream, string fileName, string contentType, string? description = null)
-    {
-        using MemoryStream memoryStream = new();
-        await fileStream.CopyToAsync(memoryStream).ConfigureAwait(false);
-        byte[] fileData = memoryStream.ToArray();
-
-        return await UploadAsync(fileData, fileName, contentType, description).ConfigureAwait(false);
-    }
-
-    /// <summary>
     /// Retrieves attachment metadata by its ID from FreeAgent.
     /// </summary>
     /// <param name="id">The unique identifier of the attachment.</param>
@@ -125,8 +62,7 @@ public class Attachments
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the attachment is not found or cannot be deserialized.</exception>
     /// <remarks>
-    /// This method calls GET /v2/attachments/{id} and caches the result for 5 minutes. To download the
-    /// actual file content, use <see cref="DownloadAsync"/>.
+    /// This method calls GET /v2/attachments/{id} and caches the result for 5 minutes.
     /// </remarks>
     public async Task<Attachment> GetByIdAsync(string id)
     {
@@ -146,29 +82,6 @@ public class Attachments
         }
 
         return results ?? throw new InvalidOperationException($"Attachment with ID {id} not found.");
-    }
-
-    /// <summary>
-    /// Downloads the file content of an attachment from FreeAgent.
-    /// </summary>
-    /// <param name="id">The unique identifier of the attachment to download.</param>
-    /// <returns>
-    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// file content as a byte array.
-    /// </returns>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <remarks>
-    /// This method calls GET /v2/attachments/{id}/download and returns the raw file content.
-    /// The content is not cached. Use <see cref="GetByIdAsync"/> to retrieve attachment metadata.
-    /// </remarks>
-    public async Task<byte[]> DownloadAsync(string id)
-    {
-        HttpResponseMessage response = await this.freeAgentClient.HttpClient.GetAsync(
-            new Uri(freeAgentClient.ApiBaseUrl, $"{AttachmentsEndPoint}/{id}/download")).ConfigureAwait(false);
-
-        response.EnsureSuccessStatusCode();
-
-        return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
     }
 
     /// <summary>

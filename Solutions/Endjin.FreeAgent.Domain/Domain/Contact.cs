@@ -13,8 +13,8 @@ namespace Endjin.FreeAgent.Domain;
 /// Each contact can have associated projects, invoices, bills, and other financial documents.
 /// </para>
 /// <para>
-/// At least one name field (<see cref="FirstName"/>, <see cref="LastName"/>, or <see cref="OrganisationName"/>)
-/// must be provided when creating a contact. Contacts can be filtered by status (Active or Hidden) and
+/// When creating a contact, you must provide either BOTH <see cref="FirstName"/> AND <see cref="LastName"/> together,
+/// OR <see cref="OrganisationName"/> alone. Contacts can be filtered by status (Active or Hidden) and
 /// categorized as clients or suppliers.
 /// </para>
 /// <para>
@@ -89,6 +89,7 @@ public record Contact
     /// </summary>
     /// <value>
     /// An optional separate email address to be used specifically for billing and invoice communications.
+    /// Free trial accounts are limited to a maximum of 2 unique email addresses across all contacts.
     /// </value>
     [JsonPropertyName("billing_email")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -199,21 +200,11 @@ public record Contact
     /// </summary>
     /// <value>
     /// A locale code (e.g., "en", "es", "fr", "de") determining the language used on invoices sent to this contact.
-    /// FreeAgent supports over 30 languages including English, Spanish, French, German, and others.
+    /// FreeAgent supports 30+ languages including English, Spanish, French, German, and others.
     /// </value>
     [JsonPropertyName("locale")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Locale { get; init; }
-
-    /// <summary>
-    /// Gets the current account balance for this contact.
-    /// </summary>
-    /// <value>
-    /// The current balance representing the net amount owed to or by this contact.
-    /// </value>
-    [JsonPropertyName("account_balance")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? AccountBalance { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether this contact uses a separate invoice numbering sequence.
@@ -259,6 +250,20 @@ public record Contact
     public int? ActiveProjectsCount { get; init; }
 
     /// <summary>
+    /// Gets the current account balance for this contact.
+    /// </summary>
+    /// <value>
+    /// The account balance showing the amount owed by or to this contact.
+    /// A positive value indicates money owed to you, a negative value indicates money you owe.
+    /// </value>
+    /// <remarks>
+    /// Requires "Contacts &amp; Projects" permission level.
+    /// </remarks>
+    [JsonPropertyName("account_balance")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public decimal? AccountBalance { get; init; }
+
+    /// <summary>
     /// Gets the status of this contact.
     /// </summary>
     /// <value>
@@ -287,4 +292,85 @@ public record Contact
     [JsonPropertyName("updated_at")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DateTimeOffset? UpdatedAt { get; init; }
+
+    /// <summary>
+    /// Gets the state of the direct debit mandate for this contact.
+    /// </summary>
+    /// <value>
+    /// One of "setup", "pending", "inactive", "active", or "failed", indicating the current status
+    /// of the direct debit arrangement with this contact.
+    /// </value>
+    [JsonPropertyName("direct_debit_mandate_state")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? DirectDebitMandateState { get; init; }
+
+    /// <summary>
+    /// Gets the default payment terms in days for invoices sent to this contact.
+    /// </summary>
+    /// <value>
+    /// The number of days after invoice date that payment is due. This value is used as the default
+    /// when creating new invoices for this contact.
+    /// </value>
+    /// <remarks>
+    /// Requires "Contacts &amp; Projects" permission level.
+    /// </remarks>
+    [JsonPropertyName("default_payment_terms_in_days")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? DefaultPaymentTermsInDays { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether this contact is a CIS (Construction Industry Scheme) subcontractor.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> if this contact is registered as a CIS subcontractor; otherwise, <see langword="false"/>.
+    /// This property may not appear in responses if CIS is not enabled for the company.
+    /// </value>
+    /// <remarks>
+    /// CIS is a UK tax scheme where contractors deduct money from subcontractors' payments and pass it to HMRC.
+    /// </remarks>
+    [JsonPropertyName("is_cis_subcontractor")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsCisSubcontractor { get; init; }
+
+    /// <summary>
+    /// Gets the CIS (Construction Industry Scheme) deduction rate for this contact.
+    /// </summary>
+    /// <value>
+    /// One of "cis_gross" (0% deduction), "cis_standard" (20% deduction), or "cis_higher" (30% deduction),
+    /// indicating the tax deduction rate to apply to payments made to this subcontractor.
+    /// </value>
+    /// <remarks>
+    /// Only applicable when <see cref="IsCisSubcontractor"/> is <see langword="true"/>.
+    /// </remarks>
+    [JsonPropertyName("cis_deduction_rate")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CisDeductionRate { get; init; }
+
+    /// <summary>
+    /// Gets the Unique Taxpayer Reference (UTR) for this contact.
+    /// </summary>
+    /// <value>
+    /// A 10-digit reference number used in the UK tax system. Format should be 10 digits without spaces.
+    /// </value>
+    /// <remarks>
+    /// The UTR is issued by HMRC and is used to identify taxpayers in the UK tax system.
+    /// Required for CIS subcontractors.
+    /// </remarks>
+    [JsonPropertyName("unique_tax_reference")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? UniqueTaxReference { get; init; }
+
+    /// <summary>
+    /// Gets the subcontractor verification number for CIS purposes.
+    /// </summary>
+    /// <value>
+    /// A verification number in the format "V" followed by 10 digits and optionally 2 letters (e.g., "V1234567890AB").
+    /// This number is provided by HMRC when a subcontractor is verified for CIS.
+    /// </value>
+    /// <remarks>
+    /// This verification number confirms the subcontractor's registration with HMRC and determines their deduction rate.
+    /// </remarks>
+    [JsonPropertyName("subcontractor_verification_number")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SubcontractorVerificationNumber { get; init; }
 }

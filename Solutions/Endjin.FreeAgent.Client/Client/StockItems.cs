@@ -8,17 +8,16 @@ using Endjin.FreeAgent.Domain;
 namespace Endjin.FreeAgent.Client;
 
 /// <summary>
-/// Provides methods for managing stock items via the FreeAgent API.
+/// Provides read-only access to stock items via the FreeAgent API.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This service class provides access to FreeAgent stock items, which represent products or services
-/// that can be added to invoices and estimates. Stock items include details like description, price,
-/// and sales tax rate, making invoice creation faster and more consistent.
+/// This service class provides access to FreeAgent stock items, which track inventory for businesses
+/// that buy and sell physical goods. Stock items manage quantities, values, and movements of stock,
+/// including opening quantities, opening balances, stock on hand, and cost of sales categories.
 /// </para>
 /// <para>
-/// Results are cached for 5 minutes to improve performance. Cache entries are invalidated automatically
-/// when stock items are created, updated, or deleted.
+/// Results are cached for 5 minutes to improve performance.
 /// </para>
 /// </remarks>
 /// <seealso cref="StockItem"/>
@@ -26,58 +25,31 @@ namespace Endjin.FreeAgent.Client;
 /// <seealso cref="Estimate"/>
 public class StockItems
 {
-    private readonly FreeAgentClient client;
+    private const string StockItemsEndPoint = "v2/stock_items";
+    private readonly FreeAgentClient freeAgentClient;
     private readonly IMemoryCache cache;
+    private readonly MemoryCacheEntryOptions cacheEntryOptions = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StockItems"/> class.
     /// </summary>
-    /// <param name="client">The FreeAgent HTTP client for making API requests.</param>
+    /// <param name="freeAgentClient">The FreeAgent HTTP client for making API requests.</param>
     /// <param name="cache">The memory cache for storing stock item data.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="client"/> or <paramref name="cache"/> is null.</exception>
-    public StockItems(FreeAgentClient client, IMemoryCache cache)
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="freeAgentClient"/> or <paramref name="cache"/> is null.</exception>
+    public StockItems(FreeAgentClient freeAgentClient, IMemoryCache cache)
     {
-        this.client = client ?? throw new ArgumentNullException(nameof(client));
+        this.freeAgentClient = freeAgentClient ?? throw new ArgumentNullException(nameof(freeAgentClient));
         this.cache = cache ?? throw new ArgumentNullException(nameof(cache));
-    }
-
-    /// <summary>
-    /// Creates a new stock item in FreeAgent.
-    /// </summary>
-    /// <param name="item">The <see cref="StockItem"/> object containing the stock item details to create.</param>
-    /// <returns>
-    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// created <see cref="StockItem"/> object with server-assigned values (e.g., ID, URL).
-    /// </returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="item"/> is null.</exception>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
-    /// <remarks>
-    /// This method calls POST /v2/stock_items to create a new stock item. The cache is invalidated
-    /// to ensure subsequent queries return up-to-date data.
-    /// </remarks>
-    public async Task<StockItem> CreateAsync(StockItem item)
-    {
-        ArgumentNullException.ThrowIfNull(item);
-
-        StockItemRoot data = new() { StockItem = item };
-        using JsonContent content = JsonContent.Create(data, options: SharedJsonOptions.SourceGenOptions);
-
-        await this.client.InitializeAndAuthorizeAsync();
-
-        HttpResponseMessage response = await this.client.HttpClient.PostAsync("/v2/stock_items", content);
-        response.EnsureSuccessStatusCode();
-
-        StockItemRoot? root = await response.Content.ReadFromJsonAsync<StockItemRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
-
-        this.cache.Remove("stock_items_all");
-
-        return root?.StockItem ?? throw new InvalidOperationException("Failed to create stock item");
+        this.cacheEntryOptions.SetSlidingExpiration(TimeSpan.FromMinutes(5));
     }
 
     /// <summary>
     /// Retrieves all stock items from FreeAgent.
     /// </summary>
+    /// <param name="sort">
+    /// Optional sort order for the results. Valid values are: created_at (default), description, updated_at.
+    /// Prefix with a hyphen for descending order (e.g., "-created_at").
+    /// </param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
     /// all <see cref="StockItem"/> objects.
@@ -86,25 +58,31 @@ public class StockItems
     /// <remarks>
     /// This method calls GET /v2/stock_items and caches the result for 5 minutes.
     /// </remarks>
-    public async Task<IEnumerable<StockItem>> GetAllAsync()
+    public async Task<IEnumerable<StockItem>> GetAllAsync(string? sort = null)
     {
-        string cacheKey = "stock_items_all";
+        string cacheKey = string.IsNullOrEmpty(sort) ? StockItemsEndPoint : $"{StockItemsEndPoint}_{sort}";
 
         if (this.cache.TryGetValue(cacheKey, out IEnumerable<StockItem>? cached))
         {
             return cached!;
         }
 
-        await this.client.InitializeAndAuthorizeAsync();
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
 
-        HttpResponseMessage response = await this.client.HttpClient.GetAsync(new Uri(this.client.ApiBaseUrl, "/v2/stock_items"));
+        string endpoint = StockItemsEndPoint;
+        if (!string.IsNullOrEmpty(sort))
+        {
+            endpoint += $"?sort={Uri.EscapeDataString(sort)}";
+        }
+
+        HttpResponseMessage response = await this.freeAgentClient.HttpClient.GetAsync(new Uri(this.freeAgentClient.ApiBaseUrl, endpoint)).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         StockItemsRoot? root = await response.Content.ReadFromJsonAsync<StockItemsRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
 
         IEnumerable<StockItem> items = root?.StockItems ?? [];
 
-        this.cache.Set(cacheKey, items, TimeSpan.FromMinutes(5));
+        this.cache.Set(cacheKey, items, this.cacheEntryOptions);
 
         return items;
     }
@@ -127,16 +105,16 @@ public class StockItems
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
-        string cacheKey = $"stock_item_{id}";
+        string cacheKey = $"{StockItemsEndPoint}/{id}";
 
         if (this.cache.TryGetValue(cacheKey, out StockItem? cached))
         {
             return cached!;
         }
 
-        await this.client.InitializeAndAuthorizeAsync();
+        await this.freeAgentClient.InitializeAndAuthorizeAsync().ConfigureAwait(false);
 
-        HttpResponseMessage response = await this.client.HttpClient.GetAsync(new Uri(this.client.ApiBaseUrl, $"/v2/stock_items/{id}"));
+        HttpResponseMessage response = await this.freeAgentClient.HttpClient.GetAsync(new Uri(this.freeAgentClient.ApiBaseUrl, $"{StockItemsEndPoint}/{id}")).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         StockItemRoot? root = await response.Content.ReadFromJsonAsync<StockItemRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
@@ -148,70 +126,8 @@ public class StockItems
             throw new InvalidOperationException($"Stock item {id} not found");
         }
 
-        this.cache.Set(cacheKey, item, TimeSpan.FromMinutes(5));
+        this.cache.Set(cacheKey, item, this.cacheEntryOptions);
 
         return item;
-    }
-
-    /// <summary>
-    /// Updates an existing stock item in FreeAgent.
-    /// </summary>
-    /// <param name="id">The unique identifier of the stock item to update.</param>
-    /// <param name="item">The <see cref="StockItem"/> object containing the updated stock item details.</param>
-    /// <returns>
-    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// updated <see cref="StockItem"/> object as returned by the API.
-    /// </returns>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is null or whitespace.</exception>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="item"/> is null.</exception>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
-    /// <remarks>
-    /// This method calls PUT /v2/stock_items/{id} to update the stock item. The cache entries for this
-    /// stock item and all stock item queries are invalidated after a successful update.
-    /// </remarks>
-    public async Task<StockItem> UpdateAsync(string id, StockItem item)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        ArgumentNullException.ThrowIfNull(item);
-
-        StockItemRoot data = new() { StockItem = item };
-        using JsonContent content = JsonContent.Create(data, options: SharedJsonOptions.SourceGenOptions);
-
-        await this.client.InitializeAndAuthorizeAsync();
-
-        HttpResponseMessage response = await this.client.HttpClient.PutAsync($"/v2/stock_items/{id}", content);
-        response.EnsureSuccessStatusCode();
-
-        StockItemRoot? root = await response.Content.ReadFromJsonAsync<StockItemRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
-
-        this.cache.Remove($"stock_item_{id}");
-        this.cache.Remove("stock_items_all");
-
-        return root?.StockItem ?? throw new InvalidOperationException("Failed to update stock item");
-    }
-
-    /// <summary>
-    /// Deletes a stock item from FreeAgent.
-    /// </summary>
-    /// <param name="id">The unique identifier of the stock item to delete.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is null or whitespace.</exception>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <remarks>
-    /// This method calls DELETE /v2/stock_items/{id} to delete the stock item. The cache entries for
-    /// this stock item and all stock item queries are invalidated after successful deletion.
-    /// </remarks>
-    public async Task DeleteAsync(string id)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(id);
-
-        await this.client.InitializeAndAuthorizeAsync();
-
-        HttpResponseMessage response = await this.client.HttpClient.DeleteAsync(new Uri(this.client.ApiBaseUrl, $"/v2/stock_items/{id}"));
-        response.EnsureSuccessStatusCode();
-
-        this.cache.Remove($"stock_item_{id}");
-        this.cache.Remove("stock_items_all");
     }
 }

@@ -5,123 +5,83 @@
 namespace Endjin.FreeAgent.Domain;
 
 /// <summary>
-/// Represents a cash flow statement for a company in the FreeAgent accounting system.
+/// Represents a cash flow report for a company in the FreeAgent accounting system.
 /// </summary>
 /// <remarks>
 /// <para>
-/// A cash flow statement tracks the movement of cash in and out of the business over a specific period,
-/// showing actual money received and paid rather than accrual-based accounting figures. It is one of the
-/// fundamental financial statements used to assess liquidity and cash management.
+/// A cash flow report provides a high-level summary of incoming and outgoing cash over a
+/// specific period, broken down by month. This is a simplified view that shows aggregated
+/// totals rather than individual transactions.
 /// </para>
 /// <para>
-/// The cash flow statement shows:
-/// - Opening Balance: Cash position at the start of the period
-/// - Cash In Items: Receipts from customers, loans, and other sources
-/// - Cash Out Items: Payments to suppliers, expenses, taxes, and other outflows
-/// - Net Cash Flow: The difference between cash in and cash out
-/// - Closing Balance: Cash position at the end of the period
+/// The report includes:
+/// - From/To dates defining the reporting period
+/// - Balance: Net cash flow (incoming total minus outgoing total)
+/// - Incoming: Revenue aggregated by month
+/// - Outgoing: Expenses aggregated by month
 /// </para>
 /// <para>
-/// This statement is crucial for understanding the company's ability to generate cash, meet obligations,
-/// and fund operations. A profitable company can still face cash flow problems if income is not received
-/// in time to cover expenses.
+/// This report helps understand cash flow trends over time and provides visibility into
+/// monthly revenue and expense patterns. For future-dated requests, totals return as 0
+/// (projected cash flow is not available).
 /// </para>
 /// <para>
-/// API Endpoint: /v2/accounting/cash_flow
+/// API Endpoint: /v2/cashflow
 /// </para>
 /// <para>
-/// Minimum Access Level: Accounting Plus
+/// Minimum Access Level: Banking (read-only)
 /// </para>
 /// </remarks>
-/// <seealso cref="CashFlowItem"/>
-/// <seealso cref="BankAccount"/>
-/// <seealso cref="ProfitAndLoss"/>
+/// <seealso cref="CashFlowDirection"/>
+/// <seealso cref="CashFlowMonthly"/>
 public record CashFlow
 {
     /// <summary>
     /// Gets the start date of the reporting period.
     /// </summary>
     /// <value>
-    /// The first date of the period covered by this cash flow statement.
+    /// The first date of the period covered by this cash flow report, in YYYY-MM-DD format.
     /// </value>
-    [JsonPropertyName("from_date")]
-    public DateOnly? FromDate { get; init; }
+    [JsonPropertyName("from")]
+    public string? From { get; init; }
 
     /// <summary>
     /// Gets the end date of the reporting period.
     /// </summary>
     /// <value>
-    /// The last date of the period covered by this cash flow statement.
+    /// The last date of the period covered by this cash flow report, in YYYY-MM-DD format.
     /// </value>
-    [JsonPropertyName("to_date")]
-    public DateOnly? ToDate { get; init; }
+    [JsonPropertyName("to")]
+    public string? To { get; init; }
 
     /// <summary>
-    /// Gets the opening cash balance at the start of the period.
+    /// Gets the net cash flow balance for the period.
     /// </summary>
     /// <value>
-    /// The total cash position across all bank accounts at the beginning of the reporting period.
-    /// This should match the closing balance from the previous period.
-    /// </value>
-    [JsonPropertyName("opening_balance")]
-    public decimal? OpeningBalance { get; init; }
-
-    /// <summary>
-    /// Gets the closing cash balance at the end of the period.
-    /// </summary>
-    /// <value>
-    /// The total cash position across all bank accounts at the end of the reporting period.
-    /// Calculated as: Opening Balance + Total Cash In - Total Cash Out.
-    /// </value>
-    [JsonPropertyName("closing_balance")]
-    public decimal? ClosingBalance { get; init; }
-
-    /// <summary>
-    /// Gets the detailed list of cash inflows during the period.
-    /// </summary>
-    /// <value>
-    /// A list of <see cref="CashFlowItem"/> objects representing individual cash receipts from
-    /// customers, loans, investments, and other sources of cash.
-    /// </value>
-    [JsonPropertyName("cash_in_items")]
-    public List<CashFlowItem>? CashInItems { get; init; }
-
-    /// <summary>
-    /// Gets the detailed list of cash outflows during the period.
-    /// </summary>
-    /// <value>
-    /// A list of <see cref="CashFlowItem"/> objects representing individual cash payments for
-    /// suppliers, expenses, taxes, loan repayments, and other uses of cash.
-    /// </value>
-    [JsonPropertyName("cash_out_items")]
-    public List<CashFlowItem>? CashOutItems { get; init; }
-
-    /// <summary>
-    /// Gets the total cash received during the period.
-    /// </summary>
-    /// <value>
-    /// The sum of all cash inflows, representing total money received into the business.
-    /// </value>
-    [JsonPropertyName("total_cash_in")]
-    public decimal? TotalCashIn { get; init; }
-
-    /// <summary>
-    /// Gets the total cash paid out during the period.
-    /// </summary>
-    /// <value>
-    /// The sum of all cash outflows, representing total money paid out from the business.
-    /// </value>
-    [JsonPropertyName("total_cash_out")]
-    public decimal? TotalCashOut { get; init; }
-
-    /// <summary>
-    /// Gets the net cash flow for the period.
-    /// </summary>
-    /// <value>
-    /// The difference between total cash in and total cash out (Total Cash In - Total Cash Out).
+    /// The difference between incoming and outgoing cash (Incoming Total - Outgoing Total).
     /// A positive value indicates more cash came in than went out; a negative value indicates
     /// more cash was spent than received.
     /// </value>
-    [JsonPropertyName("net_cash_flow")]
-    public decimal? NetCashFlow { get; init; }
+    [JsonPropertyName("balance")]
+    public decimal? Balance { get; init; }
+
+    /// <summary>
+    /// Gets the incoming cash flow data (revenue).
+    /// </summary>
+    /// <value>
+    /// A <see cref="CashFlowDirection"/> object containing the total incoming cash and
+    /// monthly breakdown of revenue across the reporting period.
+    /// </value>
+    [JsonPropertyName("incoming")]
+    public CashFlowDirection? Incoming { get; init; }
+
+    /// <summary>
+    /// Gets the outgoing cash flow data (expenses).
+    /// </summary>
+    /// <value>
+    /// A <see cref="CashFlowDirection"/> object containing the total outgoing cash and
+    /// monthly breakdown of expenses across the reporting period.
+    /// </value>
+    [JsonPropertyName("outgoing")]
+    public CashFlowDirection? Outgoing { get; init; }
 }

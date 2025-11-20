@@ -10,22 +10,25 @@ using System.Collections.Immutable;
 public class ProjectBuilder
 {
     private Uri? url = new("https://api.freeagent.com/v2/projects/1");
-    private Uri? contact = new("https://api.freeagent.com/v2/contacts/1");
+    private Uri contact = new("https://api.freeagent.com/v2/contacts/1");
+    private string? contactName = "Test Contact";
     private Contact? contactEntry;
-    private string? name = "Test Project";
-    private string? status = "Active";
+    private string name = "Test Project";
+    private string status = "Active";
     private string? contractPoReference = "PO-12345";
     private bool usesProjectInvoiceSequence = false;
-    private string? currency = "GBP";
+    private string currency = "GBP";
     private decimal? budget = 10000m;
-    private string? budgetUnits = "Hours";
+    private string budgetUnits = "Hours";
     private decimal? hoursPerDay = 8m;
     private decimal? normalBillingRate = 100m;
     private string? billingPeriod = "hour";
     private bool? isIr35 = false;
     private bool? isEstimate = false;
-    private DateTimeOffset? startsOn = new DateTimeOffset(2024, 6, 1, 0, 0, 0, TimeSpan.Zero);
-    private DateTimeOffset? endsOn = new DateTimeOffset(2024, 9, 1, 0, 0, 0, TimeSpan.Zero);
+    private DateOnly? startsOn = new DateOnly(2024, 6, 1);
+    private DateOnly? endsOn = new DateOnly(2024, 9, 1);
+    private bool? includeUnbilledTimeInProfitability;
+    private bool? isDeletable;
     private DateTimeOffset? createdAt = new DateTimeOffset(2024, 5, 25, 0, 0, 0, TimeSpan.Zero);
     private DateTimeOffset? updatedAt = new DateTimeOffset(2024, 6, 1, 0, 0, 0, TimeSpan.Zero);
     private ImmutableList<Timeslip> timeslipEntries = [];
@@ -36,7 +39,7 @@ public class ProjectBuilder
         return this;
     }
 
-    public ProjectBuilder WithName(string? name)
+    public ProjectBuilder WithName(string name)
     {
         this.name = name;
         return this;
@@ -44,12 +47,12 @@ public class ProjectBuilder
 
     public ProjectBuilder WithContact(Contact contact)
     {
-        this.contact = contact.Url;
+        this.contact = contact.Url ?? throw new ArgumentNullException(nameof(contact), "Contact must have a URL");
         this.contactEntry = contact;
         return this;
     }
 
-    public ProjectBuilder WithStatus(string? status)
+    public ProjectBuilder WithStatus(string status)
     {
         this.status = status;
         return this;
@@ -58,14 +61,20 @@ public class ProjectBuilder
     public ProjectBuilder AsCompleted()
     {
         this.status = "Completed";
-        this.endsOn = new DateTimeOffset(2024, 5, 31, 0, 0, 0, TimeSpan.Zero);
+        this.endsOn = new DateOnly(2024, 5, 31);
         return this;
     }
 
-    public ProjectBuilder WithBudget(decimal? budget, string? budgetUnits = "Hours")
+    public ProjectBuilder WithBudget(decimal? budget, string budgetUnits = "Hours")
     {
         this.budget = budget;
         this.budgetUnits = budgetUnits;
+        return this;
+    }
+
+    public ProjectBuilder WithCurrency(string currency)
+    {
+        this.currency = currency;
         return this;
     }
 
@@ -94,10 +103,28 @@ public class ProjectBuilder
         return this;
     }
 
-    public ProjectBuilder WithDates(DateTimeOffset? startsOn, DateTimeOffset? endsOn)
+    public ProjectBuilder WithDates(DateOnly? startsOn, DateOnly? endsOn)
     {
         this.startsOn = startsOn;
         this.endsOn = endsOn;
+        return this;
+    }
+
+    public ProjectBuilder WithContactName(string? contactName)
+    {
+        this.contactName = contactName;
+        return this;
+    }
+
+    public ProjectBuilder WithIncludeUnbilledTimeInProfitability(bool? include)
+    {
+        this.includeUnbilledTimeInProfitability = include;
+        return this;
+    }
+
+    public ProjectBuilder WithIsDeletable(bool? deletable)
+    {
+        this.isDeletable = deletable;
         return this;
     }
 
@@ -105,6 +132,7 @@ public class ProjectBuilder
     {
         Url = url,
         Contact = contact,
+        ContactName = contactName,
         ContactEntry = contactEntry,
         Name = name,
         Status = status,
@@ -120,6 +148,8 @@ public class ProjectBuilder
         IsEstimate = isEstimate,
         StartsOn = startsOn,
         EndsOn = endsOn,
+        IncludeUnbilledTimeInProfitability = includeUnbilledTimeInProfitability,
+        IsDeletable = isDeletable,
         CreatedAt = createdAt,
         UpdatedAt = updatedAt,
         TimeslipEntries = timeslipEntries

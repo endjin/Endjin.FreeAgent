@@ -98,4 +98,49 @@ public record ExpenseAttachment
     [JsonPropertyName("content_type")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ContentType { get; init; }
+
+    /// <summary>
+    /// Gets the URI reference to an existing attachment.
+    /// </summary>
+    /// <value>
+    /// The URI of an existing attachment to be referenced. Use this field instead of <see cref="Data"/>
+    /// when referencing an attachment that has already been uploaded. Either this field or the combination
+    /// of Data, FileName, Description, and ContentType should be provided, but not both.
+    /// </value>
+    [JsonPropertyName("file")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? File { get; init; }
+
+    /// <summary>
+    /// Gets the unique URI identifier for this attachment.
+    /// </summary>
+    /// <value>
+    /// A URI that uniquely identifies this attachment in the FreeAgent system.
+    /// This value is assigned by the API upon creation and is returned in response objects.
+    /// This is a read-only field.
+    /// </value>
+    [JsonPropertyName("url")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? Url { get; init; }
+
+    /// <summary>
+    /// Gets the download URL for the attachment content.
+    /// </summary>
+    /// <value>
+    /// An S3 URL from which the attachment file can be downloaded. This URL is time-limited
+    /// and should be used promptly after retrieval. This is a read-only field returned in response objects.
+    /// </value>
+    [JsonPropertyName("content_src")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Uri? ContentSrc { get; init; }
+
+    /// <summary>
+    /// Gets the size of the attachment file in bytes.
+    /// </summary>
+    /// <value>
+    /// The file size in bytes. This is a read-only field returned in response objects.
+    /// </value>
+    [JsonPropertyName("file_size")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? FileSize { get; init; }
 }

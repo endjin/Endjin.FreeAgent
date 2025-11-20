@@ -2,6 +2,8 @@
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
+using Endjin.FreeAgent.Converters;
+
 namespace Endjin.FreeAgent.Domain;
 
 /// <summary>
@@ -28,10 +30,9 @@ namespace Endjin.FreeAgent.Domain;
 /// API Endpoint: /v2/corporation_tax_returns
 /// </para>
 /// <para>
-/// Minimum Access Level: Full Access
+/// Minimum Access Level: Tax, Accounting &amp; Users
 /// </para>
 /// </remarks>
-/// <seealso cref="CorporationTaxReturnFiling"/>
 /// <seealso cref="Company"/>
 /// <seealso cref="ProfitAndLoss"/>
 public record CorporationTaxReturn
@@ -43,7 +44,7 @@ public record CorporationTaxReturn
     /// A URI that uniquely identifies this Corporation Tax return in the FreeAgent system.
     /// </value>
     [JsonPropertyName("url")]
-    public Uri? Url { get; init; }
+    public required Uri Url { get; init; }
 
     /// <summary>
     /// Gets the start date of the accounting period for this Corporation Tax return.
@@ -52,7 +53,7 @@ public record CorporationTaxReturn
     /// The first date of the company's accounting period covered by this tax return.
     /// </value>
     [JsonPropertyName("period_starts_on")]
-    public DateOnly? PeriodStartsOn { get; init; }
+    public required DateOnly PeriodStartsOn { get; init; }
 
     /// <summary>
     /// Gets the end date of the accounting period for this Corporation Tax return.
@@ -62,55 +63,56 @@ public record CorporationTaxReturn
     /// This date determines filing and payment deadlines.
     /// </value>
     [JsonPropertyName("period_ends_on")]
-    public DateOnly? PeriodEndsOn { get; init; }
+    public required DateOnly PeriodEndsOn { get; init; }
 
     /// <summary>
-    /// Gets the status of this Corporation Tax return.
+    /// Gets the filing status of this Corporation Tax return.
     /// </summary>
     /// <value>
-    /// The current status, such as "Draft", "Filed", "Overdue", or "Paid".
+    /// The current filing status: draft, unfiled, pending, rejected, filed, or marked_as_filed.
     /// </value>
-    [JsonPropertyName("status")]
-    public string? Status { get; init; }
+    [JsonPropertyName("filing_status")]
+    [JsonConverter(typeof(CorporationTaxFilingStatusNonNullableJsonConverter))]
+    public required CorporationTaxFilingStatus FilingStatus { get; init; }
 
     /// <summary>
-    /// Gets the amount of Corporation Tax due for this period.
+    /// Gets the payment status of this Corporation Tax return.
     /// </summary>
     /// <value>
-    /// The calculated tax liability based on the company's taxable profits for the accounting period.
-    /// This amount must be paid to HMRC by the payment due date.
+    /// The payment status: unpaid or marked_as_paid. This field is omitted if no payment is required.
     /// </value>
-    [JsonPropertyName("tax_due")]
-    public decimal? TaxDue { get; init; }
+    [JsonPropertyName("payment_status")]
+    [JsonConverter(typeof(CorporationTaxPaymentStatusJsonConverter))]
+    public CorporationTaxPaymentStatus? PaymentStatus { get; init; }
 
     /// <summary>
-    /// Gets the date when this Corporation Tax return was filed with HMRC.
+    /// Gets the amount of Corporation Tax due for payment.
     /// </summary>
     /// <value>
-    /// The date the CT600 return was submitted to HMRC, either electronically or manually.
-    /// Must be within 12 months of the accounting period end date.
+    /// The payment amount required for this Corporation Tax return. Read-only.
+    /// This field is omitted if no payment is required.
     /// </value>
-    [JsonPropertyName("filed_on")]
-    public DateOnly? FiledOn { get; init; }
+    [JsonPropertyName("amount_due")]
+    public decimal? AmountDue { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether this Corporation Tax return was filed online.
+    /// Gets the date and time when this Corporation Tax return was filed with HMRC.
     /// </summary>
     /// <value>
-    /// <c>true</c> if the return was submitted electronically through HMRC's online services;
-    /// <c>false</c> if it was marked as manually filed through other means.
+    /// The timestamp when the CT600 return was submitted to HMRC. Read-only, set automatically when filed online.
     /// </value>
-    [JsonPropertyName("filed_online")]
-    public bool? FiledOnline { get; init; }
+    [JsonPropertyName("filed_at")]
+    public DateTimeOffset? FiledAt { get; init; }
 
     /// <summary>
-    /// Gets the HMRC reference number for this filed Corporation Tax return.
+    /// Gets the reference number for this filed Corporation Tax return.
     /// </summary>
     /// <value>
-    /// The unique reference number provided by HMRC upon successful submission, used for tracking and confirmation.
+    /// The IRMark (HMRC's digital receipt/signature) for this filed return.
+    /// Read-only, set automatically when filed online.
     /// </value>
-    [JsonPropertyName("hmrc_reference")]
-    public string? HmrcReference { get; init; }
+    [JsonPropertyName("filed_reference")]
+    public string? FiledReference { get; init; }
 
     /// <summary>
     /// Gets the deadline date for paying the Corporation Tax due.
@@ -118,25 +120,17 @@ public record CorporationTaxReturn
     /// <value>
     /// The date by which the tax payment must be received by HMRC, typically 9 months and 1 day
     /// after the accounting period end date. Late payment incurs interest charges.
+    /// This field is omitted if no payment is required.
     /// </value>
     [JsonPropertyName("payment_due_on")]
     public DateOnly? PaymentDueOn { get; init; }
 
     /// <summary>
-    /// Gets the date and time when this Corporation Tax return record was created.
+    /// Gets the deadline date for filing the Corporation Tax return.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing when this return was first created in the FreeAgent system.
+    /// The submission deadline for the Corporation Tax return. Read-only.
     /// </value>
-    [JsonPropertyName("created_at")]
-    public DateTime? CreatedAt { get; init; }
-
-    /// <summary>
-    /// Gets the date and time when this Corporation Tax return record was last updated.
-    /// </summary>
-    /// <value>
-    /// A <see cref="DateTime"/> representing the last modification timestamp for this return.
-    /// </value>
-    [JsonPropertyName("updated_at")]
-    public DateTime? UpdatedAt { get; init; }
+    [JsonPropertyName("filing_due_on")]
+    public required DateOnly FilingDueOn { get; init; }
 }

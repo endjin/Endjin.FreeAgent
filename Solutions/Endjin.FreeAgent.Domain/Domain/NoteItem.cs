@@ -9,9 +9,9 @@ namespace Endjin.FreeAgent.Domain;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Notes allow users to add comments, explanations, or additional information to various entities such as
-/// contacts, projects, invoices, and other records. Notes support collaboration by tracking the author and
-/// timestamps, providing an audit trail of communications and decisions.
+/// Notes allow users to add comments, explanations, or additional information to contacts and projects.
+/// Notes support collaboration by tracking the author and timestamps, providing an audit trail of
+/// communications and decisions.
 /// </para>
 /// <para>
 /// Each note is associated with a parent entity via the parent URL, creating a hierarchical relationship
@@ -21,7 +21,7 @@ namespace Endjin.FreeAgent.Domain;
 /// API Endpoint: /v2/notes
 /// </para>
 /// <para>
-/// Minimum Access Level: Varies by parent resource
+/// Minimum Access Level: Contacts and Projects
 /// </para>
 /// </remarks>
 /// <seealso cref="Contact"/>
@@ -56,10 +56,10 @@ public record NoteItem
     public string? ParentUrl { get; init; }
 
     /// <summary>
-    /// Gets the URI reference to the user who authored this note.
+    /// Gets the name of the user who authored this note.
     /// </summary>
     /// <value>
-    /// The URI of the <see cref="User"/> who created this note.
+    /// The name of the user who created this note.
     /// </value>
     [JsonPropertyName("author")]
     public string? Author { get; init; }
@@ -68,17 +68,17 @@ public record NoteItem
     /// Gets the date and time when this note was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the creation timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the creation timestamp in UTC, or <see langword="null"/> if not provided.
     /// </value>
     [JsonPropertyName("created_at")]
-    public DateTime CreatedAt { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 
     /// <summary>
     /// Gets the date and time when this note was last updated.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> representing the last modification timestamp in UTC.
+    /// A <see cref="DateTimeOffset"/> representing the last modification timestamp in UTC, or <see langword="null"/> if not provided.
     /// </value>
     [JsonPropertyName("updated_at")]
-    public DateTime UpdatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
 }

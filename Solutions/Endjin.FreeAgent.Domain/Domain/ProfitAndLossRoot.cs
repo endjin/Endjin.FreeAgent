@@ -8,9 +8,11 @@ namespace Endjin.FreeAgent.Domain;
 /// Represents the root-level JSON response wrapper for a <see cref="Domain.ProfitAndLoss"/> resource.
 /// </summary>
 /// <remarks>
-/// This wrapper type is used for JSON deserialization of FreeAgent API responses that return a single profit and loss report.
+/// This wrapper type is used for JSON deserialization of FreeAgent API responses that return a profit and loss summary.
+/// The API returns the summary nested under a "profit_and_loss_summary" property.
 /// </remarks>
 /// <seealso cref="ProfitAndLoss"/>
+/// <seealso cref="ProfitAndLossDeduction"/>
 public record ProfitAndLossRoot
 {
     /// <summary>
@@ -19,6 +21,6 @@ public record ProfitAndLossRoot
     /// <value>
     /// The <see cref="Domain.ProfitAndLoss"/> object returned by the API.
     /// </value>
-    [JsonPropertyName("profit_and_loss")]
+    [JsonPropertyName("profit_and_loss_summary")]
     public ProfitAndLoss? ProfitAndLoss { get; init; }
 }

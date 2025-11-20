@@ -2,31 +2,33 @@
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
-using System.Text;
 using System.Net.Http.Json;
-
 using Endjin.FreeAgent.Domain;
 
 namespace Endjin.FreeAgent.Client;
 
 /// <summary>
-/// Provides methods for managing payroll profiles via the FreeAgent API.
+/// Provides methods for accessing payroll profiles via the FreeAgent API.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This service class provides comprehensive access to FreeAgent payroll profiles, which contain employee
-/// tax and National Insurance configuration data. Payroll profiles store information such as tax codes,
-/// NI category letters, student loan deductions, and other HMRC-related settings needed for payroll
-/// processing. This service supports creating, retrieving, updating, and deleting payroll profiles.
+/// This service class provides read-only access to FreeAgent payroll profiles for UK companies.
+/// Payroll profiles contain employee personal information relevant for RTI (Real Time Information)
+/// reporting to HMRC, including address details, demographic information, and previous employment data.
 /// </para>
 /// <para>
-/// Results are cached for 30 minutes to improve performance, as payroll profiles change infrequently.
-/// Cache entries are invalidated automatically when profiles are created, updated, or deleted.
+/// The API uses UK tax years (April to March). When specifying a year parameter, use the
+/// tax year end (e.g., 2026 for the tax year April 2025 - March 2026).
+/// </para>
+/// <para>
+/// Results are cached for 5 minutes to reduce API calls while maintaining reasonably current data.
+/// </para>
+/// <para>
+/// Minimum Access Level: Tax and Limited Accounting. Only available for UK companies.
 /// </para>
 /// </remarks>
 /// <seealso cref="PayrollProfile"/>
 /// <seealso cref="User"/>
-/// <seealso cref="Payroll"/>
 public class PayrollProfiles
 {
     private readonly FreeAgentClient client;
@@ -45,161 +47,71 @@ public class PayrollProfiles
     }
 
     /// <summary>
-    /// Retrieves all payroll profiles from FreeAgent.
+    /// Retrieves all payroll profiles for a specific tax year.
     /// </summary>
+    /// <param name="year">The tax year end (e.g., 2026 for April 2025 - March 2026).</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
-    /// <see cref="PayrollProfile"/> objects for all employees.
+    /// all <see cref="PayrollProfile"/> objects for the specified tax year.
     /// </returns>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <remarks>
-    /// This method calls GET /v2/payroll_profiles and caches the result for 30 minutes.
+    /// This method calls GET /v2/payroll_profiles/{year} and caches the result for 5 minutes.
     /// </remarks>
-    public async Task<IEnumerable<PayrollProfile>> GetAllAsync()
+    public async Task<IEnumerable<PayrollProfile>> GetAllAsync(int year)
     {
-        await this.client.InitializeAndAuthorizeAsync();
+        await this.client.InitializeAndAuthorizeAsync().ConfigureAwait(false);
 
-        string cacheKey = "payroll_profiles_all";
+        string cacheKey = $"payroll_profiles_{year}";
 
         if (this.cache.TryGetValue(cacheKey, out IEnumerable<PayrollProfile>? cached))
         {
             return cached!;
         }
 
-        HttpResponseMessage response = await this.client.HttpClient.GetAsync(new Uri(this.client.ApiBaseUrl, "/v2/payroll_profiles"));
+        HttpResponseMessage response = await this.client.HttpClient.GetAsync(
+            new Uri(this.client.ApiBaseUrl, $"v2/payroll_profiles/{year}")).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        PayrollProfilesRoot? root = await response.Content.ReadFromJsonAsync<PayrollProfilesRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+        PayrollProfilesRoot? root = await response.Content.ReadFromJsonAsync<PayrollProfilesRoot>(
+            SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
 
-        IEnumerable<PayrollProfile> profiles = root?.PayrollProfiles ?? [];
+        IEnumerable<PayrollProfile> profiles = root?.Profiles ?? [];
 
-        this.cache.Set(cacheKey, profiles, TimeSpan.FromMinutes(30));
+        this.cache.Set(cacheKey, profiles, TimeSpan.FromMinutes(5));
 
         return profiles;
     }
 
     /// <summary>
-    /// Retrieves a specific payroll profile by its ID from FreeAgent.
+    /// Retrieves a payroll profile for a specific user in a tax year.
     /// </summary>
-    /// <param name="id">The unique identifier of the payroll profile.</param>
+    /// <param name="year">The tax year end (e.g., 2026 for April 2025 - March 2026).</param>
+    /// <param name="userUrl">The URL of the user whose payroll profile to retrieve.</param>
     /// <returns>
-    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// <see cref="PayrollProfile"/> object with all profile details.
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// <see cref="PayrollProfile"/> objects for the specified user in the tax year.
     /// </returns>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the profile is not found or cannot be deserialized.</exception>
-    /// <remarks>
-    /// This method calls GET /v2/payroll_profiles/{id} and caches the result for 30 minutes.
-    /// </remarks>
-    public async Task<PayrollProfile> GetAsync(long id)
-    {
-        await this.client.InitializeAndAuthorizeAsync();
-
-        string cacheKey = $"payroll_profile_{id}";
-
-        if (this.cache.TryGetValue(cacheKey, out PayrollProfile? cached))
-        {
-            return cached!;
-        }
-
-        HttpResponseMessage response = await this.client.HttpClient.GetAsync(new Uri(this.client.ApiBaseUrl, $"/v2/payroll_profiles/{id}"));
-        response.EnsureSuccessStatusCode();
-
-        PayrollProfileRoot? root = await response.Content.ReadFromJsonAsync<PayrollProfileRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
-
-        PayrollProfile? profile = root?.PayrollProfile;
-
-        if (profile == null)
-        {
-            throw new InvalidOperationException($"PayrollProfile {id} not found");
-        }
-
-        this.cache.Set(cacheKey, profile, TimeSpan.FromMinutes(30));
-
-        return profile;
-    }
-
-    /// <summary>
-    /// Creates a new payroll profile in FreeAgent.
-    /// </summary>
-    /// <param name="profile">The <see cref="PayrollProfile"/> object containing the profile details to create.</param>
-    /// <returns>
-    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// created <see cref="PayrollProfile"/> object with server-assigned values.
-    /// </returns>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
-    /// <remarks>
-    /// This method calls POST /v2/payroll_profiles. The cache is not updated as only aggregate queries are cached.
-    /// </remarks>
-    public async Task<PayrollProfile> CreateAsync(PayrollProfile profile)
-    {
-        await this.client.InitializeAndAuthorizeAsync();
-
-        PayrollProfileRoot root = new() { PayrollProfile = profile };
-        string json = JsonSerializer.Serialize(root, SharedJsonOptions.Instance);
-
-        HttpResponseMessage response = await this.client.HttpClient.PostAsync(new Uri(this.client.ApiBaseUrl, "/v2/payroll_profiles"), new StringContent(json, Encoding.UTF8, "application/json"));
-        response.EnsureSuccessStatusCode();
-
-        PayrollProfileRoot? result = await response.Content.ReadFromJsonAsync<PayrollProfileRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
-
-        return result?.PayrollProfile ?? throw new InvalidOperationException("Failed to create payroll profile");
-    }
-
-    /// <summary>
-    /// Updates an existing payroll profile in FreeAgent.
-    /// </summary>
-    /// <param name="id">The unique identifier of the payroll profile to update.</param>
-    /// <param name="profile">The <see cref="PayrollProfile"/> object containing the updated profile details.</param>
-    /// <returns>
-    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing the
-    /// updated <see cref="PayrollProfile"/> object.
-    /// </returns>
-    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the API response cannot be deserialized.</exception>
-    /// <remarks>
-    /// This method calls PUT /v2/payroll_profiles/{id} and invalidates the cache entries for the profile.
-    /// </remarks>
-    public async Task<PayrollProfile> UpdateAsync(long id, PayrollProfile profile)
-    {
-        await this.client.InitializeAndAuthorizeAsync();
-
-        PayrollProfileRoot root = new() { PayrollProfile = profile };
-        string json = JsonSerializer.Serialize(root, SharedJsonOptions.Instance);
-
-        HttpResponseMessage response = await this.client.HttpClient.PutAsync(
-            new Uri(this.client.ApiBaseUrl, $"/v2/payroll_profiles/{id}"),
-            new StringContent(json, Encoding.UTF8, "application/json"));
-        response.EnsureSuccessStatusCode();
-
-        PayrollProfileRoot? result = await response.Content.ReadFromJsonAsync<PayrollProfileRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
-
-        this.cache.Remove($"payroll_profile_{id}");
-        this.cache.Remove("payroll_profiles_all");
-
-        return result?.PayrollProfile ?? throw new InvalidOperationException("Failed to update payroll profile");
-    }
-
-    /// <summary>
-    /// Deletes a payroll profile from FreeAgent.
-    /// </summary>
-    /// <param name="id">The unique identifier of the payroll profile to delete.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="userUrl"/> is null.</exception>
     /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
     /// <remarks>
-    /// This method calls DELETE /v2/payroll_profiles/{id} and invalidates the cache entries for the profile.
-    /// The deletion is permanent and cannot be undone.
+    /// This method calls GET /v2/payroll_profiles/{year}?user={url} to retrieve the payroll profile
+    /// for a specific user. Results are not cached as they are typically requested on-demand.
     /// </remarks>
-    public async Task DeleteAsync(long id)
+    public async Task<IEnumerable<PayrollProfile>> GetByUserAsync(int year, Uri userUrl)
     {
-        await this.client.InitializeAndAuthorizeAsync();
+        ArgumentNullException.ThrowIfNull(userUrl);
 
-        HttpResponseMessage response = await this.client.HttpClient.DeleteAsync(
-            new Uri(this.client.ApiBaseUrl, $"/v2/payroll_profiles/{id}"));
+        await this.client.InitializeAndAuthorizeAsync().ConfigureAwait(false);
+
+        string encodedUserUrl = Uri.EscapeDataString(userUrl.ToString());
+        HttpResponseMessage response = await this.client.HttpClient.GetAsync(
+            new Uri(this.client.ApiBaseUrl, $"v2/payroll_profiles/{year}?user={encodedUserUrl}")).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        this.cache.Remove($"payroll_profile_{id}");
-        this.cache.Remove("payroll_profiles_all");
+        PayrollProfilesRoot? root = await response.Content.ReadFromJsonAsync<PayrollProfilesRoot>(
+            SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+
+        return root?.Profiles ?? [];
     }
 }
