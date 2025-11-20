@@ -54,22 +54,22 @@ public class CashFlowReportsTests
             Incoming = new CashFlowDirection
             {
                 Total = 68869.76m,
-                Months = new List<CashFlowMonthly>
-                {
+                Months =
+                [
                     new() { Month = 1, Year = 2024, Total = 22956.59m },
                     new() { Month = 2, Year = 2024, Total = 22956.59m },
                     new() { Month = 3, Year = 2024, Total = 22956.58m }
-                }
+                ]
             },
             Outgoing = new CashFlowDirection
             {
                 Total = 56276.55m,
-                Months = new List<CashFlowMonthly>
-                {
+                Months =
+                [
                     new() { Month = 1, Year = 2024, Total = 18758.85m },
                     new() { Month = 2, Year = 2024, Total = 18758.85m },
                     new() { Month = 3, Year = 2024, Total = 18758.85m }
-                }
+                ]
             }
         };
 

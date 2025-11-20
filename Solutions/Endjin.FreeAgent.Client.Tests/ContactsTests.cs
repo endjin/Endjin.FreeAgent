@@ -382,7 +382,7 @@ public class ContactsTests
             Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
         };
 
-        DateTimeOffset updatedSince = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        DateTimeOffset updatedSince = new(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
         // Act
         IEnumerable<Contact> result = await this.contacts.GetAllAsync(

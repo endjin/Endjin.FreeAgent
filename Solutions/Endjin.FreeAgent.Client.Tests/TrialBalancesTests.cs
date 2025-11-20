@@ -48,7 +48,7 @@ public class TrialBalancesTests
         // Arrange
         List<TrialBalanceSummaryEntry> entries =
         [
-            new TrialBalanceSummaryEntry
+            new()
             {
                 Category = new Uri("https://api.freeagent.com/v2/categories/001"),
                 NominalCode = "001",
@@ -56,7 +56,7 @@ public class TrialBalancesTests
                 Name = "Sales",
                 Total = 10000.00m
             },
-            new TrialBalanceSummaryEntry
+            new()
             {
                 Category = new Uri("https://api.freeagent.com/v2/categories/100"),
                 NominalCode = "100",
@@ -148,7 +148,7 @@ public class TrialBalancesTests
         // Arrange
         List<TrialBalanceSummaryEntry> entries =
         [
-            new TrialBalanceSummaryEntry
+            new()
             {
                 Category = new Uri("https://api.freeagent.com/v2/categories/750-12345"),
                 NominalCode = "750-12345",
@@ -183,7 +183,7 @@ public class TrialBalancesTests
         // Arrange
         List<TrialBalanceSummaryEntry> entries =
         [
-            new TrialBalanceSummaryEntry
+            new()
             {
                 Category = new Uri("https://api.freeagent.com/v2/categories/900-67890"),
                 NominalCode = "900-67890",
@@ -218,7 +218,7 @@ public class TrialBalancesTests
         // Arrange
         List<TrialBalanceSummaryEntry> entries =
         [
-            new TrialBalanceSummaryEntry
+            new()
             {
                 Category = new Uri("https://api.freeagent.com/v2/categories/001"),
                 NominalCode = "001",

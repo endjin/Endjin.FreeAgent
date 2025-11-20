@@ -102,14 +102,14 @@ public class ClientInitializationTests
     public void FreeAgentClient_WithExplicitCredentialsAndUseSandboxTrue_UsesSandboxApiBaseUrl()
     {
         // Arrange & Act
-        FreeAgentClient client = new(
+        FreeAgentClient client = FreeAgentClient.CreateInteractive(
             "client_id",
             "client_secret",
-            "refresh_token",
+            useSandbox: true,
             this.cache,
             this.httpClientFactory,
             this.loggerFactory,
-            useSandbox: true);
+            "refresh_token");
 
         // Assert
         client.ApiBaseUrl.ShouldBe(FreeAgentOptions.SandboxApiBaseUrl);
@@ -119,13 +119,14 @@ public class ClientInitializationTests
     public void FreeAgentClient_WithExplicitCredentialsDefaultUseSandbox_UsesProductionApiBaseUrl()
     {
         // Arrange & Act
-        FreeAgentClient client = new(
+        FreeAgentClient client = FreeAgentClient.CreateInteractive(
             "client_id",
             "client_secret",
-            "refresh_token",
+            useSandbox: false,
             this.cache,
             this.httpClientFactory,
-            this.loggerFactory);
+            this.loggerFactory,
+            "refresh_token");
 
         // Assert
         client.ApiBaseUrl.ShouldBe(FreeAgentOptions.ProductionApiBaseUrl);

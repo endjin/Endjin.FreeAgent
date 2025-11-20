@@ -2,6 +2,7 @@
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
+using Endjin.FreeAgent.Client.OAuth2;
 using Microsoft.Extensions.Logging;
 
 namespace Endjin.FreeAgent.Client;
@@ -56,6 +57,57 @@ namespace Endjin.FreeAgent.Client;
 public class FreeAgentClient : ClientBase
 {
     /// <summary>
+    /// Creates a new <see cref="FreeAgentClient"/> configured for interactive authentication.
+    /// </summary>
+    /// <param name="clientId">The OAuth2 client ID.</param>
+    /// <param name="clientSecret">The OAuth2 client secret.</param>
+    /// <param name="useSandbox">Whether to use the sandbox environment.</param>
+    /// <param name="cache">The memory cache instance.</param>
+    /// <param name="httpClientFactory">The HTTP client factory.</param>
+    /// <param name="loggerFactory">The logger factory.</param>
+    /// <param name="refreshToken">Optional initial refresh token.</param>
+    /// <returns>A configured <see cref="FreeAgentClient"/> instance.</returns>
+    public static FreeAgentClient CreateInteractive(
+        string clientId,
+        string clientSecret,
+        bool useSandbox,
+        IMemoryCache cache,
+        IHttpClientFactory httpClientFactory,
+        ILoggerFactory loggerFactory,
+        string? refreshToken = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(clientId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(clientSecret);
+        ArgumentNullException.ThrowIfNull(cache);
+        ArgumentNullException.ThrowIfNull(httpClientFactory);
+        ArgumentNullException.ThrowIfNull(loggerFactory);
+
+        Uri apiBaseUrl = useSandbox ? FreeAgentOptions.SandboxApiBaseUrl : FreeAgentOptions.ProductionApiBaseUrl;
+
+        OAuth2Options oauth2Options = new()
+        {
+            ClientId = clientId,
+            ClientSecret = clientSecret,
+            AuthorizationEndpoint = new Uri(apiBaseUrl, "/v2/approve_app"),
+            TokenEndpoint = new Uri(apiBaseUrl, "/v2/token_endpoint"),
+            UsePkce = true
+        };
+
+        HttpClient httpClient = httpClientFactory.CreateClient("FreeAgentAuth");
+
+        ILogger<InteractiveLoginHelper> loginLogger = loggerFactory.CreateLogger<InteractiveLoginHelper>();
+        InteractiveLoginHelper loginHelper = new(oauth2Options, httpClient, loginLogger);
+
+        ILogger<OAuth2Service> oauth2Logger = loggerFactory.CreateLogger<OAuth2Service>();
+        OAuth2Service oauth2Service = new(oauth2Options, httpClient, cache, oauth2Logger);
+
+        ILogger<InteractiveAuthenticationProvider> providerLogger = loggerFactory.CreateLogger<InteractiveAuthenticationProvider>();
+        InteractiveAuthenticationProvider provider = new(loginHelper, oauth2Service, providerLogger, refreshToken);
+
+        return new FreeAgentClient(provider, cache, httpClientFactory, loggerFactory, apiBaseUrl);
+    }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="FreeAgentClient"/> class using configuration options.
     /// </summary>
     /// <param name="options">The FreeAgent configuration options containing OAuth2 credentials.</param>
@@ -73,10 +125,24 @@ public class FreeAgentClient : ClientBase
 
         options.Validate();
 
-        this.ClientId = options.ClientId;
-        this.ClientSecret = options.ClientSecret;
-        this.RefreshToken = options.RefreshToken;
         this.ApiBaseUrl = options.ApiBaseUrl;
+
+        OAuth2Options oauth2Options = new()
+        {
+            ClientId = options.ClientId,
+            ClientSecret = options.ClientSecret,
+            RefreshToken = options.RefreshToken,
+            TokenEndpoint = new Uri(this.ApiBaseUrl, "/v2/token_endpoint"),
+            AuthorizationEndpoint = new Uri(this.ApiBaseUrl, "/v2/approve_app"),
+        };
+
+        HttpClient httpClientNoAuth = httpClientFactory.CreateClient("FreeAgentNoAuth");
+        InitializeHttpClient(httpClientNoAuth);
+
+        ILogger<OAuth2Service> logger = loggerFactory.CreateLogger<OAuth2Service>();
+        OAuth2Service oauth2Service = new(oauth2Options, httpClientNoAuth, cache, logger);
+
+        this.AuthenticationProvider = new OAuth2AuthenticationProvider(oauth2Service);
 
         this.InitializeServices(cache, httpClientFactory, loggerFactory);
     }
@@ -100,34 +166,27 @@ public class FreeAgentClient : ClientBase
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="FreeAgentClient"/> class with explicit OAuth2 credentials.
+    /// Initializes a new instance of the <see cref="FreeAgentClient"/> class with a custom authentication provider.
     /// </summary>
-    /// <param name="clientId">The OAuth2 client ID for your FreeAgent application.</param>
-    /// <param name="clientSecret">The OAuth2 client secret for your FreeAgent application.</param>
-    /// <param name="refreshToken">The OAuth2 refresh token for maintaining authenticated sessions.</param>
-    /// <param name="cache">The memory cache instance for caching tokens and API responses.</param>
-    /// <param name="httpClientFactory">The HTTP client factory for creating managed HTTP clients.</param>
-    /// <param name="loggerFactory">The logger factory for creating loggers.</param>
-    /// <param name="useSandbox">Whether to use the FreeAgent sandbox environment. Defaults to <c>false</c> (production).</param>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="clientId"/>, <paramref name="clientSecret"/>, or <paramref name="refreshToken"/> is null or whitespace.</exception>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="cache"/>, <paramref name="httpClientFactory"/>, or <paramref name="loggerFactory"/> is null.</exception>
-    /// <remarks>
-    /// This constructor is useful for direct instantiation when not using dependency injection,
-    /// or when credentials need to be provided programmatically rather than through configuration.
-    /// </remarks>
-    public FreeAgentClient(string clientId, string clientSecret, string refreshToken, IMemoryCache cache, IHttpClientFactory httpClientFactory, ILoggerFactory loggerFactory, bool useSandbox = false)
+    /// <param name="authenticationProvider">The authentication provider to use.</param>
+    /// <param name="cache">The memory cache instance.</param>
+    /// <param name="httpClientFactory">The HTTP client factory.</param>
+    /// <param name="loggerFactory">The logger factory.</param>
+    /// <param name="apiBaseUrl">The API base URL (optional).</param>
+    public FreeAgentClient(
+        IAuthenticationProvider authenticationProvider,
+        IMemoryCache cache,
+        IHttpClientFactory httpClientFactory,
+        ILoggerFactory loggerFactory,
+        Uri? apiBaseUrl = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(clientId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(clientSecret);
-        ArgumentException.ThrowIfNullOrWhiteSpace(refreshToken);
+        ArgumentNullException.ThrowIfNull(authenticationProvider);
         ArgumentNullException.ThrowIfNull(cache);
         ArgumentNullException.ThrowIfNull(httpClientFactory);
         ArgumentNullException.ThrowIfNull(loggerFactory);
 
-        this.ClientId = clientId;
-        this.ClientSecret = clientSecret;
-        this.RefreshToken = refreshToken;
-        this.ApiBaseUrl = useSandbox ? FreeAgentOptions.SandboxApiBaseUrl : FreeAgentOptions.ProductionApiBaseUrl;
+        this.AuthenticationProvider = authenticationProvider;
+        this.ApiBaseUrl = apiBaseUrl ?? FreeAgentOptions.ProductionApiBaseUrl;
 
         this.InitializeServices(cache, httpClientFactory, loggerFactory);
     }

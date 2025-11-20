@@ -11,10 +11,9 @@ using System.Threading;
 using Corvus.Retry;
 using Corvus.Retry.Policies;
 using Corvus.Retry.Strategies;
-using Endjin.FreeAgent.Client.OAuth2;
+
 using Endjin.FreeAgent.Domain;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Endjin.FreeAgent.Client;
 
@@ -64,31 +63,26 @@ public abstract class ClientBase
     /// </summary>
     /// <value>The authenticated HTTP client for API requests.</value>
     internal HttpClient HttpClient { get; set; }
-
-    /// <summary>
-    /// Gets or sets the HTTP client without authorization headers, used for OAuth2 token operations.
-    /// </summary>
-    /// <value>The unauthenticated HTTP client for token refresh requests.</value>
-    internal HttpClient HttpClientNoAuthHeader { get; set; }
 #pragma warning restore CS8618
 
     // Services
     private IHttpClientFactory? httpClientFactory;
-    private IOAuth2Service? oauth2Service;
     private IMemoryCache? memoryCache;
     private ILoggerFactory? loggerFactory;
 
-    internal string? ClientId;
-    internal string? ClientSecret;
-    internal string? RefreshToken;
     internal IRetryStrategy RetryStrategy { get; set; } = new Backoff();
     internal IRetryPolicy RetryPolicy { get; set; } = new AnyExceptionPolicy();
+
+    /// <summary>
+    /// Gets or sets the authentication provider.
+    /// </summary>
+    internal IAuthenticationProvider? AuthenticationProvider { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the client has been initialized with HTTP clients and OAuth2 services.
     /// </summary>
     /// <value><c>true</c> if the client is initialized and ready to make API calls; otherwise, <c>false</c>.</value>
-    [MemberNotNullWhen(true, nameof(HttpClient), nameof(HttpClientNoAuthHeader), nameof(oauth2Service))]
+    [MemberNotNullWhen(true, nameof(HttpClient))]
     public bool IsInitialized { get; set; }
 
     /// <summary>
@@ -123,7 +117,7 @@ public abstract class ClientBase
     /// The initialization state is tracked by the <see cref="IsInitialized"/> property.
     /// </para>
     /// </remarks>
-    [MemberNotNull(nameof(HttpClient), nameof(HttpClientNoAuthHeader), nameof(oauth2Service))]
+    [MemberNotNull(nameof(HttpClient))]
     public async Task InitializeAndAuthorizeAsync()
     {
         if (!this.IsInitialized)
@@ -138,18 +132,19 @@ public abstract class ClientBase
                         "or provide it when creating the FreeAgentClient instance. This is required for proper HTTP connection management.");
                 }
 
-                this.HttpClientNoAuthHeader = this.httpClientFactory.CreateClient("FreeAgentNoAuth");
                 this.HttpClient = this.httpClientFactory.CreateClient("FreeAgent");
 
-                InitializeHttpClient(this.HttpClientNoAuthHeader);
                 InitializeHttpClient(this.HttpClient);
             }
 
-            // Initialize OAuth2Service after HTTP clients are ready
-            InitializeOAuth2Service();
+            // Initialize AuthenticationProvider if not already set
+            if (this.AuthenticationProvider == null)
+            {
+                throw new InvalidOperationException("AuthenticationProvider is not initialized.");
+            }
 
-            // Use OAuth2Service
-            string accessToken = await oauth2Service.GetAccessTokenAsync().ConfigureAwait(false);
+            // Use AuthenticationProvider
+            string accessToken = await this.AuthenticationProvider.GetAccessTokenAsync().ConfigureAwait(false);
 
             // Set authorization for HttpClient after async operation completes
             lock (syncRoot)
@@ -168,7 +163,7 @@ public abstract class ClientBase
     /// This method sets the User-Agent header to identify the client library
     /// and configures the Accept header to request JSON responses from the API.
     /// </remarks>
-    private static void InitializeHttpClient(HttpClient httpClient)
+    internal static void InitializeHttpClient(HttpClient httpClient)
     {
         httpClient.DefaultRequestHeaders.Accept.Clear();
         httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "endjin-freeagent-client/1.0");
@@ -176,53 +171,6 @@ public abstract class ClientBase
         if (!httpClient.DefaultRequestHeaders.Accept.Contains(new MediaTypeWithQualityHeaderValue(JsonMediaType)))
         {
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(JsonMediaType));
-        }
-    }
-
-    /// <summary>
-    /// Creates an OAuth2 service instance for token management.
-    /// </summary>
-    /// <param name="options">The OAuth2 configuration options.</param>
-    /// <param name="httpClient">The HTTP client for token requests (without auth headers).</param>
-    /// <param name="cache">The memory cache for storing tokens.</param>
-    /// <param name="logger">The logger for OAuth2 operations.</param>
-    /// <returns>A new instance of <see cref="IOAuth2Service"/>.</returns>
-    /// <remarks>
-    /// This method is virtual to allow test implementations to override the OAuth2 service
-    /// creation with mock implementations.
-    /// </remarks>
-    protected virtual IOAuth2Service CreateOAuth2Service(OAuth2Options options, HttpClient httpClient, IMemoryCache cache, ILogger<OAuth2Service> logger) => new OAuth2Service(options, httpClient, cache, logger);
-
-    /// <summary>
-    /// Initializes the OAuth2 service with client credentials if not already initialized.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">Thrown when OAuth2 credentials are not configured.</exception>
-    /// <remarks>
-    /// This method creates an <see cref="IOAuth2Service"/> instance using the configured
-    /// client ID, client secret, and refresh token. It also initializes the memory cache
-    /// and logger if they haven't been set through dependency injection.
-    /// </remarks>
-    [MemberNotNull(nameof(oauth2Service), nameof(memoryCache))]
-    private void InitializeOAuth2Service()
-    {
-        // Use existing memory cache if available, otherwise create a new one
-        memoryCache ??= new MemoryCache(new MemoryCacheOptions());
-
-        if (oauth2Service == null)
-        {
-            OAuth2Options options = new()
-            {
-                ClientId = this.ClientId ?? throw new InvalidOperationException("OAuth2 client ID has not been configured."),
-                ClientSecret = this.ClientSecret ?? throw new InvalidOperationException("OAuth2 client secret has not been configured."),
-                RefreshToken = this.RefreshToken ?? throw new InvalidOperationException("OAuth2 refresh token has not been configured."),
-                TokenEndpoint = new Uri(this.ApiBaseUrl, "/v2/token_endpoint"),
-                AuthorizationEndpoint = new Uri(this.ApiBaseUrl, "/v2/approve_app"),
-            };
-
-            // Create logger for OAuth2Service from factory or use NullLogger if factory not available
-            ILogger<OAuth2Service> logger = loggerFactory?.CreateLogger<OAuth2Service>() ?? NullLogger<OAuth2Service>.Instance;
-
-            oauth2Service = CreateOAuth2Service(options, HttpClientNoAuthHeader, memoryCache, logger);
         }
     }
 
@@ -244,15 +192,6 @@ public abstract class ClientBase
     /// This method is used internally to inject the logger factory dependency.
     /// </remarks>
     internal void SetLoggerFactory(ILoggerFactory factory) => this.loggerFactory = factory;
-
-    /// <summary>
-    /// Sets the OAuth2 service instance for token management.
-    /// </summary>
-    /// <param name="service">The OAuth2 service to use for token operations.</param>
-    /// <remarks>
-    /// This method is used internally for testing purposes to inject a mock OAuth2 service.
-    /// </remarks>
-    internal void SetOAuth2Service(IOAuth2Service service) => this.oauth2Service = service;
 
     /// <summary>
     /// Executes an HTTP GET request and automatically follows pagination links to retrieve all results as an asynchronous stream.
@@ -282,9 +221,12 @@ public abstract class ClientBase
 
                     if (result.StatusCode == HttpStatusCode.Unauthorized && !haveTriedRefreshingToken)
                     {
-                        InitializeOAuth2Service();
+                        if (this.AuthenticationProvider == null)
+                        {
+                            throw new InvalidOperationException("AuthenticationProvider is not initialized.");
+                        }
 
-                        string newAccessToken = await oauth2Service.RefreshAccessTokenAsync().ConfigureAwait(false);
+                        string newAccessToken = await this.AuthenticationProvider.GetAccessTokenAsync(forceRefresh: true, cancellationToken).ConfigureAwait(false);
 
                         lock (syncRoot)
                         {

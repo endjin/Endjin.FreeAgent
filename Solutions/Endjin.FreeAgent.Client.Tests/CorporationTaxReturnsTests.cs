@@ -95,7 +95,7 @@ public class CorporationTaxReturnsTests
     public async Task GetByPeriodEndDateAsync_WithValidDate_ReturnsReturn()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         CorporationTaxReturn taxReturn = new()
         {
             Url = new Uri("https://api.freeagent.com/v2/corporation_tax_returns/2024-03-31"),
@@ -133,7 +133,7 @@ public class CorporationTaxReturnsTests
     public async Task MarkAsFiledAsync_MarksReturnAsFiled()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         CorporationTaxReturn taxReturn = new()
         {
             Url = new Uri("https://api.freeagent.com/v2/corporation_tax_returns/2024-03-31"),
@@ -169,7 +169,7 @@ public class CorporationTaxReturnsTests
     public async Task MarkAsUnfiledAsync_MarksReturnAsUnfiled()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         CorporationTaxReturn taxReturn = new()
         {
             Url = new Uri("https://api.freeagent.com/v2/corporation_tax_returns/2024-03-31"),
@@ -205,7 +205,7 @@ public class CorporationTaxReturnsTests
     public async Task MarkAsPaidAsync_MarksReturnAsPaid()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         CorporationTaxReturn taxReturn = new()
         {
             Url = new Uri("https://api.freeagent.com/v2/corporation_tax_returns/2024-03-31"),
@@ -241,7 +241,7 @@ public class CorporationTaxReturnsTests
     public async Task MarkAsUnpaidAsync_MarksReturnAsUnpaid()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         CorporationTaxReturn taxReturn = new()
         {
             Url = new Uri("https://api.freeagent.com/v2/corporation_tax_returns/2024-03-31"),
@@ -380,7 +380,7 @@ public class CorporationTaxReturnsTests
     public async Task GetByPeriodEndDateAsync_CachingBehavior_ReturnsFromCacheOnSecondCall()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         CorporationTaxReturn taxReturn = new()
         {
             Url = new Uri("https://api.freeagent.com/v2/corporation_tax_returns/2024-03-31"),
@@ -420,7 +420,7 @@ public class CorporationTaxReturnsTests
     public async Task MarkAsFiledAsync_InvalidatesCache()
     {
         // Arrange
-        DateOnly periodEndsOn = new DateOnly(2024, 3, 31);
+        DateOnly periodEndsOn = new(2024, 3, 31);
         string cacheKeySpecific = $"corporation_tax_return_2024-03-31";
         string cacheKeyAll = "corporation_tax_returns_all";
 

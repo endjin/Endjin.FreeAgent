@@ -133,7 +133,68 @@ The sandbox uses different base URLs from production:
 
 Using the `UseSandbox` property (automatically sets the correct API base URL):
 
+#### Interactive Login (Recommended for First-Time Setup)
+
+The easiest way to obtain access and refresh tokens is to use the interactive login flow:
+
 ```csharp
+using Endjin.FreeAgent.Client.OAuth2;
+using Microsoft.Extensions.Logging;
+
+// Configure OAuth2 options
+OAuth2Options options = new()
+{
+    ClientId = "your-client-id",
+    ClientSecret = "your-client-secret",
+    UsePkce = true // Enable PKCE for enhanced security
+};
+
+// Create HTTP client and logger
+using var httpClient = new HttpClient();
+using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+var logger = loggerFactory.CreateLogger<InteractiveLoginHelper>();
+
+// Create the interactive login helper
+var loginHelper = new InteractiveLoginHelper(options, httpClient, logger);
+
+// Perform interactive login
+// This will open a browser window for authorization
+InteractiveLoginResult result = await loginHelper.LoginAsync(redirectPort: 5000);
+
+Console.WriteLine($"Access Token: {result.AccessToken}");
+Console.WriteLine($"Refresh Token: {result.RefreshToken}");
+Console.WriteLine($"Expires At: {result.ExpiresAt}");
+
+// Save the refresh token for future use
+```
+
+The interactive login flow will:
+1. Start a local HTTP listener on the specified port (default: 5000)
+2. Open your browser to the FreeAgent authorization page
+3. Wait for the OAuth callback with the authorization code
+4. Automatically exchange the code for access and refresh tokens
+5. Return the tokens for you to save and use
+
+You can also use the DemoApp to perform interactive login:
+
+```bash
+cd Solutions/DemoApp
+dotnet run -- --interactive-login
+```
+
+#### Manual OAuth2 Flow
+
+For more control over the OAuth2 flow, you can use the OAuth2Service directly:
+
+```csharp
+// Initialize OAuth2 service
+IOAuth2Service oauth2Service = new OAuth2Service(options, httpClient, cache, logger);
+
+// Exchange authorization code for tokens
+TokenResponse tokens = await oauth2Service.ExchangeAuthorizationCodeAsync(authorizationCode);
+
+// Refresh access token when needed
+string newAccessToken = await oauth2Service.RefreshAccessTokenAsync();
 // Configure for sandbox environment
 FreeAgentOptions options = new()
 {
@@ -225,16 +286,60 @@ dotnet test Endjin.FreeAgent.slnx
 
 The repository includes a comprehensive demo application showcasing various client features:
 
+### Interactive Login Mode (Get Your First Tokens)
+
+If you don't have a refresh token yet, use interactive login mode:
+
+```bash
+cd Solutions/DemoApp
+dotnet run -- --interactive-login
+# or
+dotnet run -- -i
+```
+
+To use the **Sandbox** environment, add the `--sandbox` flag:
+
+```bash
+dotnet run -- --interactive-login --sandbox
+# or
+dotnet run -- -i -s
+```
+
+This will:
+1. Open your browser to authorize the application with FreeAgent
+2. Automatically receive and display your access and refresh tokens
+3. Launch the interactive demo menu immediately
+
+You only need ClientId and ClientSecret in your appsettings.json for this mode, or you can enter them when prompted.
+
+### Standard Mode (Using Existing Refresh Token)
+
+Once you have a refresh token configured, run the demo app normally:
+
 ```bash
 cd Solutions/DemoApp
 dotnet run
 ```
 
+To run against the **Sandbox** environment in standard mode:
+
+```bash
+dotnet run -- --sandbox
+```
+
+You can also view help for the CLI:
+
+```bash
+dotnet run -- --help
+```
+
 The demo app demonstrates:
-- OAuth2 authentication flow
+- Interactive OAuth2 authentication flow
+- Token refresh and management
 - Fetching and displaying various resources
 - Creating and updating entities
 - Error handling and retry logic
+- **Rich CLI experience using Spectre.Console**
 
 ### Configuration
 
@@ -244,6 +349,17 @@ The demo app supports multiple configuration methods:
 
 Create an `appsettings.json` file in the DemoApp directory:
 
+For interactive login (first time):
+```json
+{
+  "FreeAgent": {
+    "ClientId": "your-client-id",
+    "ClientSecret": "your-client-secret"
+  }
+}
+```
+
+For standard mode (with existing refresh token):
 ```json
 {
   "FreeAgent": {

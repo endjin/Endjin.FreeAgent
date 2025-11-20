@@ -29,7 +29,7 @@ public class Expenses
     private const string ExpensesEndPoint = "v2/expenses";
     private readonly FreeAgentClient client;
     private readonly IMemoryCache cache;
-    private readonly HashSet<string> expenseCacheKeys = new();
+    private readonly HashSet<string> expenseCacheKeys = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Expenses"/> class.

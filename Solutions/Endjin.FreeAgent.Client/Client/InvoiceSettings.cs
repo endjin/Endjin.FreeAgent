@@ -97,7 +97,7 @@ public class InvoiceSettings
     /// </remarks>
     public async Task<InvoiceDefaultAdditionalText> UpdateDefaultAdditionalTextAsync(string text)
     {
-        InvoiceDefaultAdditionalTextRoot wrapper = new InvoiceDefaultAdditionalTextRoot { DefaultAdditionalText = text };
+        InvoiceDefaultAdditionalTextRoot wrapper = new() { DefaultAdditionalText = text };
 
         using JsonContent content = JsonContent.Create(wrapper, options: SharedJsonOptions.SourceGenOptions);
 

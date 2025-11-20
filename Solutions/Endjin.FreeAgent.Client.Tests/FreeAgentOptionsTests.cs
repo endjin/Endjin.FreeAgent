@@ -213,8 +213,14 @@ public class FreeAgentOptionsTests
         MemoryCache cache = new(new MemoryCacheOptions());
 
         // Act
-        FreeAgentClient client = new("client_id", "client_secret", "refresh_token", cache, this.httpClientFactory,
-            this.loggerFactory);
+        FreeAgentClient client = FreeAgentClient.CreateInteractive(
+            "client_id",
+            "client_secret",
+            useSandbox: false,
+            cache,
+            this.httpClientFactory,
+            this.loggerFactory,
+            "refresh_token");
 
         // Assert
         client.ShouldNotBeNull();
@@ -267,7 +273,7 @@ public class FreeAgentOptionsTests
 
         // Act & Assert
         Should.Throw<ArgumentException>(() =>
-            new FreeAgentClient("", "secret", "token", cache, this.httpClientFactory, this.loggerFactory));
+            FreeAgentClient.CreateInteractive("", "secret", false, cache, this.httpClientFactory, this.loggerFactory, "token"));
     }
 
     [TestMethod]

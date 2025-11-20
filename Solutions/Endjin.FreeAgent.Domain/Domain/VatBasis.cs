@@ -54,10 +54,10 @@ public static class VatBasis
     /// <returns>An array containing all valid VAT basis strings.</returns>
     public static string[] GetValidValues()
     {
-        return new[]
-        {
+        return
+        [
             Invoice,
-            Cash,
-        };
+            Cash
+        ];
     }
 }
