@@ -35,4 +35,11 @@
     <ProjectReference Include="..\Endjin.FreeAgent.Domain\Endjin.FreeAgent.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\..\docs\**\*">
+      <Link>docs\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

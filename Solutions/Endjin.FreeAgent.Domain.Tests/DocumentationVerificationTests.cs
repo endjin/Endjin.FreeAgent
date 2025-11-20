@@ -7,7 +7,7 @@ namespace Endjin.FreeAgent.Domain.Tests;
 [TestClass]
 public class DocumentationVerificationTests
 {
-    private static readonly string DocsPath = Path.Combine(GetRepoRoot(), "docs");
+    private static readonly string DocsPath = Path.Combine(AppContext.BaseDirectory, "docs");
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -25,17 +25,6 @@ public class DocumentationVerificationTests
             new Converters.RoleJsonConverter()
         }
     };
-
-    private static string GetRepoRoot()
-    {
-        string? current = Directory.GetCurrentDirectory();
-        while (!Directory.Exists(Path.Combine(current, "docs")))
-        {
-            current = Directory.GetParent(current)?.FullName;
-            if (current == null) throw new DirectoryNotFoundException("Could not find docs directory");
-        }
-        return current;
-    }
 
     [TestMethod]
     public void VerifyCompanyDocs()
@@ -83,6 +72,7 @@ public class DocumentationVerificationTests
     {
         string markdown = File.ReadAllText(Path.Combine(DocsPath, "balance_sheet.md"));
         VerifyEndpoint<BalanceSheetRoot>(markdown, "GET https://api.freeagent.com/v2/accounting/balance_sheet");
+        VerifyEndpoint<BalanceSheetRoot>(markdown, "GET https://api.freeagent.com/v2/accounting/balance_sheet/opening_balances");
     }
 
     [TestMethod]
@@ -90,6 +80,7 @@ public class DocumentationVerificationTests
     {
         string markdown = File.ReadAllText(Path.Combine(DocsPath, "bank_accounts.md"));
         VerifyEndpoint<BankAccountsRoot>(markdown, "GET https://api.freeagent.com/v2/bank_accounts");
+        VerifyEndpoint<BankAccountsRoot>(markdown, "GET https://api.freeagent.com/v2/bank_accounts?view=standard_bank_accounts");
         VerifyEndpoint<BankAccountRoot>(markdown, "GET https://api.freeagent.com/v2/bank_accounts/:id");
         VerifyEndpoint<BankAccountRoot>(markdown, "POST https://api.freeagent.com/v2/bank_accounts");
     }
@@ -155,6 +146,7 @@ public class DocumentationVerificationTests
     {
         string markdown = File.ReadAllText(Path.Combine(DocsPath, "categories.md"));
         VerifyEndpoint<CategoriesRoot>(markdown, "GET https://api.freeagent.com/v2/categories");
+        VerifyEndpoint<CategoriesRoot>(markdown, "GET https://api.freeagent.com/v2/categories?sub_accounts=true");
         VerifyEndpoint<CategoryRoot>(markdown, "GET https://api.freeagent.com/v2/categories/:nominal_code");
         VerifyEndpoint<CategoryRoot>(markdown, "POST https://api.freeagent.com/v2/categories");
     }
@@ -165,6 +157,7 @@ public class DocumentationVerificationTests
         string markdown = File.ReadAllText(Path.Combine(DocsPath, "corporation_tax_returns.md"));
         VerifyEndpoint<CorporationTaxReturnsRoot>(markdown, "GET https://api.freeagent.com/v2/corporation_tax_returns");
         VerifyEndpoint<CorporationTaxReturnRoot>(markdown, "GET https://api.freeagent.com/v2/corporation_tax_returns/:period_ends_on");
+        VerifyEndpoint<CorporationTaxReturnRoot>(markdown, "PUT https://api.freeagent.com/v2/corporation_tax_returns/:period_ends_on/mark_as_filed");
     }
 
     [TestMethod]
@@ -173,6 +166,7 @@ public class DocumentationVerificationTests
         string markdown = File.ReadAllText(Path.Combine(DocsPath, "credit_note_reconciliations.md"));
         VerifyEndpoint<CreditNoteReconciliationsRoot>(markdown, "GET https://api.freeagent.com/v2/credit_note_reconciliations");
         VerifyEndpoint<CreditNoteReconciliationRoot>(markdown, "GET https://api.freeagent.com/v2/credit_note_reconciliations/:id");
+        VerifyEndpoint<CreditNoteReconciliationRoot>(markdown, "POST https://api.freeagent.com/v2/credit_note_reconciliations");
     }
 
     [TestMethod]
@@ -201,6 +195,7 @@ public class DocumentationVerificationTests
         VerifyEndpoint<EstimatePdfRoot>(markdown, "GET https://api.freeagent.com/v2/estimates/:id/pdf");
         VerifyEndpoint<EstimateRoot>(markdown, "POST https://api.freeagent.com/v2/estimates");
         VerifyEndpoint<EstimateDefaultAdditionalTextRoot>(markdown, "GET https://api.freeagent.com/v2/estimates/default_additional_text");
+        VerifyEndpoint<EstimateItemRoot>(markdown, "POST https://api.freeagent.com/v2/estimate_items");
     }
 
     [TestMethod]
@@ -210,6 +205,7 @@ public class DocumentationVerificationTests
         VerifyEndpoint<ExpensesRoot>(markdown, "GET https://api.freeagent.com/v2/expenses");
         VerifyEndpoint<ExpenseRoot>(markdown, "GET https://api.freeagent.com/v2/expenses/:id");
         VerifyEndpoint<ExpenseRoot>(markdown, "POST https://api.freeagent.com/v2/expenses");
+        VerifyEndpoint<MileageSettingsRoot>(markdown, "GET https://api.freeagent.com/v2/expenses/mileage_settings");
     }
 
     [TestMethod]
@@ -218,6 +214,7 @@ public class DocumentationVerificationTests
         string markdown = File.ReadAllText(Path.Combine(DocsPath, "final_accounts_reports.md"));
         VerifyEndpoint<FinalAccountsReportsRoot>(markdown, "GET https://api.freeagent.com/v2/final_accounts_reports");
         VerifyEndpoint<FinalAccountsReportRoot>(markdown, "GET https://api.freeagent.com/v2/final_accounts_reports/:period_ends_on");
+        VerifyEndpoint<FinalAccountsReportRoot>(markdown, "PUT https://api.freeagent.com/v2/final_accounts_reports/:period_ends_on/mark_as_filed");
     }
 
     [TestMethod]
@@ -235,6 +232,7 @@ public class DocumentationVerificationTests
         VerifyEndpoint<JournalSetsRoot>(markdown, "GET https://api.freeagent.com/v2/journal_sets");
         VerifyEndpoint<JournalSetRoot>(markdown, "GET https://api.freeagent.com/v2/journal_sets/:id");
         VerifyEndpoint<JournalSetRoot>(markdown, "POST https://api.freeagent.com/v2/journal_sets");
+        VerifyEndpoint<JournalSetRoot>(markdown, "GET https://api.freeagent.com/v2/journal_sets/opening_balances");
     }
 
     [TestMethod]
@@ -252,13 +250,16 @@ public class DocumentationVerificationTests
         string markdown = File.ReadAllText(Path.Combine(DocsPath, "payroll.md"));
         VerifyEndpoint<PayrollYearRoot>(markdown, "GET https://api.freeagent.com/v2/payroll/:year");
         VerifyEndpoint<PayrollPeriodRoot>(markdown, "GET https://api.freeagent.com/v2/payroll/:year/:period");
+        VerifyEndpoint<PayrollYearRoot>(markdown, "PUT https://api.freeagent.com/v2/payroll/:year/payments/:payment_date/mark_as_paid");
+        VerifyEndpoint<PayrollYearRoot>(markdown, "GET https://api.freeagent.com/v2/payroll/:year/payments/:payment_date/mark_as_unpaid");
     }
 
     [TestMethod]
     public void VerifyPayrollProfilesDocs()
     {
         string markdown = File.ReadAllText(Path.Combine(DocsPath, "payroll_profiles.md"));
-        VerifyEndpoint<PayrollProfilesRoot>(markdown, "GET https://api.freeagent.com/v2/payroll_profiles");
+        VerifyEndpoint<PayrollProfilesRoot>(markdown, "GET https://api.freeagent.com/v2/payroll_profiles/:year");
+        VerifyEndpoint<PayrollProfilesRoot>(markdown, "GET https://api.freeagent.com/v2/payroll_profiles/:year?user=https://api.freeagent.com/v2/users/107");
     }
 
     [TestMethod]
@@ -274,7 +275,7 @@ public class DocumentationVerificationTests
     public void VerifyProfitAndLossDocs()
     {
         string markdown = File.ReadAllText(Path.Combine(DocsPath, "profit_and_loss.md"));
-        VerifyEndpoint<ProfitAndLossRoot>(markdown, "GET https://api.freeagent.com/v2/accounting/profit_and_loss");
+        VerifyEndpoint<ProfitAndLossRoot>(markdown, "GET https://api.freeagent.com/v2/accounting/profit_and_loss/summary");
     }
 
     [TestMethod]
@@ -316,6 +317,7 @@ public class DocumentationVerificationTests
         string markdown = File.ReadAllText(Path.Combine(DocsPath, "sales_tax_periods.md"));
         VerifyEndpoint<SalesTaxPeriodsRoot>(markdown, "GET https://api.freeagent.com/v2/sales_tax_periods");
         VerifyEndpoint<SalesTaxPeriodRoot>(markdown, "GET https://api.freeagent.com/v2/sales_tax_periods/:id");
+        VerifyEndpoint<SalesTaxPeriodRoot>(markdown, "POST https://api.freeagent.com/v2/sales_tax_periods");
     }
 
     [TestMethod]
@@ -324,6 +326,7 @@ public class DocumentationVerificationTests
         string markdown = File.ReadAllText(Path.Combine(DocsPath, "self_assessment_returns.md"));
         VerifyEndpoint<SelfAssessmentReturnsRoot>(markdown, "GET https://api.freeagent.com/v2/users/:user_id/self_assessment_returns");
         VerifyEndpoint<SelfAssessmentReturnRoot>(markdown, "GET https://api.freeagent.com/v2/users/:user_id/self_assessment_returns/:period_ends_on");
+        VerifyEndpoint<SelfAssessmentReturnRoot>(markdown, "PUT https://api.freeagent.com/v2/users/:user_id/self_assessment_returns/:period_ends_on/mark_as_filed");
     }
 
     [TestMethod]
@@ -357,6 +360,7 @@ public class DocumentationVerificationTests
     {
         string markdown = File.ReadAllText(Path.Combine(DocsPath, "transactions.md"));
         VerifyEndpoint<TransactionsRoot>(markdown, "GET https://api.freeagent.com/v2/accounting/transactions");
+        VerifyEndpoint<TransactionRoot>(markdown, "GET https://api.freeagent.com/v2/accounting/transactions/:id");
     }
 
     [TestMethod]
@@ -364,6 +368,7 @@ public class DocumentationVerificationTests
     {
         string markdown = File.ReadAllText(Path.Combine(DocsPath, "trial_balance.md"));
         VerifyEndpoint<TrialBalanceSummaryRoot>(markdown, "GET https://api.freeagent.com/v2/accounting/trial_balance/summary");
+        VerifyEndpoint<TrialBalanceSummaryRoot>(markdown, "GET https://api.freeagent.com/v2/accounting/trial_balance/summary/opening_balances");
     }
 
     [TestMethod]
@@ -382,6 +387,7 @@ public class DocumentationVerificationTests
         string markdown = File.ReadAllText(Path.Combine(DocsPath, "vat_returns.md"));
         VerifyEndpoint<VatReturnsRoot>(markdown, "GET https://api.freeagent.com/v2/vat_returns");
         VerifyEndpoint<VatReturnRoot>(markdown, "GET https://api.freeagent.com/v2/vat_returns/:period_ends_on");
+        VerifyEndpoint<VatReturnRoot>(markdown, "PUT https://api.freeagent.com/v2/vat_returns/:period_ends_on/mark_as_filed");
     }
 
     private void VerifyEndpoint<T>(string markdown, string endpoint) where T : class
