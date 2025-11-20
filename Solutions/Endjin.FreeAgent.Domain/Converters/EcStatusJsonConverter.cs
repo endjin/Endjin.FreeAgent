@@ -39,6 +39,7 @@ public class EcStatusJsonConverter : JsonConverter<EcStatus?>
             "EC Goods" => EcStatus.EcGoods,
             "EC Services" => EcStatus.EcServices,
             "Reverse Charge" => EcStatus.ReverseCharge,
+            "EC VAT MOSS" => EcStatus.EcVatMoss,
             _ => throw new JsonException($"Unable to convert '{value}' to EcStatus enum")
         };
     }
@@ -58,6 +59,7 @@ public class EcStatusJsonConverter : JsonConverter<EcStatus?>
             EcStatus.EcGoods => "EC Goods",
             EcStatus.EcServices => "EC Services",
             EcStatus.ReverseCharge => "Reverse Charge",
+            EcStatus.EcVatMoss => "EC VAT MOSS",
             _ => throw new JsonException($"Unknown EcStatus value: {value}")
         };
 

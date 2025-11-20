@@ -156,11 +156,11 @@ public class CompanyTests
             CisContractor = false,
             CreatedAt = new DateTime(2020, 1, 1, 10, 0, 0, DateTimeKind.Utc),
             UpdatedAt = new DateTime(2024, 1, 1, 15, 30, 0, DateTimeKind.Utc),
-            SalesTaxRates = new List<SalesTaxRate>
+            SalesTaxRates = new List<decimal>
             {
-                new() { Rate = 20.0m, Description = "Standard Rate", ValidFrom = new DateOnly(2020, 1, 1), ValidTo = null },
-                new() { Rate = 5.0m, Description = "Reduced Rate", ValidFrom = new DateOnly(2020, 1, 1), ValidTo = null },
-                new() { Rate = 0.0m, Description = "Zero Rate", ValidFrom = new DateOnly(2020, 1, 1), ValidTo = null }
+                20.0m,
+                5.0m,
+                0.0m
             },
             AnnualAccountingPeriods = new List<AnnualAccountingPeriod>
             {
@@ -244,10 +244,9 @@ public class CompanyTests
         // Assert - Complex collections
         result.SalesTaxRates.ShouldNotBeNull();
         result.SalesTaxRates!.Count.ShouldBe(3);
-        result.SalesTaxRates[0].Rate.ShouldBe(20.0m);
-        result.SalesTaxRates[0].Description.ShouldBe("Standard Rate");
-        result.SalesTaxRates[1].Rate.ShouldBe(5.0m);
-        result.SalesTaxRates[2].Rate.ShouldBe(0.0m);
+        result.SalesTaxRates[0].ShouldBe(20.0m);
+        result.SalesTaxRates[1].ShouldBe(5.0m);
+        result.SalesTaxRates[2].ShouldBe(0.0m);
 
         result.AnnualAccountingPeriods.ShouldNotBeNull();
         result.AnnualAccountingPeriods!.Count.ShouldBe(3);

@@ -78,7 +78,7 @@ public class RoleJsonConverterTests
     }
 
     [TestMethod]
-    public void RoleConverter_SerializesCompanySecretary_AsSnakeCase()
+    public void RoleConverter_SerializesCompanySecretary_AsTitleCase()
     {
         // Arrange
         TestRole obj = new() { Role = Role.CompanySecretary };
@@ -87,11 +87,11 @@ public class RoleJsonConverterTests
         string json = JsonSerializer.Serialize(obj, options);
 
         // Assert
-        json.ShouldContain("\"role\":\"company_secretary\"");
+        json.ShouldContain("\"role\":\"Company Secretary\"");
     }
 
     [TestMethod]
-    public void RoleConverter_SerializesEmployee_AsLowercase()
+    public void RoleConverter_SerializesEmployee_AsTitleCase()
     {
         // Arrange
         TestRole obj = new() { Role = Role.Employee };
@@ -100,7 +100,7 @@ public class RoleJsonConverterTests
         string json = JsonSerializer.Serialize(obj, options);
 
         // Assert
-        json.ShouldContain("\"role\":\"employee\"");
+        json.ShouldContain("\"role\":\"Employee\"");
     }
 
     [TestMethod]

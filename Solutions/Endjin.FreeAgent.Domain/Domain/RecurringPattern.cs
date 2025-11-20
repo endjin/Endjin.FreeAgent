@@ -25,6 +25,11 @@ public enum RecurringPattern
     FourWeekly,
 
     /// <summary>
+    /// Expense recurs every month.
+    /// </summary>
+    Monthly,
+
+    /// <summary>
     /// Expense recurs every two months.
     /// </summary>
     TwoMonthly,

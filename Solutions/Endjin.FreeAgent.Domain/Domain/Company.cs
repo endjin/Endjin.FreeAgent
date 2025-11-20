@@ -301,12 +301,11 @@ public record Company
     /// Gets the collection of applicable sales tax rates for this company.
     /// </summary>
     /// <value>
-    /// A list of <see cref="SalesTaxRate"/> objects representing the various tax rates that apply to this company's transactions.
+    /// A list of sales tax rates (percentages) applicable to this company's transactions.
     /// </value>
-    /// <seealso cref="SalesTaxRate"/>
     [JsonPropertyName("sales_tax_rates")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<SalesTaxRate>? SalesTaxRates { get; init; }
+    public List<decimal>? SalesTaxRates { get; init; }
 
     /// <summary>
     /// Gets the name of the sales tax applicable to this company.
@@ -374,11 +373,11 @@ public record Company
     /// Gets the collection of second sales tax rates (for US and Universal companies).
     /// </summary>
     /// <value>
-    /// A list of second sales tax rates for jurisdictions with multiple taxes.
+    /// A list of second sales tax rates (percentages) for jurisdictions with multiple taxes.
     /// </value>
     [JsonPropertyName("second_sales_tax_rates")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<SalesTaxRate>? SecondSalesTaxRates { get; init; }
+    public List<decimal>? SecondSalesTaxRates { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the second sales tax is compound (for US and Universal companies).

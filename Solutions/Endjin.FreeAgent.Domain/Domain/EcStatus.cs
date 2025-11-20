@@ -33,5 +33,10 @@ public enum EcStatus
     /// <summary>
     /// Indicates the expense is subject to reverse charge VAT.
     /// </summary>
-    ReverseCharge
+    ReverseCharge,
+
+    /// <summary>
+    /// Indicates the expense is subject to EC VAT MOSS.
+    /// </summary>
+    EcVatMoss
 }

@@ -33,19 +33,22 @@ public class CompanyTypeJsonConverter : JsonConverter<CompanyType?>
             return null;
         }
 
-        return value switch
+        // Normalize: lowercase and remove underscores to handle both snake_case and PascalCase
+        string normalized = value.ToLowerInvariant().Replace("_", "");
+
+        return normalized switch
         {
-            "uk_limited_company" => CompanyType.UkLimitedCompany,
-            "uk_limited_liability_partnership" => CompanyType.UkLimitedLiabilityPartnership,
-            "uk_partnership" => CompanyType.UkPartnership,
-            "uk_sole_trader" => CompanyType.UkSoleTrader,
-            "uk_unincorporated_landlord" => CompanyType.UkUnincorporatedLandlord,
-            "us_limited_liability_company" => CompanyType.UsLimitedLiabilityCompany,
-            "us_partnership" => CompanyType.UsPartnership,
-            "us_sole_proprietor" => CompanyType.UsSoleProprietor,
-            "us_c_corp" => CompanyType.UsCCorp,
-            "us_s_corp" => CompanyType.UsSCorp,
-            "universal_company" => CompanyType.UniversalCompany,
+            "uklimitedcompany" => CompanyType.UkLimitedCompany,
+            "uklimitedliabilitypartnership" => CompanyType.UkLimitedLiabilityPartnership,
+            "ukpartnership" => CompanyType.UkPartnership,
+            "uksoletrader" => CompanyType.UkSoleTrader,
+            "ukunincorporatedlandlord" => CompanyType.UkUnincorporatedLandlord,
+            "uslimitedliabilitycompany" => CompanyType.UsLimitedLiabilityCompany,
+            "uspartnership" => CompanyType.UsPartnership,
+            "ussoleproprietor" => CompanyType.UsSoleProprietor,
+            "usccorp" => CompanyType.UsCCorp,
+            "usscorp" => CompanyType.UsSCorp,
+            "universalcompany" => CompanyType.UniversalCompany,
             _ => throw new JsonException($"Unknown company type value: {value}")
         };
     }
@@ -61,17 +64,17 @@ public class CompanyTypeJsonConverter : JsonConverter<CompanyType?>
 
         string stringValue = value switch
         {
-            CompanyType.UkLimitedCompany => "uk_limited_company",
-            CompanyType.UkLimitedLiabilityPartnership => "uk_limited_liability_partnership",
-            CompanyType.UkPartnership => "uk_partnership",
-            CompanyType.UkSoleTrader => "uk_sole_trader",
-            CompanyType.UkUnincorporatedLandlord => "uk_unincorporated_landlord",
-            CompanyType.UsLimitedLiabilityCompany => "us_limited_liability_company",
-            CompanyType.UsPartnership => "us_partnership",
-            CompanyType.UsSoleProprietor => "us_sole_proprietor",
-            CompanyType.UsCCorp => "us_c_corp",
-            CompanyType.UsSCorp => "us_s_corp",
-            CompanyType.UniversalCompany => "universal_company",
+            CompanyType.UkLimitedCompany => "UkLimitedCompany",
+            CompanyType.UkLimitedLiabilityPartnership => "UkLimitedLiabilityPartnership",
+            CompanyType.UkPartnership => "UkPartnership",
+            CompanyType.UkSoleTrader => "UkSoleTrader",
+            CompanyType.UkUnincorporatedLandlord => "UkUnincorporatedLandlord",
+            CompanyType.UsLimitedLiabilityCompany => "UsLimitedLiabilityCompany",
+            CompanyType.UsPartnership => "UsPartnership",
+            CompanyType.UsSoleProprietor => "UsSoleProprietor",
+            CompanyType.UsCCorp => "UsCCorp",
+            CompanyType.UsSCorp => "UsSCorp",
+            CompanyType.UniversalCompany => "UniversalCompany",
             _ => throw new JsonException($"Unknown company type enum value: {value}")
         };
 
