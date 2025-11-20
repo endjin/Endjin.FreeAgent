@@ -42,7 +42,6 @@ public class CapitalAssetsTests
         this.capitalAssets = new CapitalAssets(this.freeAgentClient, this.cache);
     }
 
-
     [TestMethod]
     public async Task GetAllAsync_WithoutParameters_ReturnsAllAssets()
     {
@@ -136,7 +135,7 @@ public class CapitalAssetsTests
                 PurchasedOn = new DateOnly(2024, 1, 15),
                 CapitalAssetHistory =
                 [
-                    new()
+                    new CapitalAssetHistoryEvent
                     {
                         Type = "purchase",
                         Description = "Initial purchase",
@@ -217,14 +216,14 @@ public class CapitalAssetsTests
             PurchasedOn = new DateOnly(2024, 1, 10),
             CapitalAssetHistory =
             [
-                new()
+                new CapitalAssetHistoryEvent
                 {
                     Type = "purchase",
                     Description = "Vehicle purchase",
                     Date = new DateOnly(2024, 1, 10),
                     Value = 25000.00m
                 },
-                new()
+                new CapitalAssetHistoryEvent
                 {
                     Type = "depreciation",
                     Description = "Annual depreciation",
@@ -352,14 +351,14 @@ public class CapitalAssetsTests
                 DisposedOn = new DateOnly(2024, 12, 31),
                 CapitalAssetHistory =
                 [
-                    new()
+                    new CapitalAssetHistoryEvent
                     {
                         Type = "purchase",
                         Description = "Initial purchase",
                         Date = new DateOnly(2024, 1, 15),
                         Value = 1200.00m
                     },
-                    new()
+                    new CapitalAssetHistoryEvent
                     {
                         Type = "disposal",
                         Description = "Asset disposal",
