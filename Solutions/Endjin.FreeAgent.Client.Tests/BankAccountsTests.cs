@@ -88,6 +88,54 @@ public class BankAccountsTests
     }
 
     [TestMethod]
+    public async Task CreateAsync_WithPayPalAccount_IncludesEmailField()
+    {
+        // Arrange
+        BankAccount inputAccount = new()
+        {
+            Type = "PaypalAccount",
+            Name = "PayPal Business Account",
+            Email = "business@example.com",
+            BankName = "PayPal",
+            AccountNumber = "1234",
+            Currency = "GBP"
+        };
+
+        BankAccount responseAccount = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/bank_accounts/456"),
+            Type = "PaypalAccount",
+            Name = "PayPal Business Account",
+            Email = "business@example.com",
+            BankName = "PayPal",
+            Currency = "GBP",
+            CurrentBalance = 500.00m
+        };
+
+        BankAccountRoot responseRoot = new() { BankAccount = responseAccount };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        BankAccount result = await this.bankAccounts.CreateAsync(inputAccount);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Name.ShouldBe("PayPal Business Account");
+        result.Type.ShouldBe("PaypalAccount");
+        result.Email.ShouldBe("business@example.com");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenPostRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/bank_accounts");
+    }
+
+    [TestMethod]
     public async Task GetAllAsync_ReturnsAllBankAccounts()
     {
         // Arrange
@@ -116,6 +164,37 @@ public class BankAccountsTests
         // Mock Verification
         this.messageHandler.ShouldHaveBeenCalledOnce();
         this.messageHandler.ShouldHaveBeenGetRequest();
+    }
+
+    [TestMethod]
+    public async Task GetAllAsync_WithViewFilter_IncludesFilterInRequest()
+    {
+        // Arrange
+        List<BankAccount> accountsList =
+        [
+            new() { Name = "PayPal Account", Type = "PaypalAccount", Email = "business@example.com", CurrentBalance = 250.00m }
+        ];
+
+        BankAccountsRoot responseRoot = new() { BankAccounts = accountsList };
+        string responseJson = JsonSerializer.Serialize(responseRoot, SharedJsonOptions.Instance);
+
+        this.messageHandler.Response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+        };
+
+        // Act
+        IEnumerable<BankAccount> result = await this.bankAccounts.GetAllAsync("paypal_accounts");
+
+        // Assert
+        result.Count().ShouldBe(1);
+        result.First().Name.ShouldBe("PayPal Account");
+        result.First().Type.ShouldBe("PaypalAccount");
+
+        // Mock Verification
+        this.messageHandler.ShouldHaveBeenCalledOnce();
+        this.messageHandler.ShouldHaveBeenGetRequest();
+        this.messageHandler.ShouldHaveBeenCalledWithUri("/v2/bank_accounts?view=paypal_accounts");
     }
 
     [TestMethod]

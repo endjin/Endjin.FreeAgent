@@ -75,6 +75,17 @@ public class ContactTests
     }
 
     [TestMethod]
+    public void Contact_WithAccountBalance_StoresBalanceCorrectly()
+    {
+        // Arrange & Act
+        Contact contact = new ContactBuilder()
+            .WithAccountBalance(1234.56m);
+
+        // Assert
+        contact.AccountBalance.ShouldBe(1234.56m);
+    }
+
+    [TestMethod]
     public void Contact_WithNullableProperties_HandlesNullsCorrectly()
     {
         // Arrange & Act

@@ -2,119 +2,116 @@
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
-using System.Text;
 using System.Net.Http.Json;
-
 using Endjin.FreeAgent.Domain;
 
 namespace Endjin.FreeAgent.Client;
 
+/// <summary>
+/// Provides methods for accessing payroll profiles via the FreeAgent API.
+/// </summary>
+/// <remarks>
+/// <para>
+/// This service class provides read-only access to FreeAgent payroll profiles for UK companies.
+/// Payroll profiles contain employee personal information relevant for RTI (Real Time Information)
+/// reporting to HMRC, including address details, demographic information, and previous employment data.
+/// </para>
+/// <para>
+/// The API uses UK tax years (April to March). When specifying a year parameter, use the
+/// tax year end (e.g., 2026 for the tax year April 2025 - March 2026).
+/// </para>
+/// <para>
+/// Results are cached for 5 minutes to reduce API calls while maintaining reasonably current data.
+/// </para>
+/// <para>
+/// Minimum Access Level: Tax and Limited Accounting. Only available for UK companies.
+/// </para>
+/// </remarks>
+/// <seealso cref="PayrollProfile"/>
+/// <seealso cref="User"/>
 public class PayrollProfiles
 {
     private readonly FreeAgentClient client;
     private readonly IMemoryCache cache;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PayrollProfiles"/> class.
+    /// </summary>
+    /// <param name="client">The FreeAgent HTTP client for making API requests.</param>
+    /// <param name="cache">The memory cache for storing payroll profile data.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="client"/> or <paramref name="cache"/> is null.</exception>
     public PayrollProfiles(FreeAgentClient client, IMemoryCache cache)
     {
         this.client = client ?? throw new ArgumentNullException(nameof(client));
         this.cache = cache ?? throw new ArgumentNullException(nameof(cache));
     }
 
-    public async Task<IEnumerable<PayrollProfile>> GetAllAsync()
+    /// <summary>
+    /// Retrieves all payroll profiles for a specific tax year.
+    /// </summary>
+    /// <param name="year">The tax year end (e.g., 2026 for April 2025 - March 2026).</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// all <see cref="PayrollProfile"/> objects for the specified tax year.
+    /// </returns>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/payroll_profiles/{year} and caches the result for 5 minutes.
+    /// </remarks>
+    public async Task<IEnumerable<PayrollProfile>> GetAllAsync(int year)
     {
-        await this.client.InitializeAndAuthorizeAsync();
+        await this.client.InitializeAndAuthorizeAsync().ConfigureAwait(false);
 
-        string cacheKey = "payroll_profiles_all";
+        string cacheKey = $"payroll_profiles_{year}";
 
         if (this.cache.TryGetValue(cacheKey, out IEnumerable<PayrollProfile>? cached))
         {
             return cached!;
         }
 
-        HttpResponseMessage response = await this.client.HttpClient.GetAsync(new Uri(this.client.ApiBaseUrl, "/v2/payroll_profiles"));
+        HttpResponseMessage response = await this.client.HttpClient.GetAsync(
+            new Uri(this.client.ApiBaseUrl, $"v2/payroll_profiles/{year}")).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        PayrollProfilesRoot? root = await response.Content.ReadFromJsonAsync<PayrollProfilesRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+        PayrollProfilesRoot? root = await response.Content.ReadFromJsonAsync<PayrollProfilesRoot>(
+            SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
 
-        IEnumerable<PayrollProfile> profiles = root?.PayrollProfiles ?? [];
+        IEnumerable<PayrollProfile> profiles = root?.Profiles ?? [];
 
-        this.cache.Set(cacheKey, profiles, TimeSpan.FromMinutes(30));
+        this.cache.Set(cacheKey, profiles, TimeSpan.FromMinutes(5));
 
         return profiles;
     }
 
-    public async Task<PayrollProfile> GetAsync(long id)
+    /// <summary>
+    /// Retrieves a payroll profile for a specific user in a tax year.
+    /// </summary>
+    /// <param name="year">The tax year end (e.g., 2026 for April 2025 - March 2026).</param>
+    /// <param name="userUrl">The URL of the user whose payroll profile to retrieve.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> representing the asynchronous operation, containing a collection of
+    /// <see cref="PayrollProfile"/> objects for the specified user in the tax year.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="userUrl"/> is null.</exception>
+    /// <exception cref="HttpRequestException">Thrown when the API request fails.</exception>
+    /// <remarks>
+    /// This method calls GET /v2/payroll_profiles/{year}?user={url} to retrieve the payroll profile
+    /// for a specific user. Results are not cached as they are typically requested on-demand.
+    /// </remarks>
+    public async Task<IEnumerable<PayrollProfile>> GetByUserAsync(int year, Uri userUrl)
     {
-        await this.client.InitializeAndAuthorizeAsync();
+        ArgumentNullException.ThrowIfNull(userUrl);
 
-        string cacheKey = $"payroll_profile_{id}";
+        await this.client.InitializeAndAuthorizeAsync().ConfigureAwait(false);
 
-        if (this.cache.TryGetValue(cacheKey, out PayrollProfile? cached))
-        {
-            return cached!;
-        }
-
-        HttpResponseMessage response = await this.client.HttpClient.GetAsync(new Uri(this.client.ApiBaseUrl, $"/v2/payroll_profiles/{id}"));
+        string encodedUserUrl = Uri.EscapeDataString(userUrl.ToString());
+        HttpResponseMessage response = await this.client.HttpClient.GetAsync(
+            new Uri(this.client.ApiBaseUrl, $"v2/payroll_profiles/{year}?user={encodedUserUrl}")).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        PayrollProfileRoot? root = await response.Content.ReadFromJsonAsync<PayrollProfileRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
+        PayrollProfilesRoot? root = await response.Content.ReadFromJsonAsync<PayrollProfilesRoot>(
+            SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
 
-        PayrollProfile? profile = root?.PayrollProfile;
-
-        if (profile == null)
-        {
-            throw new InvalidOperationException($"PayrollProfile {id} not found");
-        }
-
-        this.cache.Set(cacheKey, profile, TimeSpan.FromMinutes(30));
-
-        return profile;
-    }
-
-    public async Task<PayrollProfile> CreateAsync(PayrollProfile profile)
-    {
-        await this.client.InitializeAndAuthorizeAsync();
-
-        PayrollProfileRoot root = new() { PayrollProfile = profile };
-        string json = JsonSerializer.Serialize(root, SharedJsonOptions.Instance);
-
-        HttpResponseMessage response = await this.client.HttpClient.PostAsync(new Uri(this.client.ApiBaseUrl, "/v2/payroll_profiles"), new StringContent(json, Encoding.UTF8, "application/json"));
-        response.EnsureSuccessStatusCode();
-
-        PayrollProfileRoot? result = await response.Content.ReadFromJsonAsync<PayrollProfileRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
-
-        return result?.PayrollProfile ?? throw new InvalidOperationException("Failed to create payroll profile");
-    }
-
-    public async Task<PayrollProfile> UpdateAsync(long id, PayrollProfile profile)
-    {
-        await this.client.InitializeAndAuthorizeAsync();
-
-        PayrollProfileRoot root = new() { PayrollProfile = profile };
-        string json = JsonSerializer.Serialize(root, SharedJsonOptions.Instance);
-
-        HttpResponseMessage response = await this.client.HttpClient.PutAsync(
-            new Uri(this.client.ApiBaseUrl, $"/v2/payroll_profiles/{id}"),
-            new StringContent(json, Encoding.UTF8, "application/json"));
-        response.EnsureSuccessStatusCode();
-
-        PayrollProfileRoot? result = await response.Content.ReadFromJsonAsync<PayrollProfileRoot>(SharedJsonOptions.SourceGenOptions).ConfigureAwait(false);
-
-        this.cache.Remove($"payroll_profile_{id}");
-        this.cache.Remove("payroll_profiles_all");
-
-        return result?.PayrollProfile ?? throw new InvalidOperationException("Failed to update payroll profile");
-    }
-
-    public async Task DeleteAsync(long id)
-    {
-        await this.client.InitializeAndAuthorizeAsync();
-
-        HttpResponseMessage response = await this.client.HttpClient.DeleteAsync(
-            new Uri(this.client.ApiBaseUrl, $"/v2/payroll_profiles/{id}"));
-        response.EnsureSuccessStatusCode();
-
-        this.cache.Remove($"payroll_profile_{id}");
-        this.cache.Remove("payroll_profiles_all");
+        return root?.Profiles ?? [];
     }
 }

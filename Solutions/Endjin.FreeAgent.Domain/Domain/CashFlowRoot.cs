@@ -4,8 +4,21 @@
 
 namespace Endjin.FreeAgent.Domain;
 
+/// <summary>
+/// Represents the root-level JSON response wrapper for a <see cref="Domain.CashFlow"/> resource.
+/// </summary>
+/// <remarks>
+/// This wrapper type is used for JSON deserialization of FreeAgent API responses that return a single cash flow report.
+/// </remarks>
+/// <seealso cref="CashFlow"/>
 public record CashFlowRoot
 {
-    [JsonPropertyName("cash_flow")]
+    /// <summary>
+    /// Gets the cash flow report from the API response.
+    /// </summary>
+    /// <value>
+    /// The <see cref="Domain.CashFlow"/> object returned by the API.
+    /// </value>
+    [JsonPropertyName("cashflow")]
     public CashFlow? CashFlow { get; init; }
 }

@@ -177,10 +177,15 @@ public class HttpResponseMessageExtensionsTests
         // Arrange
         Project testData = new()
         {
+            Contact = new Uri("https://api.freeagent.com/v2/contacts/1"),
             Name = "Test Project",
+            Status = "Active",
+            Currency = "GBP",
+            BudgetUnits = "Hours",
+            Budget = 10000.00m,
+            UsesProjectInvoiceSequence = false,
             NormalBillingRate = 125.50m,
-            HoursPerDay = 7.5m,
-            Budget = 10000.00m
+            HoursPerDay = 7.5m
         };
 
         string jsonContent = JsonSerializer.Serialize(testData, SharedJsonOptions.Instance);

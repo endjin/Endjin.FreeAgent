@@ -11,6 +11,7 @@ public class FreeAgentOptionsBuilder
     private string clientId = "test_client_id";
     private string clientSecret = "test_client_secret";
     private string refreshToken = "test_refresh_token";
+    private bool useSandbox;
 
     public FreeAgentOptionsBuilder WithClientId(string clientId)
     {
@@ -48,11 +49,18 @@ public class FreeAgentOptionsBuilder
         return this;
     }
 
+    public FreeAgentOptionsBuilder WithUseSandbox(bool useSandbox = true)
+    {
+        this.useSandbox = useSandbox;
+        return this;
+    }
+
     public FreeAgentOptions Build() => new()
     {
         ClientId = this.clientId,
         ClientSecret = this.clientSecret,
-        RefreshToken = this.refreshToken
+        RefreshToken = this.refreshToken,
+        UseSandbox = this.useSandbox
     };
 
     public static implicit operator FreeAgentOptions(FreeAgentOptionsBuilder builder) => builder.Build();

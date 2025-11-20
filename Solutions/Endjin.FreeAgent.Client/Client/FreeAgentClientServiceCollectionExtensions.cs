@@ -8,14 +8,52 @@ using Microsoft.Extensions.Logging;
 
 namespace Endjin.FreeAgent.Client;
 
+/// <summary>
+/// Extension methods for registering FreeAgent client services in the dependency injection container.
+/// </summary>
+/// <remarks>
+/// This class provides extension methods to simplify the registration of the <see cref="FreeAgentClient"/>
+/// and its dependencies in the ASP.NET Core or .NET Generic Host dependency injection container.
+/// </remarks>
 public static class FreeAgentClientServiceCollectionExtensions
 {
     /// <summary>
-    /// Extension methods for adding FreeAgent client services to the services container.
+    /// Adds FreeAgent client services to the dependency injection container using configuration.
     /// </summary>
-    /// <param name="services">The collection to add the services to.</param>
-    /// <param name="configuration">The configuration instance.</param>
-    /// <returns>The <see cref="IServiceCollection" /> with the FreeAgent services added.</returns>
+    /// <param name="services">The service collection to add the services to.</param>
+    /// <param name="configuration">The configuration instance containing FreeAgent settings.</param>
+    /// <returns>The <see cref="IServiceCollection"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method registers the following services:
+    /// <list type="bullet">
+    /// <item><description><see cref="FreeAgentOptions"/> configured from the "FreeAgent" configuration section</description></item>
+    /// <item><description><see cref="FreeAgentOptionsValidator"/> for validating options at startup</description></item>
+    /// <item><description><see cref="IHttpClientFactory"/> for creating HTTP clients</description></item>
+    /// <item><description><see cref="FreeAgentClient"/> as a singleton</description></item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// Example appsettings.json configuration:
+    /// <code>
+    /// {
+    ///   "FreeAgent": {
+    ///     "ClientId": "your-client-id",
+    ///     "ClientSecret": "your-client-secret",
+    ///     "RefreshToken": "your-refresh-token"
+    ///   }
+    /// }
+    /// </code>
+    /// </para>
+    /// <para>
+    /// Usage in Program.cs or Startup.cs:
+    /// <code>
+    /// services.AddFreeAgentClientServices(configuration);
+    /// </code>
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="FreeAgentOptions"/>
+    /// <seealso cref="FreeAgentClient"/>
     public static IServiceCollection AddFreeAgentClientServices(this IServiceCollection services, IConfiguration configuration)
     {
         // Configure the FreeAgentOptions from configuration
@@ -44,11 +82,39 @@ public static class FreeAgentClientServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Extension methods for adding FreeAgent client services with explicit options.
+    /// Adds FreeAgent client services to the dependency injection container using an action to configure options.
     /// </summary>
-    /// <param name="services">The collection to add the services to.</param>
-    /// <param name="configureOptions">Action to configure the FreeAgent options.</param>
-    /// <returns>The <see cref="IServiceCollection" /> with the FreeAgent services added.</returns>
+    /// <param name="services">The service collection to add the services to.</param>
+    /// <param name="configureOptions">An action to configure the <see cref="FreeAgentOptions"/> programmatically.</param>
+    /// <returns>The <see cref="IServiceCollection"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This overload allows you to configure options programmatically instead of using configuration files.
+    /// It registers the same services as <see cref="AddFreeAgentClientServices(IServiceCollection, IConfiguration)"/>.
+    /// </para>
+    /// <para>
+    /// Usage example:
+    /// <code>
+    /// services.AddFreeAgentClientServices(options =>
+    /// {
+    ///     options.ClientId = "your-client-id";
+    ///     options.ClientSecret = "your-client-secret";
+    ///     options.RefreshToken = "your-refresh-token";
+    /// });
+    /// </code>
+    /// </para>
+    /// <para>
+    /// This approach is useful for:
+    /// <list type="bullet">
+    /// <item><description>Setting credentials from environment variables</description></item>
+    /// <item><description>Using secrets management services</description></item>
+    /// <item><description>Testing scenarios with mock credentials</description></item>
+    /// <item><description>Dynamic configuration based on runtime conditions</description></item>
+    /// </list>
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="FreeAgentOptions"/>
+    /// <seealso cref="FreeAgentClient"/>
     public static IServiceCollection AddFreeAgentClientServices(this IServiceCollection services, Action<FreeAgentOptions> configureOptions)
     {
         // Configure the FreeAgentOptions using the provided action

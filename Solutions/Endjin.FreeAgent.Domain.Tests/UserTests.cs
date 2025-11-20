@@ -67,7 +67,7 @@ public class UserTests
 
         // Assert
         owner.Role.ShouldBe(Role.Owner);
-        owner.PermissionLevel.ShouldBe(10);
+        owner.PermissionLevel.ShouldBe(8); // Full Access (valid range is 0-8)
 
         director.Role.ShouldBe(Role.Director);
         director.PermissionLevel.ShouldBe(8);
@@ -127,11 +127,11 @@ public class UserTests
         // Arrange & Act
         User user = new()
         {
-            OpeningMileage = "12500"
+            OpeningMileage = 12500.5m
         };
 
         // Assert
-        user.OpeningMileage.ShouldBe("12500");
+        user.OpeningMileage.ShouldBe(12500.5m);
     }
 
     [TestMethod]
@@ -197,5 +197,53 @@ public class UserTests
         result.ShouldContain("FirstName = Jane");
         result.ShouldContain("LastName = Doe");
         result.ShouldContain("Email = jane@example.com");
+    }
+
+    [TestMethod]
+    public void User_WithUniqueTaxReference_StoresTenDigitUtr()
+    {
+        // Arrange & Act
+        User user = new()
+        {
+            UniqueTaxReference = "1234567890"
+        };
+
+        // Assert
+        user.UniqueTaxReference.ShouldBe("1234567890");
+    }
+
+    [TestMethod]
+    public void User_WithSendInvitation_StoresInvitationFlag()
+    {
+        // Arrange & Act
+        User user = new()
+        {
+            SendInvitation = true
+        };
+
+        // Assert
+        user.SendInvitation.ShouldBe(true);
+    }
+
+    [TestMethod]
+    public void User_WithCurrentPayrollProfile_StoresPayrollData()
+    {
+        // Arrange
+        UserPayrollProfile payrollProfile = new()
+        {
+            TotalPayInPreviousEmployment = 25000.00m,
+            TotalTaxInPreviousEmployment = 5000.00m
+        };
+
+        // Act
+        User user = new()
+        {
+            CurrentPayrollProfile = payrollProfile
+        };
+
+        // Assert
+        user.CurrentPayrollProfile.ShouldNotBeNull();
+        user.CurrentPayrollProfile.TotalPayInPreviousEmployment.ShouldBe(25000.00m);
+        user.CurrentPayrollProfile.TotalTaxInPreviousEmployment.ShouldBe(5000.00m);
     }
 }
