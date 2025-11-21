@@ -73,13 +73,14 @@ using System.Collections.Immutable;
 // Create a new invoice
 Invoice invoice = new()
 {
-    Contact = "https://api.freeagent.com/v2/contacts/123",
+    Contact = new Uri("https://api.freeagent.com/v2/contacts/123"),
     DatedOn = DateOnly.FromDateTime(DateTime.Now),
     PaymentTermsInDays = 30,
     Currency = "GBP",
     Status = "Draft",
-    InvoiceItems = ImmutableList.Create(
-        new InvoiceItem
+    InvoiceItems = new List<InvoiceItem>
+    {
+        new()
         {
             Description = "Consulting Services",
             ItemType = "Services",
@@ -87,7 +88,7 @@ Invoice invoice = new()
             Price = 1000.00m,
             SalesTaxRate = 20.0m
         }
-    )
+    }
 };
 
 // Create a contact
@@ -105,7 +106,7 @@ Contact contact = new()
 Project project = new()
 {
     Name = "Website Development",
-    Contact = "https://api.freeagent.com/v2/contacts/123",
+    Contact = new Uri("https://api.freeagent.com/v2/contacts/123"),
     Status = "Active",
     Currency = "GBP",
     BudgetUnits = "Hours",
@@ -137,7 +138,7 @@ All models use strongly-typed properties with appropriate .NET types:
 - **DateOnly** for dates without time components
 - **DateTimeOffset** for timestamps with timezone information
 - **decimal** for monetary values
-- **ImmutableList<T>** for collections
+- **ImmutableList<T>** or **List<T>** for collections
 - **Uri** for API resource URLs
 
 ## Requirements
