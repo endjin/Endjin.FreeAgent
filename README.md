@@ -58,7 +58,7 @@ The solution consists of two core packages:
 Install the client library via NuGet:
 
 ```bash
-dotnet add package Endjin.FreeAgent.Client --version 1.0.0-preview.1
+dotnet add package Endjin.FreeAgent.Client
 ```
 
 The domain package is automatically included as a dependency.
@@ -80,12 +80,12 @@ services.AddLogging(builder => builder.AddConsole());
 ServiceProvider serviceProvider = services.BuildServiceProvider();
 
 // Configure client options
-FreeAgentClientOptions options = new()
+FreeAgentOptions options = new()
 {
     ClientId = "your-client-id",
     ClientSecret = "your-client-secret",
     RefreshToken = "your-refresh-token",
-    ApiUri = new Uri("https://api.freeagent.com/v2/")
+    UseSandbox = false // Set to true for sandbox environment
 };
 
 // Create client
@@ -98,308 +98,101 @@ FreeAgentClient client = new(options, cache, httpClientFactory, loggerFactory);
 // Use the client
 IEnumerable<Invoice> invoices = await client.Invoices.GetAllAsync();
 IEnumerable<Contact> contacts = await client.Contacts.GetAllActiveAsync();
-IEnumerable<Project> projects = await client.Projects.GetAllActiveAsync();
 ```
-## Sandbox Environment
 
-FreeAgent provides a sandbox environment for development and testing. The sandbox allows you to build and test integrations without affecting real production data.
+#### Interactive Authentication
 
-### Getting a Sandbox Account
-
-1. **Create a Sandbox Account**
-   - Visit [https://signup.sandbox.freeagent.com/signup](https://signup.sandbox.freeagent.com/signup)
-   - Create a free temporary FreeAgent account
-   - Complete the email confirmation process
-
-2. **Complete Company Setup**
-   - After signing in, complete all company setup stages
-   - **Important**: Incomplete setup will cause unexpected API errors
-
-3. **Create an App**
-   - Go to [https://dev.freeagent.com/](https://dev.freeagent.com/)
-   - Register your application
-   - Note your OAuth identifier (Client ID) and OAuth secret (Client Secret)
-
-### Sandbox API Endpoints
-
-The sandbox uses different base URLs from production:
-
-| Environment | API Base URL                            | Authorization Endpoint                             |
-|-------------|-----------------------------------------|----------------------------------------------------|
-| Sandbox     | `https://api.sandbox.freeagent.com/v2/` | `https://api.sandbox.freeagent.com/v2/approve_app` |
-| Production  | `https://api.freeagent.com/v2/`         | `https://api.freeagent.com/v2/approve_app`         |
-
-### Configuring the Client for Sandbox
-
-Using the `UseSandbox` property (automatically sets the correct API base URL):
-
-#### Interactive Login (Recommended for First-Time Setup)
-
-The easiest way to obtain access and refresh tokens is to use the interactive login flow:
+If you need to obtain a refresh token or support interactive user login:
 
 ```csharp
-using Endjin.FreeAgent.Client.OAuth2;
-using Microsoft.Extensions.Logging;
+// Create client with interactive authentication
+FreeAgentClient client = FreeAgentClient.CreateInteractive(
+    clientId: "your-client-id",
+    clientSecret: "your-client-secret",
+    useSandbox: false,
+    cache: cache,
+    httpClientFactory: httpClientFactory,
+    loggerFactory: loggerFactory);
 
-// Configure OAuth2 options
-OAuth2Options options = new()
-{
-    ClientId = "your-client-id",
-    ClientSecret = "your-client-secret",
-    UsePkce = true // Enable PKCE for enhanced security
-};
-
-// Create HTTP client and logger
-using var httpClient = new HttpClient();
-using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-var logger = loggerFactory.CreateLogger<InteractiveLoginHelper>();
-
-// Create the interactive login helper
-var loginHelper = new InteractiveLoginHelper(options, httpClient, logger);
-
-// Perform interactive login
-// This will open a browser window for authorization
-InteractiveLoginResult result = await loginHelper.LoginAsync(redirectPort: 5000);
-
-Console.WriteLine($"Access Token: {result.AccessToken}");
-Console.WriteLine($"Refresh Token: {result.RefreshToken}");
-Console.WriteLine($"Expires At: {result.ExpiresAt}");
-
-// Save the refresh token for future use
+// This will trigger the OAuth2 flow (opening browser, etc.) on first API call
+IEnumerable<Invoice> invoices = await client.Invoices.GetAllAsync();
 ```
 
-The interactive login flow will:
-1. Start a local HTTP listener on the specified port (default: 5000)
-2. Open your browser to the FreeAgent authorization page
-3. Wait for the OAuth callback with the authorization code
-4. Automatically exchange the code for access and refresh tokens
-5. Return the tokens for you to save and use
+### Dependency Injection
 
-You can also use the DemoApp to perform interactive login:
-
-```bash
-cd Solutions/DemoApp
-dotnet run -- --interactive-login
-```
-
-#### Manual OAuth2 Flow
-
-For more control over the OAuth2 flow, you can use the OAuth2Service directly:
+The library provides extension methods for easy registration with `IServiceCollection`:
 
 ```csharp
-// Initialize OAuth2 service
-IOAuth2Service oauth2Service = new OAuth2Service(options, httpClient, cache, logger);
-
-// Exchange authorization code for tokens
-TokenResponse tokens = await oauth2Service.ExchangeAuthorizationCodeAsync(authorizationCode);
-
-// Refresh access token when needed
-string newAccessToken = await oauth2Service.RefreshAccessTokenAsync();
-// Configure for sandbox environment
-FreeAgentOptions options = new()
-{
-    ClientId = "your-sandbox-client-id",
-    ClientSecret = "your-sandbox-client-secret",
-    RefreshToken = "your-sandbox-refresh-token",
-    UseSandbox = true
-};
-
-FreeAgentClient client = new(options, cache, httpClientFactory, loggerFactory);
+// In Program.cs or Startup.cs
+builder.Services.AddFreeAgentClientServices(builder.Configuration);
 ```
 
-Or using the constructor with explicit credentials:
+Ensure your configuration (e.g., `appsettings.json`) contains the `FreeAgent` section:
 
-```csharp
-FreeAgentClient client = new(
-    clientId,
-    clientSecret,
-    refreshToken,
-    cache,
-    httpClientFactory,
-    loggerFactory,
-    useSandbox: true);
-```
-
-Or via configuration:
-
-```json
-{
-  "FreeAgent": {
-    "ClientId": "your-sandbox-client-id",
-    "ClientSecret": "your-sandbox-client-secret",
-    "RefreshToken": "your-sandbox-refresh-token",
-    "UseSandbox": true
-  }
-}
-```
-
-> **Note**: The `ApiBaseUrl` property is automatically computed based on `UseSandbox`. You don't need to specify the URL manually.
-
-### Testing Rate Limits
-
-The sandbox supports the same rate limits as production (120 requests/minute, 3600 requests/hour). To test your rate limit handling with artificially lowered limits (5 requests/minute), use the test header:
-
-```bash
-curl -H "X-RateLimit-Test: true" \
-     -H "Authorization: Bearer {token}" \
-     https://api.sandbox.freeagent.com/v2/company
-```
-
-### Sandbox Limitations
-
-- **Trial Duration**: Sandbox accounts have a 30-day free trial (extensions available on request)
-- **No Pre-populated Data**: You must create all test data manually
-- **Periodic Resets**: Sandbox accounts may be periodically reset
-- **No Production Sync**: Sandbox accounts are not linked to production accounts
-
-### Best Practices
-
-- Complete company setup before making API calls
-- Use separate OAuth credentials for sandbox and production
-- Test OAuth2 token refresh flows thoroughly
-- Test error handling and rate limit back-off strategies
-- Don't rely on persistent test data due to potential resets
-
-## Building from Source
-
-### Clone the Repository
-
-```bash
-git clone https://github.com/endjin/Endjin.FreeAgent.git
-cd Endjin.FreeAgent
-```
-
-### Build the Solution
-
-```bash
-cd Solutions
-dotnet build Endjin.FreeAgent.slnx
-```
-
-### Run Tests
-
-```bash
-dotnet test Endjin.FreeAgent.slnx
-```
-
-## Demo Application
-
-The repository includes a comprehensive demo application showcasing various client features:
-
-### Interactive Login Mode (Get Your First Tokens)
-
-If you don't have a refresh token yet, use interactive login mode:
-
-```bash
-cd Solutions/DemoApp
-dotnet run -- --interactive-login
-# or
-dotnet run -- -i
-```
-
-To use the **Sandbox** environment, add the `--sandbox` flag:
-
-```bash
-dotnet run -- --interactive-login --sandbox
-# or
-dotnet run -- -i -s
-```
-
-This will:
-1. Open your browser to authorize the application with FreeAgent
-2. Automatically receive and display your access and refresh tokens
-3. Launch the interactive demo menu immediately
-
-You only need ClientId and ClientSecret in your appsettings.json for this mode, or you can enter them when prompted.
-
-### Standard Mode (Using Existing Refresh Token)
-
-Once you have a refresh token configured, run the demo app normally:
-
-```bash
-cd Solutions/DemoApp
-dotnet run
-```
-
-To run against the **Sandbox** environment in standard mode:
-
-```bash
-dotnet run -- --sandbox
-```
-
-You can also view help for the CLI:
-
-```bash
-dotnet run -- --help
-```
-
-The demo app demonstrates:
-- Interactive OAuth2 authentication flow
-- Token refresh and management
-- Fetching and displaying various resources
-- Creating and updating entities
-- Error handling and retry logic
-- **Rich CLI experience using Spectre.Console**
-
-### Configuration
-
-The demo app supports multiple configuration methods:
-
-#### Option 1: appsettings.json
-
-Create an `appsettings.json` file in the DemoApp directory:
-
-For interactive login (first time):
-```json
-{
-  "FreeAgent": {
-    "ClientId": "your-client-id",
-    "ClientSecret": "your-client-secret"
-  }
-}
-```
-
-For standard mode (with existing refresh token):
 ```json
 {
   "FreeAgent": {
     "ClientId": "your-client-id",
     "ClientSecret": "your-client-secret",
-    "RefreshToken": "your-refresh-token"
+    "RefreshToken": "your-refresh-token",
+    "UseSandbox": false
   }
 }
 ```
 
-#### Option 2: Environment Variables
+## Demo Application
 
-Set the following environment variables:
+The solution includes a CLI demo application (`DemoApp`) that showcases the library's capabilities. It uses [Spectre.Console](https://spectreconsole.net/) for a rich terminal experience.
+
+### Running the Demo App
+
+You can run the demo app from the command line. It supports both standard (configured) mode and interactive login mode.
+
+#### Standard Mode (using configuration)
+
+If you have your credentials configured in `appsettings.json` or User Secrets:
 
 ```bash
-# Linux/macOS
-export FreeAgent__ClientId="your-client-id"
-export FreeAgent__ClientSecret="your-client-secret"
-export FreeAgent__RefreshToken="your-refresh-token"
-
-# Windows (Command Prompt)
-set FreeAgent__ClientId=your-client-id
-set FreeAgent__ClientSecret=your-client-secret
-set FreeAgent__RefreshToken=your-refresh-token
-
-# Windows (PowerShell)
-$env:FreeAgent__ClientId = "your-client-id"
-$env:FreeAgent__ClientSecret = "your-client-secret"
-$env:FreeAgent__RefreshToken = "your-refresh-token"
+dotnet run --project Solutions/DemoApp/DemoApp.csproj
 ```
 
-#### Option 3: User Secrets (Development)
+#### Interactive Login Mode
 
-For development, use .NET User Secrets to avoid storing credentials in source control:
+To log in interactively via OAuth2 (useful for obtaining your first Refresh Token):
 
 ```bash
-cd Solutions/DemoApp
-dotnet user-secrets set "FreeAgent:ClientId" "your-client-id"
-dotnet user-secrets set "FreeAgent:ClientSecret" "your-client-secret"
-dotnet user-secrets set "FreeAgent:RefreshToken" "your-refresh-token"
+dotnet run --project Solutions/DemoApp/DemoApp.csproj -- --interactive-login
+```
+
+Or using the short flag:
+
+```bash
+dotnet run --project Solutions/DemoApp/DemoApp.csproj -- -i
+```
+
+#### Sandbox Environment
+
+To use the FreeAgent Sandbox environment:
+
+```bash
+dotnet run --project Solutions/DemoApp/DemoApp.csproj -- --sandbox
+```
+
+You can combine flags:
+
+```bash
+dotnet run --project Solutions/DemoApp/DemoApp.csproj -- -i -s
+```
+
+### Configuration for Demo App
+
+You can configure the Demo App using User Secrets to avoid committing credentials:
+
+```bash
+dotnet user-secrets init --project Solutions/DemoApp/DemoApp.csproj
+dotnet user-secrets set "FreeAgent:ClientId" "your-client-id" --project Solutions/DemoApp/DemoApp.csproj
+dotnet user-secrets set "FreeAgent:ClientSecret" "your-client-secret" --project Solutions/DemoApp/DemoApp.csproj
+dotnet user-secrets set "FreeAgent:RefreshToken" "your-refresh-token" --project Solutions/DemoApp/DemoApp.csproj
 ```
 
 The demo app uses the UserSecretsId `FreeAgent.DemoApp`.
@@ -508,23 +301,20 @@ We welcome contributions! Please see our contributing guidelines for details on:
 
 ### Development Requirements
 
-- Visual Studio 2022 Preview or later (for C# 14 support)
-- .NET 10 SDK RC
+- Visual Studio 2026 or later
+- .NET 10 SDK
 - Git
 
 ### Running Tests
 
-The solution includes comprehensive unit tests:
+The solution uses the Microsoft Testing Platform. You can run tests using `dotnet run`:
 
 ```bash
-# Run all tests
-dotnet test
+# Run client tests
+dotnet run --project Solutions/Endjin.FreeAgent.Client.Tests/Endjin.FreeAgent.Client.Tests.csproj
 
-# Run with coverage
-dotnet test --collect:"XPlat Code Coverage"
-
-# Run specific test project
-dotnet test Endjin.FreeAgent.Client.Tests/Endjin.FreeAgent.Client.Tests.csproj
+# Run domain tests
+dotnet run --project Solutions/Endjin.FreeAgent.Domain.Tests/Endjin.FreeAgent.Domain.Tests.csproj
 ```
 
 ## Performance Considerations
@@ -546,16 +336,14 @@ try
 {
     Invoice invoice = await client.Invoices.GetAsync(invoiceId);
 }
-catch (FreeAgentException ex)
-{
-    // Handle FreeAgent-specific errors
-    Console.WriteLine($"FreeAgent error: {ex.Message}");
-    Console.WriteLine($"Error code: {ex.ErrorCode}");
-}
 catch (HttpRequestException ex)
 {
-    // Handle network errors
-    Console.WriteLine($"Network error: {ex.Message}");
+    // Handle network and API errors
+    Console.WriteLine($"API Error: {ex.Message}");
+    if (ex.StatusCode.HasValue)
+    {
+        Console.WriteLine($"Status Code: {ex.StatusCode}");
+    }
 }
 ```
 
