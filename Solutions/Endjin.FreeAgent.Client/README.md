@@ -54,7 +54,9 @@ FreeAgentOptions options = new()
 {
     ClientId = "your-client-id",
     ClientSecret = "your-client-secret",
-    RefreshToken = "your-refresh-token"
+    RefreshToken = "your-refresh-token",
+    // Set to true to use the FreeAgent Sandbox environment (https://signup.sandbox.freeagent.com)
+    UseSandbox = true
 };
 
 // Create client
@@ -81,7 +83,7 @@ IEnumerable<Contact> contacts = await client.Contacts.GetAllAsync();
 // Create an invoice
 Invoice invoice = new()
 {
-    Contact = "https://api.freeagent.com/v2/contacts/123",
+    Contact = new Uri("https://api.freeagent.com/v2/contacts/123"),
     DatedOn = DateOnly.FromDateTime(DateTime.Now),
     PaymentTermsInDays = 30,
     InvoiceItems = new List<InvoiceItem>
