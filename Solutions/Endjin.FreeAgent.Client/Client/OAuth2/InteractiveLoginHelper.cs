@@ -21,7 +21,7 @@ namespace Endjin.FreeAgent.Client.OAuth2;
 /// <summary>
 /// Helper class for performing interactive OAuth2 login to retrieve access and refresh tokens.
 /// </summary>
-public class InteractiveLoginHelper
+public partial class InteractiveLoginHelper
 {
     private readonly OAuth2Options options;
     private readonly HttpClient httpClient;
@@ -75,7 +75,7 @@ public class InteractiveLoginHelper
         string? codeVerifier = null;
         string? codeChallenge = null;
 
-        if (options.UsePkce)
+        if (this.options.UsePkce)
         {
             codeVerifier = CryptoRandom.CreateUniqueId(32);
             codeChallenge = GenerateCodeChallenge(codeVerifier);
@@ -83,23 +83,22 @@ public class InteractiveLoginHelper
         }
 
         // Build the authorization URL
-        string authorizationUrl = BuildAuthorizationUrl(redirectUri, codeChallenge);
+        string authorizationUrl = this.BuildAuthorizationUrl(redirectUri, codeChallenge);
 
-        this.logger.LogInformation("Starting interactive login flow on port {Port}", redirectPort);
-        this.logger.LogInformation("Authorization URL: {Url}", authorizationUrl);
+        this.LogStartingLogin(redirectPort);
+        this.LogAuthorizationUrl(authorizationUrl);
 
         // Start local HTTP listener to receive the callback
-        using HttpListener listener = new();
-        listener.Prefixes.Add($"http://localhost:{redirectPort}/");
+        using HttpListener listener = new() { Prefixes = { $"http://localhost:{redirectPort}/" } };
         
         try
         {
             listener.Start();
-            this.logger.LogDebug("HTTP listener started on port {Port}", redirectPort);
+            this.LogHttpListenerStarted(redirectPort);
         }
         catch (HttpListenerException ex)
         {
-            this.logger.LogError(ex, "Failed to start HTTP listener on port {Port}", redirectPort);
+            this.LogHttpListenerFailed(ex, redirectPort);
             throw new InvalidOperationException(
                 $"Failed to start HTTP listener on port {redirectPort}. " +
                 $"Make sure the port is not already in use and you have permission to listen on it.", ex);
@@ -113,7 +112,7 @@ public class InteractiveLoginHelper
         }
         catch (Exception ex)
         {
-            this.logger.LogWarning(ex, "Failed to open browser automatically. Please navigate to: {Url}", authorizationUrl);
+            this.LogBrowserOpenFailed(ex, authorizationUrl);
             Console.WriteLine($"\nPlease open your browser and navigate to:\n{authorizationUrl}\n");
         }
 
@@ -124,7 +123,7 @@ public class InteractiveLoginHelper
         HttpListenerContext context;
         try
         {
-            context = await listener.GetContextAsync().WaitAsync(cancellationToken);
+            context = await listener.GetContextAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -152,12 +151,12 @@ public class InteractiveLoginHelper
         }
 
         // Send response to browser
-        await SendCallbackResponseAsync(context.Response, code, error);
+        await SendCallbackResponseAsync(context.Response, code, error).ConfigureAwait(false);
 
         // Check for errors
         if (!string.IsNullOrEmpty(error))
         {
-            this.logger.LogError("Authorization failed with error: {Error}", error);
+            this.LogAuthorizationFailed(error);
             throw new InvalidOperationException($"Authorization failed: {error}");
         }
 
@@ -171,12 +170,11 @@ public class InteractiveLoginHelper
         Console.WriteLine("\nAuthorization successful! Exchanging code for tokens...");
 
         // Exchange the authorization code for tokens
-        TokenResponse tokenResponse = await ExchangeCodeForTokensAsync(code, redirectUri, codeVerifier, cancellationToken);
+        TokenResponse tokenResponse = await this.ExchangeCodeForTokensAsync(code, redirectUri, codeVerifier, cancellationToken).ConfigureAwait(false);
 
         if (tokenResponse.IsError)
         {
-            this.logger.LogError("Token exchange failed: {Error} - {ErrorDescription}", 
-                tokenResponse.Error, tokenResponse.ErrorDescription);
+            this.LogTokenExchangeFailed(tokenResponse.Error, tokenResponse.ErrorDescription);
             throw new InvalidOperationException(
                 $"Failed to exchange authorization code for tokens: {tokenResponse.Error} - {tokenResponse.ErrorDescription}");
         }
@@ -202,13 +200,13 @@ public class InteractiveLoginHelper
         Dictionary<string, string> queryParams = new()
         {
             { "response_type", "code" },
-            { "client_id", options.ClientId },
+            { "client_id", this.options.ClientId },
             { "redirect_uri", redirectUri }
         };
 
-        if (!string.IsNullOrEmpty(options.Scope))
+        if (!string.IsNullOrEmpty(this.options.Scope))
         {
-            queryParams["scope"] = options.Scope;
+            queryParams["scope"] = this.options.Scope;
         }
 
         if (!string.IsNullOrEmpty(codeChallenge))
@@ -217,10 +215,10 @@ public class InteractiveLoginHelper
             queryParams["code_challenge_method"] = "S256";
         }
 
-        string queryString = string.Join("&", queryParams.Select(kvp => 
+        string queryString = string.Join('&', queryParams.Select(kvp => 
             $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}"));
 
-        return $"{options.AuthorizationEndpoint}?{queryString}";
+        return $"{this.options.AuthorizationEndpoint}?{queryString}";
     }
 
     private async Task<TokenResponse> ExchangeCodeForTokensAsync(
@@ -229,25 +227,27 @@ public class InteractiveLoginHelper
         string? codeVerifier,
         CancellationToken cancellationToken)
     {
-        TokenClient tokenClient = new(httpClient, new TokenClientOptions
+        TokenClient tokenClient = new(this.httpClient, new TokenClientOptions
         {
-            Address = options.TokenEndpoint.ToString(),
-            ClientId = options.ClientId,
-            ClientSecret = options.ClientSecret,
+            Address = this.options.TokenEndpoint.ToString(),
+            ClientId = this.options.ClientId,
+            ClientSecret = this.options.ClientSecret,
         });
 
         return await tokenClient.RequestAuthorizationCodeTokenAsync(
             code,
             redirectUri,
             codeVerifier: codeVerifier,
-            cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     private static string GenerateCodeChallenge(string codeVerifier)
     {
-        using SHA256 sha256 = SHA256.Create();
-        byte[] hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(codeVerifier));
-        return Base64Url.Encode(hash);
+        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(codeVerifier));
+        return Convert.ToBase64String(hash)
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
     }
 
     private static void OpenBrowser(string url)
@@ -284,16 +284,13 @@ public class InteractiveLoginHelper
         }
     }
 
-    private async Task SendCallbackResponseAsync(HttpListenerResponse response, string? code, string? error)
+    private static async Task SendCallbackResponseAsync(HttpListenerResponse response, string? code, string? error)
     {
         response.ContentType = "text/html";
         response.StatusCode = 200;
 
-        string htmlResponse;
-        
-        if (!string.IsNullOrEmpty(error))
-        {
-            htmlResponse = $@"
+        string htmlResponse = !string.IsNullOrEmpty(error)
+            ? $@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -313,11 +310,9 @@ public class InteractiveLoginHelper
         <p>You can close this window.</p>
     </div>
 </body>
-</html>";
-        }
-        else if (!string.IsNullOrEmpty(code))
-        {
-            htmlResponse = @"
+</html>"
+            : !string.IsNullOrEmpty(code)
+                ? @"
 <!DOCTYPE html>
 <html>
 <head>
@@ -337,11 +332,8 @@ public class InteractiveLoginHelper
         <p>You can close this window and return to the application.</p>
     </div>
 </body>
-</html>";
-        }
-        else
-        {
-            htmlResponse = @"
+</html>"
+                : @"
 <!DOCTYPE html>
 <html>
 <head>
@@ -362,42 +354,31 @@ public class InteractiveLoginHelper
     </div>
 </body>
 </html>";
-        }
 
         byte[] buffer = Encoding.UTF8.GetBytes(htmlResponse);
         response.ContentLength64 = buffer.Length;
-        await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
+        await response.OutputStream.WriteAsync(buffer).ConfigureAwait(false);
         response.OutputStream.Close();
     }
-}
 
-/// <summary>
-/// Result of an interactive login operation.
-/// </summary>
-public class InteractiveLoginResult
-{
-    /// <summary>
-    /// Gets or sets the access token.
-    /// </summary>
-    public required string AccessToken { get; init; }
+    [LoggerMessage(1, LogLevel.Information, "Starting interactive login flow on port {Port}")]
+    private partial void LogStartingLogin(int port);
 
-    /// <summary>
-    /// Gets or sets the refresh token.
-    /// </summary>
-    public required string RefreshToken { get; init; }
+    [LoggerMessage(2, LogLevel.Information, "Authorization URL: {Url}")]
+    private partial void LogAuthorizationUrl(string url);
 
-    /// <summary>
-    /// Gets or sets when the access token expires (UTC).
-    /// </summary>
-    public required DateTime ExpiresAt { get; init; }
+    [LoggerMessage(3, LogLevel.Debug, "HTTP listener started on port {Port}")]
+    private partial void LogHttpListenerStarted(int port);
 
-    /// <summary>
-    /// Gets or sets the number of seconds until the token expires.
-    /// </summary>
-    public required int ExpiresInSeconds { get; init; }
+    [LoggerMessage(4, LogLevel.Error, "Failed to start HTTP listener on port {Port}")]
+    private partial void LogHttpListenerFailed(Exception ex, int port);
 
-    /// <summary>
-    /// Gets or sets the token type (typically "Bearer").
-    /// </summary>
-    public required string TokenType { get; init; }
+    [LoggerMessage(5, LogLevel.Warning, "Failed to open browser automatically. Please navigate to: {Url}")]
+    private partial void LogBrowserOpenFailed(Exception ex, string url);
+
+    [LoggerMessage(6, LogLevel.Error, "Authorization failed with error: {Error}")]
+    private partial void LogAuthorizationFailed(string error);
+
+    [LoggerMessage(7, LogLevel.Error, "Token exchange failed: {Error} - {ErrorDescription}")]
+    private partial void LogTokenExchangeFailed(string? error, string? errorDescription);
 }
