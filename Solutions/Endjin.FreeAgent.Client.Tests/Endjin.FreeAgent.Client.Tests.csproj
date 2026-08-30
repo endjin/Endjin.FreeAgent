@@ -25,13 +25,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MSTest" Version="4.3.3" />
-    <PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="2.3.3" />
-    <PackageReference Include="Shouldly" Version="4.3.0" />
-    <PackageReference Include="NSubstitute" Version="6.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.11" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.11" />
-    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.10.0" />
+    <PackageReference Include="MSTest" />
+    <PackageReference Include="Microsoft.Testing.Platform.MSBuild" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
   </ItemGroup>
 
   <ItemGroup>
