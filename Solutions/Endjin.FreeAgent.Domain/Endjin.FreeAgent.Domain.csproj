@@ -36,7 +36,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NodaTime" Version="3.3.3" />
+    <PackageReference Include="NodaTime" />
   </ItemGroup>
 
   <ItemGroup>
