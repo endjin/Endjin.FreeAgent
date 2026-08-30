@@ -4,7 +4,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <EnableMSTestRunner>true</EnableMSTestRunner>
-    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <!-- The compile phase runs on Windows and the test phase on Linux (see enableCrossOsCaching
+         in .github/workflows/build.yml). MTP launches the native apphost, which is OS-specific,
+         so a Windows-built .exe cannot be started on the Linux test runner. Suppressing the
+         apphost leaves only the portable .dll, which MTP runs via 'dotnet <dll>' on any OS. -->
+    <UseAppHost>false</UseAppHost>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <RootNamespace>Endjin.FreeAgent.Domain.Tests</RootNamespace>
@@ -22,14 +26,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MSTest" Version="4.0.2" />
-    <PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="2.0.2" />
+    <PackageReference Include="MSTest" Version="4.3.3" />
+    <PackageReference Include="Microsoft.Testing.Platform.MSBuild" Version="2.3.3" />
     <PackageReference Include="Shouldly" Version="4.3.0" />
-    <PackageReference Include="NSubstitute" Version="5.3.0" />
-    <PackageReference Include="coverlet.collector" Version="6.0.4">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="NSubstitute" Version="6.2.0" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.10.0" />
   </ItemGroup>
 
   <ItemGroup>
