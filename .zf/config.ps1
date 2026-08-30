@@ -39,6 +39,13 @@ $NugetPublishSource = property ZF_NUGET_PUBLISH_SOURCE "$here/_local-nuget-feed"
 $IncludeAssembliesInCodeCoverage = "Endjin.FreeAgent*"
 $ExcludeAssembliesInCodeCoverage = "Endjin.FreeAgent*.Tests*"
 
+# The tests run on Microsoft.Testing.Platform (enabled via the 'test.runner' setting in
+# global.json). In MTP mode 'dotnet test' forwards the MSBuild file logger switch ('/flp')
+# through to the test application, which rejects it and reports "Zero tests ran" with exit
+# code 5. The test phase already runs with '--no-build', so the build file log has nothing
+# to record - disable it so the switch is never passed.
+$DotNetTestFileLoggerProps = ""
+
 task . FullBuild
 
 #
