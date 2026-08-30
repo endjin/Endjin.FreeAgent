@@ -4,6 +4,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <EnableMSTestRunner>true</EnableMSTestRunner>
+    <!-- The compile phase runs on Windows and the test phase on Linux (see enableCrossOsCaching
+         in .github/workflows/build.yml). MTP launches the native apphost, which is OS-specific,
+         so a Windows-built .exe cannot be started on the Linux test runner. Suppressing the
+         apphost leaves only the portable .dll, which MTP runs via 'dotnet <dll>' on any OS. -->
+    <UseAppHost>false</UseAppHost>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <RootNamespace>Endjin.FreeAgent.Domain.Tests</RootNamespace>
