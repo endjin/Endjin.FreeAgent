@@ -3,4 +3,19 @@
     <!-- Enable MSTest runner for all test projects -->
     <!-- <EnableMSTestRunner Condition="'$(IsTestProject)' == 'true'">true</EnableMSTestRunner> -->
   </PropertyGroup>
+
+  <!--
+    Package <-> repository linkage in GitHub Packages (and nuget.org).
+  -->
+  <PropertyGroup>
+    <RepositoryUrl>https://github.com/endjin/Endjin.FreeAgent</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/endjin/Endjin.FreeAgent</PackageProjectUrl>
+    <!-- Let SourceLink (bundled in the .NET SDK) fill in RepositoryBranch/RepositoryCommit
+         and embed the repo URL in the package. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <!-- Deterministic, CI-tagged builds when running under GitHub Actions. -->
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
 </Project>
