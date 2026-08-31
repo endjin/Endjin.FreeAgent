@@ -57,5 +57,5 @@ $urls = @(
 )
 
 foreach ($doc in $urls) {
-    dotnet run Tools/FreeAgentDocsConverter.cs -- "https://dev.freeagent.com/docs/$doc" -o ./docs
+    dotnet run Tools/FreeAgentDocsConverter.cs -- "https://dev.freeagent.com/docs/$doc" -o ./Docs
 }
