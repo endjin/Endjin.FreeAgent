@@ -38,7 +38,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\..\docs\**\*">
+    <!-- Source folder is 'Docs' (capitalised); the glob must match that casing so it also
+         resolves on case-sensitive filesystems (i.e. the Linux CI build runner). The output
+         link is kept lower-case to match the path the tests read (AppContext.BaseDirectory/docs). -->
+    <Content Include="..\..\Docs\**\*">
       <Link>docs\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
