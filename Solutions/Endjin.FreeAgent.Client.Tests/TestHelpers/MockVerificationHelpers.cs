@@ -216,11 +216,34 @@ public class TestHttpMessageHandler : HttpMessageHandler
     public HttpRequestMessage? LastRequest => this.receivedRequests.LastOrDefault();
 
     /// <summary>
+    /// Gets or sets a callback invoked with each request before its response is chosen, for tests
+    /// that need a side effect while a request is in flight (for example cancelling a token).
+    /// </summary>
+    public Action<HttpRequestMessage>? OnRequest { get; set; }
+
+    /// <summary>
     /// Sets up a response for a specific URI pattern.
     /// </summary>
     public void SetupResponse(string uriPattern, HttpResponseMessage response)
     {
         this.responseFactories[uriPattern] = () => CloneResponse(response);
+    }
+
+    /// <summary>
+    /// Sets up a sequence of responses for a specific URI pattern. Each matching request receives the
+    /// next response in the sequence; once the sequence is exhausted, the last response is repeated.
+    /// </summary>
+    public void SetupResponseSequence(string uriPattern, params HttpResponseMessage[] responses)
+    {
+        ArgumentOutOfRangeException.ThrowIfZero(responses.Length);
+
+        int next = 0;
+        this.responseFactories[uriPattern] = () =>
+        {
+            HttpResponseMessage response = responses[Math.Min(next, responses.Length - 1)];
+            next++;
+            return CloneResponse(response);
+        };
     }
 
     /// <summary>
@@ -239,6 +262,7 @@ public class TestHttpMessageHandler : HttpMessageHandler
         // Clone the request to preserve it (including content)
         HttpRequestMessage clonedRequest = await CloneRequestAsync(request);
         this.receivedRequests.Add(clonedRequest);
+        this.OnRequest?.Invoke(request);
 
         // Find matching response factory or use default
         Func<HttpResponseMessage>? responseFactory = FindMatchingResponseFactory(request) ?? this.defaultResponseFactory;

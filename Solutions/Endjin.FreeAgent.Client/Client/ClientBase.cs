@@ -71,7 +71,16 @@ public abstract class ClientBase
     private IMemoryCache? memoryCache;
     private ILoggerFactory? loggerFactory;
 
-    internal IRetryStrategy RetryStrategy { get; set; } = new Backoff();
+    /// <summary>
+    /// Gets or sets the factory that creates the retry strategy for each request.
+    /// </summary>
+    /// <remarks>
+    /// Corvus.Retry strategies are stateful: they count the tries they have seen and never reset.
+    /// Sharing one instance across requests would carry that count over, so after enough transient
+    /// failures over the client's lifetime no request would be retried at all. Each request therefore
+    /// gets its own instance from this factory.
+    /// </remarks>
+    internal Func<IRetryStrategy> RetryStrategyFactory { get; set; } = () => new Backoff();
     internal IRetryPolicy RetryPolicy { get; set; } = new AnyExceptionPolicy();
 
     /// <summary>
@@ -249,7 +258,7 @@ public abstract class ClientBase
                     return result;
                 },
                 cancellationToken,
-                this.RetryStrategy,
+                this.RetryStrategyFactory(),
                 this.RetryPolicy).ConfigureAwait(false);
 
             string jsonContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
