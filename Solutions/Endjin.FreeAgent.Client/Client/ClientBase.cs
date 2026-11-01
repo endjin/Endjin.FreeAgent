@@ -14,6 +14,7 @@ using Corvus.Retry.Strategies;
 
 using Endjin.FreeAgent.Domain;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Endjin.FreeAgent.Client;
 
@@ -192,6 +193,13 @@ public abstract class ClientBase
     /// This method is used internally to inject the logger factory dependency.
     /// </remarks>
     internal void SetLoggerFactory(ILoggerFactory factory) => this.loggerFactory = factory;
+
+    /// <summary>
+    /// Creates a logger whose category is the given type, using the configured logger factory.
+    /// </summary>
+    /// <typeparam name="T">The type whose name becomes the logger category.</typeparam>
+    /// <returns>A logger, or a no-op logger if no logger factory has been configured.</returns>
+    internal ILogger<T> CreateLogger<T>() => (this.loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<T>();
 
     /// <summary>
     /// Executes an HTTP GET request and automatically follows pagination links to retrieve all results as an asynchronous stream.
