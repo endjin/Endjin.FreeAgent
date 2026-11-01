@@ -7,6 +7,9 @@ using System.Text.RegularExpressions;
 
 using Endjin.FreeAgent.Domain;
 
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace Endjin.FreeAgent.Client;
 
 /// <summary>
@@ -33,6 +36,7 @@ public partial class Estimates
     private readonly FreeAgentClient freeAgentClient;
     private readonly IMemoryCache cache;
     private readonly MemoryCacheEntryOptions cacheEntryOptions = new();
+    private readonly ILogger<Estimates> logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Estimates"/> class.
@@ -43,6 +47,7 @@ public partial class Estimates
     {
         this.freeAgentClient = freeAgentClient;
         this.cache = cache;
+        this.logger = freeAgentClient?.CreateLogger<Estimates>() ?? NullLogger<Estimates>.Instance;
         this.cacheEntryOptions.SetSlidingExpiration(TimeSpan.FromMinutes(5));
     }
 
@@ -732,6 +737,12 @@ public partial class Estimates
     /// Results are cached for 5 minutes. The calculation involves multiple API calls to retrieve
     /// contacts, projects, and estimates, which are executed in parallel for performance.
     /// </para>
+    /// <para>
+    /// Every approved and draft estimate contributes to the projection, including several estimates
+    /// for the same project. If an individual estimate cannot be loaded because its request fails or times out,
+    /// the failure is logged at <see cref="LogLevel.Error"/> and that estimate is left out of the
+    /// projection; the remaining estimates are still processed.
+    /// </para>
     /// </remarks>
     public async Task<Dictionary<DateTime, List<(Contact contact, Project project, decimal price)>>> GetProjectedMonthlyRevenue()
     {
@@ -781,7 +792,7 @@ public partial class Estimates
                         project = project with
                         {
                             ContactEntry = contact,
-                            IsEstimate = (estimate.Status == "Draft")
+                            IsEstimate = string.Equals(estimate.Status, "Draft", StringComparison.OrdinalIgnoreCase)
                         };
                     }
 
@@ -798,14 +809,26 @@ public partial class Estimates
 
                     if (project != null)
                     {
-                        estimateLineItems.Add(project, entries);
+                        // Project is a record, so every estimate for the same project (with the same
+                        // IsEstimate value) produces an equal key. Append to the existing entry rather
+                        // than Add, which throws on a duplicate key and would drop this estimate.
+                        if (estimateLineItems.TryGetValue(project, out List<(DateTime? Date, decimal Price)>? existingEntries))
+                        {
+                            existingEntries.AddRange(entries);
+                        }
+                        else
+                        {
+                            estimateLineItems.Add(project, entries);
+                        }
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException { InnerException: TimeoutException })
                 {
-                    // Log the error but continue processing other estimates
-                    // In production, consider using ILogger instead
-                    System.Diagnostics.Debug.WriteLine($"Error processing estimate {estimate.Reference ?? estimate.Url?.ToString() ?? "unknown"}: {ex.Message}");
+                    // One estimate failing to load, whether the request fails or times out, should not
+                    // lose the whole projection, but the failure must be visible. HttpClient reports a
+                    // timeout as a TaskCanceledException wrapping a TimeoutException. Anything else,
+                    // including an explicit cancellation, is allowed to propagate.
+                    this.logger.LogError(ex, "Failed to load estimate {EstimateReference}; it is excluded from the projected monthly revenue.", estimate.Reference ?? estimate.Url?.ToString() ?? "unknown");
                 }
             }
 
