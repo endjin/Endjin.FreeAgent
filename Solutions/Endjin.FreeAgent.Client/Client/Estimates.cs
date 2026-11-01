@@ -739,7 +739,7 @@ public partial class Estimates
     /// </para>
     /// <para>
     /// Every approved and draft estimate contributes to the projection, including several estimates
-    /// for the same project. If an individual estimate cannot be loaded because its request fails,
+    /// for the same project. If an individual estimate cannot be loaded because its request fails or times out,
     /// the failure is logged at <see cref="LogLevel.Error"/> and that estimate is left out of the
     /// projection; the remaining estimates are still processed.
     /// </para>
@@ -822,11 +822,12 @@ public partial class Estimates
                         }
                     }
                 }
-                catch (HttpRequestException ex)
+                catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException { InnerException: TimeoutException })
                 {
-                    // One estimate failing to load should not lose the whole projection, but the
-                    // failure must be visible. Anything other than a request failure is a bug and
-                    // is allowed to propagate.
+                    // One estimate failing to load, whether the request fails or times out, should not
+                    // lose the whole projection, but the failure must be visible. HttpClient reports a
+                    // timeout as a TaskCanceledException wrapping a TimeoutException. Anything else,
+                    // including an explicit cancellation, is allowed to propagate.
                     this.logger.LogError(ex, "Failed to load estimate {EstimateReference}; it is excluded from the projected monthly revenue.", estimate.Reference ?? estimate.Url?.ToString() ?? "unknown");
                 }
             }

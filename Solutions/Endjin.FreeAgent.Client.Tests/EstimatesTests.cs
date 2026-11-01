@@ -5,6 +5,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 
 using Endjin.FreeAgent.Domain;
 using Microsoft.Extensions.Logging;
@@ -1009,6 +1010,86 @@ public class EstimatesTests
             && call.GetArguments()[3] is HttpRequestException);
 
         loggedTheFailure.ShouldBeTrue("Expected the failed estimate request to be logged at Error level with the HttpRequestException.");
+    }
+
+    [TestMethod]
+    public async Task GetProjectedMonthlyRevenue_LogsAndSkipsAnEstimateWhoseRequestTimesOut()
+    {
+        // Arrange: a real HttpClient timeout, which surfaces as a TaskCanceledException wrapping a
+        // TimeoutException rather than an HttpRequestException. The timed-out estimate must be
+        // logged and excluded, and the other estimate still contributes.
+        ILogger logger = Substitute.For<ILogger>();
+        this.loggerFactory.CreateLogger(Arg.Any<string>()).Returns(logger);
+
+        HangingRequestHandler hangingHandler = new("v2/estimates/302") { InnerHandler = this.messageHandler };
+        using HttpClient timingOutClient = new(hangingHandler) { Timeout = TimeSpan.FromMilliseconds(100) };
+        IHttpClientFactory timingOutFactory = Substitute.For<IHttpClientFactory>();
+        timingOutFactory.CreateClient(Arg.Any<string>()).Returns(timingOutClient);
+
+        FreeAgentClient client = new(new FreeAgentOptionsBuilder().Build(), this.cache, timingOutFactory, this.loggerFactory);
+        await TestHelper.SetupForTestingAsync(client, timingOutFactory);
+        Estimates estimatesWithTimeout = new(client, this.cache);
+
+        Uri contactUrl = new("https://api.freeagent.com/v2/contacts/1");
+        Uri projectUrl = new("https://api.freeagent.com/v2/projects/1");
+        Contact contact = new() { Url = contactUrl, OrganisationName = "Acme Ltd" };
+        Project project = new() { Url = projectUrl, Name = "Platform build", Contact = contactUrl, Status = "Active", Currency = "GBP", BudgetUnits = "Hours" };
+
+        Estimate loads = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/estimates/301"),
+            Reference = "EST301",
+            Status = "Approved",
+            Contact = contactUrl,
+            Project = projectUrl,
+            EstimateItems = [new() { Description = "Discovery - April 2026", Price = 900m, Quantity = 1m }]
+        };
+
+        Estimate timesOut = new()
+        {
+            Url = new Uri("https://api.freeagent.com/v2/estimates/302"),
+            Reference = "EST302",
+            Status = "Approved",
+            Contact = contactUrl,
+            Project = projectUrl
+        };
+
+        this.messageHandler.SetupResponse("v2/contacts?view=active_projects", JsonResponse(new ContactsRoot { Contacts = [contact] }));
+        this.messageHandler.SetupResponse("v2/projects?view=active", JsonResponse(new ProjectsRoot { Projects = [project] }));
+        this.messageHandler.SetupResponse("v2/estimates?view=approved", JsonResponse(new EstimatesRoot { Estimates = [loads, timesOut] }));
+        this.messageHandler.SetupResponse("v2/estimates?view=draft", JsonResponse(new EstimatesRoot { Estimates = [] }));
+        this.messageHandler.SetupResponse("v2/estimates/301", JsonResponse(new EstimateRoot { Estimate = loads }));
+
+        // Act
+        Dictionary<DateTime, List<(Contact contact, Project project, decimal price)>> revenue = await estimatesWithTimeout.GetProjectedMonthlyRevenue();
+
+        // Assert
+        revenue.Keys.ShouldBe([new DateTime(2026, 4, 1)]);
+        revenue[new DateTime(2026, 4, 1)].Single().price.ShouldBe(900m);
+
+        bool loggedTheTimeout = logger.ReceivedCalls().Any(call =>
+            call.GetMethodInfo().Name == nameof(ILogger.Log)
+            && (LogLevel)call.GetArguments()[0]! == LogLevel.Error
+            && call.GetArguments()[3] is TaskCanceledException { InnerException: TimeoutException });
+
+        loggedTheTimeout.ShouldBeTrue("Expected the timed-out estimate request to be logged at Error level with the timeout exception.");
+    }
+
+    /// <summary>
+    /// Never answers requests whose URI contains the given fragment, so that the HttpClient's own
+    /// timeout fires; every other request is passed to the inner handler.
+    /// </summary>
+    private sealed class HangingRequestHandler(string uriFragment) : DelegatingHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (request.RequestUri?.ToString().Contains(uriFragment) == true)
+            {
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+            }
+
+            return await base.SendAsync(request, cancellationToken);
+        }
     }
 
     private static HttpResponseMessage JsonResponse<T>(T body)
