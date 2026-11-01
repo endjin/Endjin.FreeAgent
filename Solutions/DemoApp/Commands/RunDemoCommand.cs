@@ -34,7 +34,7 @@ public class RunDemoCommand : AsyncCommand<RunDemoSettings>
         this.logger = logger;
     }
 
-    protected override async Task<int> ExecuteAsync(CommandContext context, RunDemoSettings settings, CancellationToken cancellationToken)
+    public override async Task<int> ExecuteAsync(CommandContext context, RunDemoSettings settings, CancellationToken cancellationToken)
     {
         FreeAgentClient client;
         FreeAgentOptions options = new();
