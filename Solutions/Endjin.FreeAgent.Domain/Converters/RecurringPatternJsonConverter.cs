@@ -12,6 +12,10 @@ namespace Endjin.FreeAgent.Converters;
 /// Custom JSON converter for the <see cref="RecurringPattern"/> enum that handles the
 /// FreeAgent API's string format for recurring pattern values.
 /// </summary>
+/// <remarks>
+/// Deserialization matches the API's values case-insensitively, so a change in the casing the API uses
+/// does not break deserialization. Serialization always writes the documented casing.
+/// </remarks>
 public class RecurringPatternJsonConverter : JsonConverter<RecurringPattern?>
 {
     /// <inheritdoc/>
@@ -33,17 +37,18 @@ public class RecurringPatternJsonConverter : JsonConverter<RecurringPattern?>
             return null;
         }
 
-        return value switch
+        // Matched case-insensitively, so a change in the API's casing cannot fail deserialization.
+        return value.ToLowerInvariant() switch
         {
-            "Weekly" => RecurringPattern.Weekly,
-            "Two Weekly" => RecurringPattern.TwoWeekly,
-            "Four Weekly" => RecurringPattern.FourWeekly,
-            "Monthly" => RecurringPattern.Monthly,
-            "Two Monthly" => RecurringPattern.TwoMonthly,
-            "Quarterly" => RecurringPattern.Quarterly,
-            "Biannually" => RecurringPattern.Biannually,
-            "Annually" => RecurringPattern.Annually,
-            "2-Yearly" => RecurringPattern.TwoYearly,
+            "weekly" => RecurringPattern.Weekly,
+            "two weekly" => RecurringPattern.TwoWeekly,
+            "four weekly" => RecurringPattern.FourWeekly,
+            "monthly" => RecurringPattern.Monthly,
+            "two monthly" => RecurringPattern.TwoMonthly,
+            "quarterly" => RecurringPattern.Quarterly,
+            "biannually" => RecurringPattern.Biannually,
+            "annually" => RecurringPattern.Annually,
+            "2-yearly" => RecurringPattern.TwoYearly,
             _ => throw new JsonException($"Unable to convert '{value}' to RecurringPattern enum")
         };
     }

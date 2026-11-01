@@ -250,7 +250,7 @@ public abstract class ClientBase
             yield return content;
 
             IEnumerable<Link> links = ExtractLinksFromHeader(response.Headers);
-            Link? nextPage = links.FirstOrDefault(x => x.Rel == "next");
+            Link? nextPage = links.FirstOrDefault(x => string.Equals(x.Rel, "next", StringComparison.OrdinalIgnoreCase));
             currentUri = nextPage?.Uri;
         }
     }

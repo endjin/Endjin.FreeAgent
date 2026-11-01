@@ -17,6 +17,7 @@ namespace Endjin.FreeAgent.Converters;
 /// The FreeAgent API represents auto sales tax rate values as descriptive strings
 /// (e.g., "Outside of the scope of VAT", "Zero rate"). This converter handles deserialization of
 /// these formats, normalizing them to the appropriate <see cref="AutoSalesTaxRateType"/> enum value.
+/// Matching is case-insensitive, so a change in the casing the API uses does not break deserialization.
 /// </para>
 /// <para>
 /// During serialization, auto sales tax rate values are converted to the exact string format
@@ -59,13 +60,14 @@ public class AutoSalesTaxRateTypeJsonConverter : JsonConverter<AutoSalesTaxRateT
         }
 
         // API uses descriptive string values
-        return value switch
+        // Matched case-insensitively, so a change in the API's casing cannot fail deserialization.
+        return value.ToLowerInvariant() switch
         {
-            "Outside of the scope of VAT" => AutoSalesTaxRateType.OutsideScope,
-            "Zero rate" => AutoSalesTaxRateType.ZeroRate,
-            "Reduced rate" => AutoSalesTaxRateType.ReducedRate,
-            "Standard rate" => AutoSalesTaxRateType.StandardRate,
-            "Exempt" => AutoSalesTaxRateType.Exempt,
+            "outside of the scope of vat" => AutoSalesTaxRateType.OutsideScope,
+            "zero rate" => AutoSalesTaxRateType.ZeroRate,
+            "reduced rate" => AutoSalesTaxRateType.ReducedRate,
+            "standard rate" => AutoSalesTaxRateType.StandardRate,
+            "exempt" => AutoSalesTaxRateType.Exempt,
             _ => throw new JsonException($"Unable to convert '{value}' to AutoSalesTaxRateType enum")
         };
     }

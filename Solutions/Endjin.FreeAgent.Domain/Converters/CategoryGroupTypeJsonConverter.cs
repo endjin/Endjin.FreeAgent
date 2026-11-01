@@ -17,6 +17,7 @@ namespace Endjin.FreeAgent.Converters;
 /// The FreeAgent API represents category group values as strings in snake_case format
 /// (e.g., "cost_of_sales", "admin_expenses"). This converter handles deserialization of
 /// these formats, normalizing them to the appropriate <see cref="CategoryGroupType"/> enum value.
+/// Matching is case-insensitive, so a change in the casing the API uses does not break deserialization.
 /// </para>
 /// <para>
 /// During serialization, category group values are converted to snake_case format for API compatibility.
@@ -59,7 +60,8 @@ public class CategoryGroupTypeJsonConverter : JsonConverter<CategoryGroupType?>
         }
 
         // API uses snake_case values
-        return value switch
+        // Matched case-insensitively, so a change in the API's casing cannot fail deserialization.
+        return value.ToLowerInvariant() switch
         {
             "income" => CategoryGroupType.Income,
             "cost_of_sales" => CategoryGroupType.CostOfSales,
