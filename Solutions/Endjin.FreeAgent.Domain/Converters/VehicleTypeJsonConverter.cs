@@ -12,6 +12,10 @@ namespace Endjin.FreeAgent.Converters;
 /// Custom JSON converter for the <see cref="VehicleType"/> enum that handles the
 /// FreeAgent API's string format for vehicle type values.
 /// </summary>
+/// <remarks>
+/// Deserialization matches the API's values case-insensitively, so a change in the casing the API uses
+/// does not break deserialization. Serialization always writes the documented casing.
+/// </remarks>
 public class VehicleTypeJsonConverter : JsonConverter<VehicleType?>
 {
     /// <inheritdoc/>
@@ -33,11 +37,12 @@ public class VehicleTypeJsonConverter : JsonConverter<VehicleType?>
             return null;
         }
 
-        return value switch
+        // Matched case-insensitively, so a change in the API's casing cannot fail deserialization.
+        return value.ToLowerInvariant() switch
         {
-            "Car" => VehicleType.Car,
-            "Motorcycle" => VehicleType.Motorcycle,
-            "Bicycle" => VehicleType.Bicycle,
+            "car" => VehicleType.Car,
+            "motorcycle" => VehicleType.Motorcycle,
+            "bicycle" => VehicleType.Bicycle,
             _ => throw new JsonException($"Unable to convert '{value}' to VehicleType enum")
         };
     }
