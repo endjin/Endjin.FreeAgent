@@ -38,7 +38,7 @@ $ProjectsToPublish = @(
 $NugetPublishSource = property ZF_NUGET_PUBLISH_SOURCE "$here/_local-nuget-feed"
 # Use NuGet.org Trusted Publishing (GitHub Actions OIDC) instead of a long-lived API key when publishing to nuget.org
 $NugetPublishUseTrustedPublishing = ([uri]$NugetPublishSource).Host -eq 'api.nuget.org'
-$NugetTrustedPublishingUsername = "Howard.vanRooijen"
+$NugetTrustedPublishingUsername = "HowardvanRooijen"
 $IncludeAssembliesInCodeCoverage = "Endjin.FreeAgent*"
 $ExcludeAssembliesInCodeCoverage = "Endjin.FreeAgent*.Tests*"
 
