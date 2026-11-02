@@ -8,7 +8,7 @@ $zerofailedExtensions = @(
         # References the extension from its GitHub repository. If not already installed, use latest version from 'main' will be downloaded.
         Name = "ZeroFailed.Build.DotNet"
         GitRepository = "https://github.com/zerofailed/ZeroFailed.Build.DotNet"
-        GitRef = "main"
+        GitRef = "feature/nuget-trusted-publishing"
     }
 )
 
@@ -36,6 +36,9 @@ $ProjectsToPublish = @(
     "Solutions\Endjin.FreeAgent.Domain\Endjin.FreeAgent.Domain.csproj"
 )
 $NugetPublishSource = property ZF_NUGET_PUBLISH_SOURCE "$here/_local-nuget-feed"
+# Use NuGet.org Trusted Publishing (GitHub Actions OIDC) instead of a long-lived API key when publishing to nuget.org
+$NugetPublishUseTrustedPublishing = ([uri]$NugetPublishSource).Host -eq 'api.nuget.org'
+$NugetTrustedPublishingUsername = "endjin"
 $IncludeAssembliesInCodeCoverage = "Endjin.FreeAgent*"
 $ExcludeAssembliesInCodeCoverage = "Endjin.FreeAgent*.Tests*"
 
